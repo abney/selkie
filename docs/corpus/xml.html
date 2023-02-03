@@ -1,0 +1,255 @@
+<html>
+<head>
+<title>XML files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>XML files</h1>
+<p>
+The module <tt>seal.nlp.xml</tt> provides a convenient XML parser.
+The standard Python library provides XML parsing,
+but the facilities it provides generally signal an error when
+encountering ill-formed XML.  Unfortunately, a great deal of XML on the
+web is ill-formed, and aborting is not a very graceful way of dealing
+with it.  The XML parser in <tt>seal.xml</tt> is designed to be very
+robust and lightweight.</p>
+
+
+<h2 id="1">XML tags</h2>
+
+<h3 id="1.1">Iter and load tags</h3>
+<p>
+The XML parser described in the previous section calls
+<tt>iter_xml_tags()</tt> to convert the file to a stream containing a
+mix of XML tags and character data.  The function
+<tt>iter_xml_tags()</tt> is actually the constructor for a class.
+It has no methods beyond the standard iterator methods.
+For example:</p>
+<pre class="python">
+>>> from seal.core.io import ex
+>>> from seal.nlp.xml import iter_xml_tags
+>>> for elt in iter_xml_tags(ex.xml1): print(repr(elt))
+... 
+&lt;Tag start html [] 0>
+'\n'
+&lt;Tag start body [('foo', 'hi&bye'), ('bar', '16')] 7>
+'\nA "little" '
+&lt;Tag start b [] 59>
+'example'
+&lt;Tag end b [] 69>
+'.\n'
+&lt;Tag end body [] 75>
+'\n'
+&lt;Tag end html [] 83>
+'\n'
+</pre>
+<p>
+The elements are either of type <tt>Tag</tt> or of type <tt>str</tt>.</p>
+<p>
+The XML standard requires quotes around attribute values, but the tag
+scanner does not insist on them.  Entity references are expanded in
+character data as well as in attribute values.</p>
+<p>
+The function <tt>load_xml_tags()</tt> converts the iterator into a list:</p>
+<pre class="python">
+>>> from seal.nlp.xml import load_xml_tags
+>>> tags = load_xml_tags(ex.xml1)
+>>> tags[0]
+&lt;Tag start html [] 0>
+>>> len(tags)
+12
+</pre>
+
+<h3 id="1.2">Tags</h3>
+<p>
+A <tt>Tag</tt> instance has the following attributes.</p>
+<table class="display">
+<tr><td><tt>type</tt></td> <td>One of <tt>"start"</tt>, <tt>"end"</tt>, or <tt>"empty"</tt>.</td></tr>
+<tr><td><tt>label</tt></td> <td>The label (category) of the tag.</td></tr>
+<tr><td><tt>ftrs</tt></td> <td>A list of pairs (<i>att, value</i>).</td></tr>
+<tr><td><tt>cpos</tt></td> <td>The character position in the plain text file.</td></tr>
+<tr><td><tt>line_number</tt></td> <td>The line number in the original XML file.</td></tr>
+</table>
+<p>
+For example:</p>
+<pre class="python">
+>>> tag = tags[2]
+>>> tag
+&lt;Tag start body [('foo', 'hi&bye'), ('bar', '16')] 7>
+>>> tag.type
+'start'
+>>> tag.label
+'body'
+>>> tag.ftrs
+[('foo', 'hi&bye'), ('bar', '16')]
+>>> tag.cpos
+7
+>>> tag.line_number
+2
+</pre>
+<p>
+Note that the features are represented as a list of pairs.  If
+multiple features have the same key, all will be present.</p>
+
+<h3 id="1.3">Entities</h3>
+<p>
+The tag iterator calls <tt>decode_xml_entities()</tt> to convert XML
+entities like "&amp;amp;" to characters ("&amp;").</p>
+<p>
+The known codes are listed in <tt>EntityTable</tt>.  For example:</p>
+<pre class="python">
+>>> from seal.nlp.xml import EntityTable
+>>> EntityTable['amp']
+'&amp;'
+</pre>
+
+<h2 id="2">XML trees</h2>
+
+<h3 id="2.1">Load XML</h3>
+<p>
+The main function is <tt>load_xml()</tt>.  It reads an XML file and
+converts it to a tree.
+For example, consider the file <tt>ex.xml1</tt>:</p>
+<pre class="python">
+>>> from seal.core.io import contents
+>>> print(contents(ex.xml1), end='')
+&lt;html>
+&lt;body foo="hi&amp;amp;bye" bar=16>
+A &amp;quot;little&amp;quot; &lt;b>example&lt;/b>.
+&lt;/body>
+&lt;/html>
+</pre>
+<p>
+We read it as a tree:</p>
+<pre class="python">
+>>> from seal.nlp.xml import load_xml
+>>> xml1 = load_xml(ex.xml1)
+>>> print(xml1)
+0    (html
+1       ('#CDATA' '\n')
+2       (body
+3          ('#CDATA' '\nA "little" ')
+4          (b
+5             ('#CDATA' example))
+6          ('#CDATA' '.\n'))
+7       ('#CDATA' '\n'))
+</pre>
+
+<h3 id="2.2">XML node</h3>
+<p>
+Each XML node is represented by a Tree instance.  It has one
+nonstandard member, namely, <tt>ftrs</tt>.</p>
+<ul>
+<li><tt>node.cat</tt> - a string, the tag label or <tt>'#CDATA'</tt></li>
+<li><tt>node.word</tt> - a string, the contents of a CDATA node</li>
+<li><tt>node.ftrs</tt> - a list of (att, value) pairs</li>
+<li><tt>node.children</tt> - a list of Tree instances, or None</li>
+</ul>
+
+<h3 id="2.3">Examining the tree</h3>
+<p>
+The functions from <tt>seal.nlp.tree</tt> can be useful with XML trees.
+For example, one can pick out subtrees using the function <tt>subtrees()</tt>.  It
+takes a second argument which is either a category or a predicate.</p>
+<pre class="python">
+>>> from seal.nlp.tree import subtrees
+>>> subtrees(xml1, 'b')
+[&lt;Tree b ...>]
+>>> subtrees(xml1, lambda x: x.cat == '#CDATA' and x.word != '\n')
+[&lt;Tree #CDATA '\nA "little" '>, &lt;Tree #CDATA example>, &lt;Tree #CDATA '.\n'>]
+</pre>
+<p>
+The function <tt>subtree()</tt> is just like <tt>subtrees()</tt>, except
+that it returns a tree; it signals an error if the specified tree does
+not exist or is not unique.</p>
+<pre class="python">
+>>> from seal.nlp.tree import subtree
+>>> body = subtree(xml1, 'body')
+</pre>
+<p>
+The function <tt>terminal_string()</tt>
+returns the string contents of a node.</p>
+<pre class="python">
+>>> from seal.nlp.tree import terminal_string
+>>> terminal_string(body)
+'\nA "little"  example .\n'
+</pre>
+<p>
+The <tt>subtrees()</tt> function will not recurse inside any node that it
+returns.  For example:</p>
+<pre class="python">
+>>> subtrees(xml1, lambda x: not x.word)
+[&lt;Tree html  ...>]
+</pre>
+<p>
+To retrieve all nodes matching a given criterion, use the function <tt>nodes()</tt> and
+list comprehension:</p>
+<pre class="python">
+>>> from seal.nlp.tree import nodes
+>>> [n for n in nodes(xml1) if not n.word]
+[&lt;Tree html ...>, &lt;Tree body ...>, &lt;Tree b ...>]
+</pre>
+<p>
+It is worth noting that the <tt>iter_xml_trees()</tt> function handles
+ill-formed XML gracefully.  For example:</p>
+<pre class="python">
+>>> print(contents(ex.bad.html), end='')
+&lt;html>
+&lt;body>
+&lt;p>
+This is an example with lots
+of missing end tags.
+&lt;table>
+&lt;tr>&lt;th>Name &lt;th>Rank &lt;th>SerialNo&lt;/tr>
+&lt;tr>&lt;td>Smith &lt;td>Corporal &lt;td>1234567&lt;/tr>
+&lt;tr>&lt;td>Jones &lt;td>Private &lt;td>7654321&lt;/tr>
+&lt;tr>&lt;td>Howard &lt;td>Major General &lt;td>0000001&lt;/tr>
+&lt;/table>
+&lt;/body>
+</pre>
+<p>
+The missing end tags are inserted automatically:</p>
+<pre class="python">
+>>> bad = load_xml(ex.bad.html)
+>>> rows = subtrees(bad, 'tr')
+>>> for row in rows: print(terminal_string(row))
+... 
+Name  Rank  SerialNo
+Smith  Corporal  1234567
+Jones  Private  7654321
+Howard  Major General  0000001
+</pre>
+<p>
+End tags are paired with the nearest matching start tag.  If there is no
+start tag with the same label, the end tag is silently ignored.</p>
+<p>
+Within the region spanned by a matching tag pair, there may be
+unmatched start tags.  They are dealt with in a right-to-left pass, as follows.
+First, every category has a "precedence" assigned to it.
+(The precedence is only meaningful for HTML categories; it is
+a fixed constant for any non-HTML categories.)  If the precedence is
+zero (for categories <tt>br</tt> and <tt>img</tt>), the unmatched start tag
+is converted to an empty tag.  Otherwise, the "span" of the
+unmatched start tag is grown to
+cover as much material as possible, until it reaches the end of the
+region defined by the encompassing explicit tag pair, or until it
+encounters a node of equal or higher precedence.  In other words, no
+element created from an unmatched start tag will contain a child whose
+precedence is equal to or greater than its own.</p>
+<p>
+To get the value for an attribute, use the function <tt>getvalue()</tt>.</p>
+<pre class="python">
+>>> from seal.nlp.xml import getvalue
+>>> getvalue(body, 'foo')
+'hi&bye'
+</pre>
+
+<h2 id="3">Tidy</h2>
+<p>
+When there are unmatched start tags, <tt>iter_xml_trees()</tt> calls the
+function <tt>tidy()</tt> to decide where the end tags should go.  It
+uses a table encoding intuitive operator precedences for HTML tags.</p>
+
+</body>
+</html>

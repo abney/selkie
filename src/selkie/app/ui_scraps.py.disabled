@@ -1,0 +1,45 @@
+
+#--  HtmlDirectory  ------------------------------------------------------------
+
+class HtmlDirectory (seal.app.HtmlDirectory):
+
+    __pages__ = {'__edit__': '__edit__'}
+
+    def __edit__ (self, call, *args, **kwargs):
+        text = kwargs['text']
+        if text:
+            rom = kwargs['rom']
+            response = Text(decode(text, rom=rom))
+        else:
+            response = Text()
+
+        if call:
+            f = self._getpage_method(call)
+            f(*args, **kwargs)
+        return response
+
+    def __repr__ (self):
+        return '<%s>' % self.__class__.__name__
+
+
+#--  Request  ------------------------------------------------------------------
+
+def make_form (pairs):
+    form = {}
+    if pairs:
+        for (name, value) in pairs:
+            if name.startswith('*'):
+                key = name[1:]
+                if key in form:
+                    values = form[key]
+                    if isinstance(values, str):
+                        raise Exception('Cannot have both %s and %s' % (name, key))
+                    values.append(value)
+                else:
+                    form[key] = [value]
+            elif name in form:
+                raise Exception('Multiple values for key: %s' % name)
+            else:
+                form[name] = value
+    return form
+

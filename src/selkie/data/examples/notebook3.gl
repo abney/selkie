@@ -1,0 +1,176 @@
+
+VP -> VC
+VP -> VC NP
+VP -> VC NP NP
+VP -> VC NP PP
+VP -> VC PP
+VP -> VC AdjP
+VP -> VC SC
+VP -> VC NP SC
+
+VP -> VP PP
+NP -> NP PP
+AdjP -> AdjP PP
+VP -> VP AdvP
+VP -> VP SC
+NP -> NP AdjP
+NP -> NP RC
+
+PP -> P NP
+
+S -> NP VP
+Root -> S
+Root -> Aux S
+Root -> Wh Aux S
+Root -> VP
+SC -> Comp S
+SC -> InfTo VP
+RC -> RelPron S
+
+S -> S Conj S
+VP -> VP Conj VP
+NP -> NP Conj NP
+PP -> PP Conj PP
+AdjP -> AdjP Conj AdjP
+
+a_red_dog <- NP
+a_bone <- NP
+a_boy <- NP
+a_box <- NP
+a_car <- NP
+a_fish <- NP
+a_fork <- NP
+a_gift <- NP
+a_picnic <- NP
+a_toad <- NP
+
+a_year <- NP
+an_uneasy_truce <- NP
+and <- Conj
+ate <- VC
+baling_twine <- NP
+Betsy <- NP
+Bill <- NP
+bought <- VC
+caught <- VC
+clean_up <- VC
+counting <- VC
+did <- Aux
+do <- Aux
+does <- Aux
+eats <- VC
+flitted <- VC
+for <- P
+gave <- VC
+gets <- VC
+gum <- NP
+had <- VC
+has <- Aux
+has_been_predicting <- VC
+have_come <- VC
+he <- NP
+help <- VC
+her <- NP
+his_money <- NP
+I <- NP
+in <- P
+in_which_book <- Wh
+incredibly_fast <- AdvP
+is <- Aux
+is <- VC
+John <- NP
+know <- VC
+left <- VC
+liked <- VC
+me <- NP
+meant <- VC
+of <- P
+old_movies <- NP
+on <- P
+or <- Conj
+Pat <- NP
+proud <- AdjP
+put <- VC
+quickly <- AdvP
+rather_sentimental <- AdjP
+recommended <- VC
+reminds <- VC
+Sally <- NP
+saw <- VC
+say <- VC
+see <- VC
+she <- NP
+sick <- AdjP
+so_proud <- Adjp
+tell <- VC
+that <- Comp
+that <- RelPron
+the_back_yard <- NP
+the_bat <- NP
+the_car <- NP
+the_cat <- NP
+the_commons <- NP
+the_counter <- NP
+the_cow <- NP
+the_dog <- NP
+the_garage <- NP
+the_guy <- NP
+the_movie <- NP
+the_park <- NP
+the_sculpture <- NP
+the_singer <- NP
+the_stew <- NP
+the_table <- NP
+they <- NP
+think <- VC
+through <- P 
+to <- InfTo
+to <- P
+to_whom <- RelPron
+told <- VC
+twelve_feet_long <- AdjP
+us <- NP
+very_quickly <- AdvP
+wants <- VC
+was <- VC
+washed <- VC
+watches <- VC
+we <- NP
+what <- Wh
+when <- Comp
+when <- Wh
+whether <- Comp
+which <- RelPron
+who <- RelPron
+who <- Wh
+will <- Aux
+will_give <- VC
+with <- P
+wont_be <- VC
+wont_hold <- VC
+would_get <- VC
+you <- NP
+your_room <- NP
+
+
+start()
+set start() Root
+
+show _grammar_
+
+parse <the_car, watches>
+parse <John, gave, the_dog, a_bone>
+parse <you, know, that, gum, and, baling_twine, wont_hold>
+parse <we, had, a_picnic, in, the_park>
+parse <he, gets, rather_sentimental, when, he, watches, old_movies>
+parse <he, eats, incredibly_fast>
+parse <a_gift, to, Pat, is, on, the_counter>
+parse <we, caught, a_fish, twelve_feet_long>
+parse <we, washed, the_car, in, the_garage>
+parse <who, did, you, see>
+parse <is, he, counting, his_money>
+parse <I, saw, the_car, that, Bill, bought>
+parse <I, saw, that, Bill, bought, a_car>
+parse <the_cow, and, the_dog, have_come, to, an_uneasy_truce>
+parse <what, did, they, say, that, Bill, wants>
+parse <what, did, they, tell, the_guy, that, Bill, saw>

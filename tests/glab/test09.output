@@ -1,0 +1,68 @@
+[glab] NP[sg]
+NP[sg]
+[glab] _g := new_grammar()
+[glab] S -> NP[_n] VP[_n]
+[glab] Fido <- NP[sg]
+[glab] barks <- VP[sg]
+[glab] parse("Fido barks")
+
+0   (S
+1      (NP[sg] Fido)
+2      (VP[sg] barks))
+
+[glab] trace(parse)
+[glab] parse("Fido barks")
+Add Node 0.NP[sg].1 Fido NP[sg]
+Add Edge (S -> 0.NP[sg].1 * VP[_0] {sg})
+Add Node 1.VP[sg].2 barks VP[sg]
+Add Edge (S -> 0.NP[sg].1 1.VP[sg].2 * {sg})
+Add Node 0.S.2 (S -> 0.NP[sg].1 1.VP[sg].2 * {sg})
+
+0   (S
+1      (NP[sg] Fido)
+2      (VP[sg] barks))
+
+[glab] untrace(parse)
+[glab] bark <- VP[pl]
+[glab] parse("Fido bark")
+No Parse
+
+Best Fragments:
+NP[sg] Fido
+VP[pl] bark
+
+All Nodes:
+NP[sg] Fido
+VP[pl] bark
+[glab] show(_g)
+Start: S
+
+Rules:
+    [0] S -> NP[_n] VP[_n]
+
+Lexicon:
+    Fido NP[sg]
+    bark VP[pl]
+    barks VP[sg]
+[glab] good("Fido barks")
+[glab] bad("Fido bark")
+[glab] good("dogs bark")
+[glab] bad("dogs barks")
+[glab] results()
+:) good <Fido, barks>
+:)  bad <Fido, bark>
+** good <dogs, bark>
+:)  bad <dogs, barks>
+[glab] _g := new_grammar()
+[glab] S -> NP VP
+[glab] Fido <- NP
+[glab] barks <- VP
+[glab] show(_g)
+Start: S
+
+Rules:
+    [0] S -> NP VP
+
+Lexicon:
+    Fido NP
+    barks VP

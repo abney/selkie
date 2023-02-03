@@ -1,0 +1,102 @@
+[glab] #T Homework 5
+[glab] _n_reg := /'box' + 'can' + 'car' + 'cat' + 'couch' + 'cough' + 'dash' + 'dog' + 'fizz' + 'house' + 'kiss' + 'sloth' + 'spa' + 'tomato'/
+[glab] _n_irr := /'child' + 'goose'/
+[glab] 
+[glab] _NStem_reg := /N:(_n_reg)/
+[glab] _NStem_irr := /N: (_n_irr)/
+[glab] _NStem := /_NStem_reg + _NStem_irr/
+[glab] _N_sg := /(_NStem.sg:_e_)/
+[glab] _N_pl_reg := /_NStem_reg.pl:S/
+[glab] _pluralize_irr := /'child':'children' + 'goose':'geese'/
+[glab] _N_pl_irr := / (_NStem_irr % _pluralize_irr).pl:_e_/
+[glab] _NO := /_N_sg + _N_pl_reg + _N_pl_irr/
+[glab] rel(_NO)
+[0] (<N, pl>:<c, h, i, l, d, r, e, n>)
+[1] (<N, pl>:<g, e, e, s, e>)
+[2] (<N, pl>:<t, o, m, a, t, o, S>)
+[3] (<N, pl>:<s, p, a, S>)
+[4] (<N, pl>:<s, l, o, t, h, S>)
+[5] (<N, pl>:<k, i, s, s, S>)
+[6] (<N, pl>:<h, o, u, s, e, S>)
+[7] (<N, pl>:<f, i, z, z, S>)
+[8] (<N, pl>:<d, o, g, S>)
+[9] (<N, pl>:<d, a, s, h, S>)
+...
+[glab] _xszo := new_fsa()
+[glab] E(1,x,2)
+[glab] E(1,s,2)
+[glab] E(1,z,2)
+[glab] E(1,o,2)
+[glab] E(1,_else_,1)
+[glab] F(1)
+[glab] E(2,x,2)
+[glab] E(2,s,2)
+[glab] E(2,z,2)
+[glab] E(2,o,2)
+[glab] E(2,S:e,3)
+[glab] E(2,_else_,1)
+[glab] F(2)
+[glab] E(3,_e_:s,2)
+[glab] _xszo('xS')
+{<x, e, s>}
+[glab] _xszo('kS')
+{<k, S>}
+[glab] _sch := new_fsa()
+[glab] E(1,s,2)
+[glab] E(1,c,2)
+[glab] E(1,_else_,1)
+[glab] F(1)
+[glab] E(2,h,3)
+[glab] E(2,s,2)
+[glab] E(2,c,2)
+[glab] E(2,_else_,1)
+[glab] F(2)
+[glab] E(3,s,2)
+[glab] E(3,c,2)
+[glab] E(3,S:e,4)
+[glab] E(3,_else_,1)
+[glab] F(3)
+[glab] E(4,_e_:s,1)
+[glab] _sch('shS')
+{<s, h, e, s>}
+[glab] _sch('sS')
+{<s, S>}
+[glab] _S := new_fsa()
+[glab] E(1,S:s,1)
+[glab] E(1,_else_,1)
+[glab] F(1)
+[glab] _orth := _xszo % _sch % _S
+[glab] _Noun := _NO % _orth
+[glab] rel(_Noun, 40)
+[0] (<N, sg>:<t, o, m, a, t, o>)
+[1] (<N, sg>:<s, p, a>)
+[2] (<N, sg>:<s, l, o, t, h>)
+[3] (<N, sg>:<k, i, s, s>)
+[4] (<N, sg>:<h, o, u, s, e>)
+[5] (<N, sg>:<f, i, z, z>)
+[6] (<N, sg>:<d, o, g>)
+[7] (<N, sg>:<d, a, s, h>)
+[8] (<N, sg>:<c, o, u, g, h>)
+[9] (<N, sg>:<c, o, u, c, h>)
+[10] (<N, sg>:<c, a, t>)
+[11] (<N, sg>:<c, a, r>)
+[12] (<N, sg>:<c, a, n>)
+[13] (<N, sg>:<b, o, x>)
+[14] (<N, pl>:<c, h, i, l, d, r, e, n>)
+[15] (<N, pl>:<g, e, e, s, e>)
+[16] (<N, pl>:<t, o, m, a, t, o, e, s>)
+[17] (<N, pl>:<s, p, a, s>)
+[18] (<N, pl>:<s, l, o, t, h, s>)
+[19] (<N, pl>:<k, i, s, s, e, s>)
+[20] (<N, pl>:<h, o, u, s, e, s>)
+[21] (<N, pl>:<f, i, z, z, e, s>)
+[22] (<N, pl>:<d, o, g, s>)
+[23] (<N, pl>:<d, a, s, h, e, s>)
+[24] (<N, pl>:<c, o, u, g, h, s>)
+[25] (<N, pl>:<c, o, u, c, h, e, s>)
+[26] (<N, pl>:<c, a, t, s>)
+[27] (<N, pl>:<c, a, r, s>)
+[28] (<N, pl>:<c, a, n, s>)
+[29] (<N, pl>:<b, o, x, e, s>)
+[30] (<N, sg>:<g, o, o, s, e>)
+[31] (<N, sg>:<c, h, i, l, d>)

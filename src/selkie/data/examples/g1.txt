@@ -1,0 +1,15 @@
+
+1 S -> NP[agr $a] VP[agr $a, form tnsd], a=sg|pl: (VP NP);
+
+1 NP[agr $a] -> Art N[agr $a];
+1 VP[agr $a] -> V[agr $a];
+2 VP[agr $a] -> V[agr $a] NP;
+
+# a sample lexicon
+
+1 bark  <- V[agr pl] : bark;
+1 barks <- V[agr sg] : bark;
+1 dog   <- N[agr sg] : dog;
+1 dogs  <- N[agr pl] : dog;
+2 dogs  <- V[agr sg] : (and pursue dogged);
+1 the   <- Art;

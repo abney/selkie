@@ -1,0 +1,13 @@
+
+# Test
+foo
+    bar
+        x = 10
+        y = 20
+    baz
+        x = 16
+
+z = 12
+
+boo
+    bar = 4

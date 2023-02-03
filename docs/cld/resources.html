@@ -1,0 +1,213 @@
+<html>
+<head>
+<title>Ch 5: Configuration and Logging</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 5: Configuration and Logging</h1>
+<p>
+This chapter documents the module <tt>seal.app.config.</tt></p>
+
+<h2 id="1">Environment</h2>
+
+<h3 id="1.1">Create config</h3>
+<p>
+The environment dict contains configuration settings that can be used
+to adapt the various components of the application framework.  An
+application may define its own configuration keywords as well.</p>
+<p>
+The function <b>create_config()</b> creates an environment dict.
+It takes the following arguments:</p>
+<ul>
+<li><tt>app</tt> - the application function.</li>
+<li><tt>filename</tt> - the filename of a configuration file to load.</li>
+<li><tt>items</tt> - command-line settings to add to the
+  environment.  They override settings in the configuration file (if provided).</li>
+<li><tt>defaults</tt> - additional (key, value) pairs that are added
+  only if they are not set from the configuration file or command line.</li>
+</ul>
+<p>
+Some of the keywords have special handling.</p>
+<ul>
+<li>The value of <tt>'config_file'</tt> is set from
+  the <tt>filename</tt> argument passed to create_config.  This
+  overrides any setting in the config file itself or the command line.</li>
+
+<li>If <tt>'log'</tt> is provided, the value should be a Logger.  If it is not
+  provided, a Logger will be created and stored under <tt>'log'</tt>.</li>
+
+<li>The key <tt>'server'</tt> is initialized to None.
+  The server is generally created later and stored under <tt>'server'</tt>.</li>
+
+<li>The value of any key ending in <tt>'_file'</tt> or <tt>'_dir'</tt>
+  is turned into an absolute path.</li>
+
+<li>The value of <tt>'port'</tt> or
+  of any key ending in <tt>'_port'</tt> or <tt>'_num'</tt> is turned
+  into an int.</li>
+
+<li>The value of any key ending in <tt>'_on'</tt> is turned into a boolean.</li>
+</ul>
+<p>
+An example:</p>
+<pre class="python">
+>>> from seal.app.config import create_config
+>>> from seal.app.server2 import EchoApp
+>>> cfg = create_config(app=EchoApp)
+</pre>
+
+<h3 id="1.2">Configuration keys</h3>
+<p>
+The following keys are set or used by the components of the
+application framework.
+The second column indicates which component uses the key.  The values
+are:</p>
+<ul>
+<li>A - the application, assuming it specializes SealApp.</li>
+<li>C - finding the config file</li>
+<li>L - Logger</li>
+<li>S - Server</li>
+<li>M - the manager</li>
+<li>U - Authenticator; only used in webserver mode</li>
+<li>W - constructing an environ for the WsgiApp; only used by <tt>com_wsgi</tt></li>
+</ul>
+
+
+<table class="display">
+<tr><td><tt>application_file</tt></td> <td>A</td> <td>The pathname
+    of the database.  Default: None.</td></tr>
+
+<tr><td><tt>auth_dir</tt></td> <td>U</td> <td>Where authentication
+    files reside.  Default: 'auth'.</td></tr>
+
+<tr><td><tt>cert_file</tt></td> <td>S</td> <td>The filename of the SSL
+    certificate file.</td></tr>
+
+<tr><td><tt>cgi_file</tt></td> <td>T</td> <td>Default value for the
+    CGI script filename</td></tr>
+
+<tr><td><tt>client_type</tt></td> <td>T</td> <td><tt>'external', 'internal', or None</tt></td></tr>
+
+<tr><td><tt>config_file</tt></td> <td>C</td> <td>The pathname of the
+    config file.  Cannot be set within the configuration file, only on
+    the command line.  Defaults to <tt>/_config</tt> under
+    <tt>application_file</tt>, if defined, otherwise None.</td></tr>
+
+<tr><td><tt>debug_on</tt></td> <td>A</td> <td>Whether the /.debug path is enabled.
+  Default: False.</td></tr>
+
+<tr><td><tt>desktop_user</tt></td> <td>A</td> <td>The Authenticator
+    uses this as the user name when running in desktop mode.</td></tr>
+
+<tr><td><tt>execmode</tt></td> <td>T</td> <td>Either <tt>'desktop'</tt>
+  or <tt>'webserver'</tt>.</td></tr>
+
+<tr><td><tt>log_file</tt></td> <td>L</td> <td>Filename.  In desktop
+    mode it defaults to <tt>'-'</tt> (stdout), and in webserver mode it
+    defaults to <tt>'/dev/null'</tt>.</td></tr>
+
+<tr><td><tt>logging</tt></td> <td>L</td> <td>Comma-separated list of
+    logging conditions.  Default: <tt>'all'</tt>.</td></tr>
+
+<tr><td><tt>loopback_testing_on</tt></td> <td>A</td>
+  <td>If true and the client address is indeed 127.0.0.1, then the
+  Authenticator will not insist on HTTPS.  Default: False.</td></tr>
+
+<tr><td><tt>media_dir</tt></td> <td>A</td>
+  <td>Pathname of media directory.  Default: 'media'.</td></tr>
+
+<tr><td><tt>rootprefix</tt></td> <td>W</td>
+  <td>Used only when the toplevel call is the testing function <tt>com_wsgi.</tt>
+      In all other cases, the root prefix is provided in the
+      environment set up by the server or CGI handler.</td></tr>
+
+<tr><td><tt>server_authentication_on</tt></td> <td>U</td>
+  <td>Whether the server handles authentication.  If True, we will
+    trust the username obtained from the CGI environment.
+    <span class="todo">Need to doublecheck that it is not taken from
+    the URL!</span></td>
+</tr>
+
+<tr><td><tt>server_host</tt></td> <td>S</td> <td>The hostname that the
+    server should use.</td></tr>
+
+<tr><td><tt>server_port</tt></td> <td>S</td> <td>Default <tt>8000</tt>.
+  This specifies which port the internal Server should use;
+  the application is accessible at <tt>http://localhost:<i>server_port</i>/</tt>.
+  Has no effect if running under an external server such as Apache.</td></tr>
+
+<tr><td><tt>server_type</tt></td> <td>T</td> <td><tt>'external', 'internal', or None</tt></td></tr>
+
+</table>
+
+<h2 id="2">Logging</h2>
+
+<h3 id="2.1">Logger</h3>
+<p>
+A Logger provides logging services.
+Its __init__ method takes a log file name and a list
+of <b>conditions,</b> either in the form of a list or tuple of
+strings, or a single string containing comma-separated words.
+The function create_config() takes the log file name and log
+conditions from the settings for
+<tt>'log_file'</tt> and <tt>'logging'</tt>.</p>
+<p>
+The Logger is callable, which makes it appear to be a method of
+any object that has a Logger as the value of member <tt>log.</tt>
+<p>
+The Logger manages a log file, which may
+either be a file on disk or stdout.  Calling the Logger as a function
+prints a message to the log file.</p>
+<p>
+Log messages are printed conditionally.  In the above
+example, <tt>'path'</tt> is the logging condition: the message
+is only printed if the logging condition <tt>'path'</tt> is enabled.
+The configuration setting <tt>logging</tt> allows one to specify which
+logging conditions are enabled.  By default, all logging conditions are enabled.</p>
+
+<h3 id="2.2">Logging conditions</h3>
+<p>
+The logging conditions that can be used in the value of <tt>logging</tt>
+are as follows:</p>
+<table class="display">
+<tr><td><tt>auth</tt></td> <td>Authentication messages</td></tr>
+<tr><td><tt>server</tt></td> <td>Server messages</td></tr>
+<tr><td><tt>error</tt></td> <td>Error information</td></tr>
+<tr><td><tt>traceback</tt></td> <td>Include traceback, implies <tt>error</tt></td></tr>
+<tr><td><tt>req</tt></td> <td>Print out requests</td></tr>
+<tr><td><tt>path</tt></td> <td>Add pathname info, implies <tt>req</tt></td></tr>
+<tr><td><tt>trace</tt></td> <td>Add trace detail, implies <tt>path</tt></td></tr>
+<tr><td><tt>disk</tt></td> <td>Information about changes on disk</td></tr>
+<tr><td><tt>all</tt></td> <td>Everything is printed.</td></tr>
+</table>
+<p>
+Logging conditions are organized hierarchically, such that enabling a
+condition automatically enables all of its descendants.  The hierarchy
+is as follows:</p>
+<ul>
+<li>all
+    <ul>
+    <li>auth</li>
+    <li>disk</li>
+    <li>server</li>
+    <li>trace
+        <ul>
+        <li>path
+            <ul>
+            <li>req</li>
+            </ul>
+        </li>
+        </ul>
+    </li>
+    <li>traceback
+        <ul>
+        <li>error</li>
+        </ul>
+    </li>
+    </ul>
+</li>
+</ul>
+
+</body>
+</html>

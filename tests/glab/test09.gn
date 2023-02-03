@@ -1,0 +1,22 @@
+NP[sg]
+_g := new_grammar()
+S -> NP[_n] VP[_n]
+Fido <- NP[sg]
+barks <- VP[sg]
+parse("Fido barks")
+trace(parse)
+parse("Fido barks")
+untrace(parse)
+bark <- VP[pl]
+parse("Fido bark")
+show(_g)
+good("Fido barks")
+bad("Fido bark")
+good("dogs bark")
+bad("dogs barks")
+results()
+_g := new_grammar()
+S -> NP VP
+Fido <- NP
+barks <- VP
+show(_g)

@@ -1,0 +1,25 @@
+trace(stack)
+E(1, a:a, 2)
+E(2, a:b, 2)
+E(2, b:_e_, 3)
+F(3)
+_t1 := _fsa_
+show(_t1)
+rel(_t1)
+new(_fsa_)
+E(1, a:b, 1)
+E(1, b:a, 1)
+F(1)
+_t4a := _fsa_
+show(_t4a)
+rel(_t4a)
+_t := _t1 % _t4a
+show(_t)
+rel(_t)
+_t1 := /a:a . a:b* . b:_e_/
+rel(_t1)
+_t4a := /(a:b + b:a)*/
+rel(_t4a)
+_t := _t1 % _t4a
+show(_t)
+rel(_t)

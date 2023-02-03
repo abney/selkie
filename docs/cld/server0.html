@@ -1,0 +1,975 @@
+<html>
+<head>
+<title>Server</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Server</h1>
+
+
+\chapter{Web server: {\tt seal.server} -- {\sc deprecated}}
+
+This chapter documents the module {\tt seal.server}.  {\bf Warning:}
+this module is deprecated.  It has been replaced by {\tt seal.wsgi}.
+
+The examples
+assume that one has done:
+\begin{python}
+>>> from seal.server import *
+\end{python}
+In the following text, classes belonging to several modules are
+referred to in unqualified form.  Here are the module associations:
+\begin{trivlist}\item
+\begin{tabular}{ll}
+{\bf Class} & {\bf Module}\\
+\hline
+{\tt BaseHTTPRequestHandler} & {\tt BaseHTTPServer}\\
+{\tt FieldStorage} & {\tt cgi}\\
+{\tt HTTPServer} & {\tt BaseHTTPServer}\\
+{\tt StreamRequestHandler} & {\tt SocketServer}\\
+{\tt TCPServer} & {\tt SocketServer}
+\end{tabular}
+\end{trivlist}
+We begin with a discussion of the Python web server, which provides a
+foundation for the seal server.
+
+
+\section{The Python TCP server}
+
+The Seal web server builds on facilities provided by the Python
+standard library.  We begin with the Python TCP server, which handles
+the lowlevel connection to the client (that is, to the browser).
+
+\subsection{Sockets}
+
+The TCP server creates a {\df socket}, which is an endpoint for
+communication.  It binds the socket to a {\df port}, and associates it
+with a hostname.  (The empty string can be used for localhost.)
+This initial socket is known as the {\df listening socket}.
+
+When a client sends a TCP request to the port, the listening socket
+accepts the connection, and spawns a new socket, called the
+{\df connection socket}, that represents the connection to this
+particular client.  The listening socket then continues listening for
+new connections, while the connected socket processes the request from
+the client.
+
+The port remains bound until the listening socket and any connected
+sockets are closed.  An attempt to create a new socket bound to the
+same port will fail with an error.
+
+\subsection{TCP server}
+
+A {\tt TCPServer} is created with an address and a handler class.  The
+address is a pair ({\it host, port\/}).  One can use the empty string for
+localhost.  This becomes the initial value for the attribute
+\verb|server_address|; the attribute is updated after the socket is
+bound.  Here is an example:
+\begin{myverb}
+server = TCPServer(('', 8000), TCPTestHandler)
+server.serve_forever()
+\end{myverb}
+(Instead of calling \verb|serve_forever()|, one could call
+\verb|server.handle_request()| to process a single request.)
+
+When the server's listening socket receives a connection, spawning a
+connected socket, the server
+instantiates the handler class, and the handler instance is wrapped
+around the connected socket.  The handler class should be a
+specialization of {\tt StreamRequestHandler}.
+In the above example, the handler class is {\tt TCPTestHandler}.
+
+A {\tt StreamRequestHandler} has the following attributes:
+\begin{itemize}
+\item \verb|request| is the connection socket.
+\item \verb|client_address| is a ({\it host, port\/}) pair.
+\item \verb|server| is the {\tt TCPServer} instance.  The server, in
+turn, has the attribute \verb|server_address|, which is a
+ ({\it host, port\/}) pair.
+\item \verb|connection| is set equal to \verb|request| by
+ {\tt StreamRequestHandler.setup()}.
+\item \verb|rfile| and \verb|wfile| get set by
+ {\tt StreamRequestHandler.setup()}.  These are streams that read from and
+ write to the connection socket.
+\item {\tt handle()} is a no-op method that is intended to be overridden.
+\end{itemize}
+
+\subsection{TCP test handler}
+
+The {\tt TCPTestHandler} provides an implementation of {\tt handle()}
+that prints out information about the handler, and generates a simple
+HTTP response.  Point a browser at:
+\begin{verbatim}
+http://localhost:8000/
+\end{verbatim}
+The server should generate output that looks something like this:
+\begin{myverb}
+Client address: ('127.0.0.1', 51958)
+Server address: ('0.0.0.0', 8000)
+BEGIN REQUEST
+GET / HTTP/1.1
+Host: localhost:8000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+    
+END REQUEST
+\end{myverb}
+The test handler also sends an HTTP response (using the
+utility function \verb|write_test_response()|).
+In the browser, you should see a web page containing the text ``Hello, World!''
+
+\subsection{Start and stop}
+
+The server method \verb|serve_forever()| processes TCP requests forever.
+If one calls it in the main thread, one must
+press control-C to break the loop.  The utility function {\tt start()}
+calls it in a new thread, so that it can be stopped again more gracefully.
+\begin{python}
+>>> server = TCPServer(('', 8000), TCPTestHandler)
+>>> start(server)
+\end{python}
+This is essentially the definition of the function \verb|tcp_test()|,
+which creates and starts a TCP server using the TCP test handler:
+\begin{myverb}
+>>> server = tcp_test()
+\end{myverb}
+
+One can do manually what {\tt start()} does, as follows:
+\begin{myverb}
+>>> from thread import start_new_thread
+>>> start_new_thread(server.serve_forever, ())
+-1341648896
+\end{myverb}
+The first argument to \verb|start_new_thread| is a function, and the
+second is an argument list for it, which in this case is empty.  The
+return value is the thread ID.
+
+Once the server is running, we can send it a request by using a
+browser.  Alternatively, we can issue a TCP request programmatically:
+\begin{myverb}
+>>> s = GET('http://localhost:8000/')
+Client address: ('127.0.0.1', 51952)
+Server address: ('0.0.0.0', 8000)
+BEGIN REQUEST
+GET / HTTP/1.0
+Host: localhost:8000
+User-Agent: Python-urllib/1.17
+
+END REQUEST
+\end{myverb}
+Note that the printing comes from the TCP test handler, not from
+{\tt GET}.  The string {\tt s} contains the response from the test
+handler:
+\begin{myverb}
+>>> print s,
+<html><head><title>Hello</title></head>
+<body>Hello, World!</body>
+</html>
+\end{myverb}
+
+The function {\tt GET()} is merely a convenience.  One can do the
+same thing manually like this:
+\begin{myverb}
+>>> from urllib import urlopen
+>>> s = urlopen('http://localhost:8000/').read()
+\end{myverb}
+
+To stop the server gracefully, and free the port, Seal provides the
+utility function {\tt stop()}.
+\begin{python}
+>>> stop(server)
+\end{python}
+It calls the method {\tt shutdown()} to stop the server, and it calls
+the method \verb|server_close()| to cause the port to be released.
+It may take a few seconds for the port to be freed.  After that, one
+can create a new server.
+
+\begin{table}
+\begin{tabular}{|lp{3.8in}|}
+\hline
+{\tt start(s)} & Start server $s$ running in a new thread.\\
+{\tt stop(s)} & Stop a server that was started using {\tt start()}.\\
+{\tt GET(url)} & Request a URL.\\
+\hline
+\end{tabular}
+\caption{Generally useful functions.  These can be used with any kind of server.}
+\end{table}
+
+
+\section{HTTP Server}
+
+\subsection{Format of HTTP requests}
+
+In the above examples of the TCP test handler print-out, the ``REQUEST''
+portions represent HTTP requests.  For example:
+\begin{myverb}
+GET / HTTP/1.0
+Host: localhost:8000
+User-Agent: Python-urllib/1.17
+
+\end{myverb}
+An HTTP request consists of three parts:
+\begin{itemize}
+\item The {\df request}, which is {\tt GET} or {\tt POST} followed by
+a {\df pathname} followed by an HTTP version.  In our example:
+``\verb|GET / HTTP/1.0|.''
+\item The {\df mime headers} with various additional information.  They
+are terminated by an empty line.  In our example, there are two mime
+headers (``Host'' and ``User-Agent'').
+\item The {\df data}, which begins after the empty line.  The data
+section is empty for a {\tt GET} request, but contains form
+information for a {\tt POST} request.  In our example, the data
+section is empty.
+\end{itemize}
+
+\paragraph{GET requests.}
+As we have just seen, one can issue a GET request by visiting
+\begin{verbatim}
+http://localhost:8000/
+\end{verbatim}
+The URL may contain an arbitrary pathname---the request handler may
+interpret it however it likes.
+The HTTP request contains only mime headers, no data.
+
+\paragraph{POST requests.}
+To see an example of an HTTP POST request, use \verb|tcp_test()|
+to start up the TCP server, and visit the URL
+\begin{verbatim}
+file:///cl/examples/form.html
+\end{verbatim}
+The form on that page looks like this:
+\begin{myverb}
+<form method="POST" action="http://localhost:8000/foo/bar">
+User: <input type="text" name="user" size="20" value="James & Nancy Kirk"></input><br/>
+User2: <input type="text" name="user2" size="20"></input><br/>
+Vote: <input type="radio" checked name="vote" value="Y">Yes</input>
+      <input type="radio" name="vote" value="N">No</input><br/>
+Pets: <input type="checkbox" checked name="pets" value="dog">Dog</input>
+      <input type="checkbox" checked name="pets" value="cat">Cat</input>
+      <input type="checkbox" name="pets" value="iguana">Iguana</input><br/>
+Comments: <textarea name="comments"></textarea><br/>
+<input type="submit" value="OK">
+</form>
+\end{myverb}
+If you simply click ``OK,'' the print-out from the test handler will
+include a request section that looks something like this:
+\begin{myverb}
+BEGIN REQUEST
+POST /foo/bar?hi=john%20doe HTTP/1.1
+Host: localhost:8000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 67
+
+user=James+%26+Nancy+Kirk&user2=&vote=Y&pets=dog&pets=cat&comments=
+END REQUEST
+\end{myverb}
+The entire form is sent as a single line of text.
+The format of the {\tt POST} data is called ``urlencoded'';
+it is the same as the format of the query string following the
+``{\tt ?}'' in the URL of a {\tt GET} request.
+Note that spaces in the text value for ``{\tt user}'' get replaced
+with ``{\tt +}'' characters, and \verb|%26| is the code for
+ampersand.
+
+\paragraph{Upload requests.}
+A special case of a {\tt POST} request is a file upload.  To generate an upload
+request, visit
+\begin{verbatim}
+file:///cl/examples/upload.html
+\end{verbatim}
+The form on this webpage is as follows:
+\begin{myverb}
+<form method="POST" enctype="multipart/form-data"
+      action="http://localhost:8000/foo/bar">
+File: <input type="file" name="myfile"></input><br/>
+<input type="submit" value="OK"></input>
+</form>
+\end{myverb}
+Click on ``browse'' to specify the file.  A convenient choice is
+\begin{verbatim}
+/cl/examples/text1
+\end{verbatim}
+Then click ``OK.''
+The resulting request looks like this:
+\begin{myverb}
+BEGIN REQUEST
+POST /foo/bar HTTP/1.1
+Host: localhost:8000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Type: multipart/form-data; boundary=---------------------------9849436581144108930470211272
+Content-Length: 264
+
+-----------------------------9849436581144108930470211272
+Content-Disposition: form-data; name="myfile"; filename="text1"
+Content-Type: application/octet-stream
+
+This is a test.
+It is only a test.
+
+-----------------------------9849436581144108930470211272--
+
+END REQUEST
+\end{myverb}
+
+
+\subsection{HTTP server}
+
+The Python {\tt HTTPServer} is almost identical
+to {\tt TCPServer}.
+The only difference is that it looks up the server host name, and sets
+the attributes \verb|server_name| and \verb|server_port|.
+
+The main difference is not in the server but in the request handler.
+The appropriate class is
+{\tt Base\-HTTP\-Request\-Handler}, which builds on
+{\tt Stream\-Request\-Handler}.  It reads the mime headers
+from {\tt rfile} and parses them.  (It knows it has reached the end
+when it reads an empty line.)
+
+The parsed headers are of class {\tt mimetools.Message}.  For basic
+purposes, they can be treated simply as a dict.  For example:
+\begin{myverb}
+for key in headers:
+    print key, headers[key]
+\end{myverb}
+The values are strings.
+
+The function \verb|http_test()| is defined as follows:
+\begin{myverb}
+def http_test ():
+    server = HTTPServer(('', 8000), HTTPTestHandler)
+    start(server)
+    return server
+\end{myverb}
+If one visits \verb|http://localhost:8000/|, the output
+from the HTTP test handler looks like this:
+\begin{myverb}
+Client address: ('127.0.0.1', 51072)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: GET / HTTP/1.1
+    command: GET
+    path: /
+    request_version: HTTP/1.1
+    Headers:
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+\end{myverb}
+The handler reads and digests the mime-headers portion of the request.
+Note, however, that in the case of a {\tt POST} request, the data
+section of the request is left unread in {\tt rfile}.
+
+\subsection{Processing the data section}
+
+Python provides the class {\tt FieldStorage} to process the data
+section of {\tt POST} requests.  It also handles the query string portion of
+a {\tt GET} request, to provide a uniform interface to key-value information
+regardless of the request method.  The class {\tt CGITestHandler}
+in {\tt seal.server} gives examples of using {\tt FieldStorage}
+to process {\tt GET} and {\tt POST} requests.
+\begin{myverb}    
+class CGITestHandler (BaseHTTPServer.BaseHTTPRequestHandler):
+
+    def do_GET (self):
+        (path, qs) = parse_path(self.path)
+        self.form = cgi.FieldStorage(fp=None,
+                                     headers=None,
+                                     keep_blank_values=True,
+                                     environ={'REQUEST_METHOD':'GET',
+                                              'QUERY_STRING':qs})
+        print_request_info(self, 'GET')
+
+    def do_POST (self):
+        ctype = self.headers['Content-Type']
+        self.form = cgi.FieldStorage(fp=self.rfile,
+                                     headers=self.headers,
+                                     keep_blank_values=True,
+                                     environ={'REQUEST_METHOD':'POST',
+                                              'CONTENT_TYPE':ctype})
+        print_request_info(self, 'POST')
+\end{myverb}
+The information contained in the resulting {\tt FieldStorage} object
+can be accessed as follows:
+\begin{myverb}
+for key in form:
+    print key, repr(form.getlist(key))
+\end{myverb}
+The method {\tt getlist()} returns a list of strings.  There is also a
+method {\tt getfirst()} which returns a single string.
+
+\paragraph{Query string example.}
+The function \verb|cgi_test()| is identical to \verb|http_test()|, except
+that it uses {\tt CGITestHandler} as its request handler.
+Start \verb|cgi_test()| and visit
+\begin{verbatim}
+http://localhost:8000/foo?x=42&y=10
+\end{verbatim}
+The handler prints out:
+\begin{myverb}
+Client address: ('127.0.0.1', 51086)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: GET /foo?x=42&y=10 HTTP/1.1
+    command: GET
+    path: /foo?x=42&y=10
+    request_version: HTTP/1.1
+    Headers:
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+    Form:
+        y ['10']
+        x ['42']
+\end{myverb}
+The ``form'' portion comes from the query string in the URL path.
+
+\paragraph{Form example.}
+Visit \verb|file:///cl/examples/form.html| and click ``OK.''
+The handler prints out:
+\begin{myverb}
+Client address: ('127.0.0.1', 51090)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: POST /foo/bar?hi=john%20doe HTTP/1.1
+    command: POST
+    path: /foo/bar?hi=john%20doe
+    request_version: HTTP/1.1
+    Headers:
+        content-length: '67'
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+        content-type: 'application/x-www-form-urlencoded'
+    Form:
+        vote ['Y']
+        user2 ['']
+        user ['James & Nancy Kirk']
+        pets ['dog', 'cat']
+        comments ['']
+\end{myverb}
+Note that the {\tt FieldStorage} object hides the fact that the
+information is coming from the form on the web page instead of from
+the query string at the end of the URL path.  Observe also that
+there are multiple values for {\tt pets}.
+The value for {\tt user2} is the empty string because we specified
+\verb|keep_blank_values=True|.  If we had not specified keeping blank
+values, the key {\tt user2} would have been entirely absent.
+
+\paragraph{Upload example.}
+Finally, visit \verb|file:///cl/examples/form.html|
+and browse to {\tt /cl/examples/text1}.  Click ``OK.''  The handler
+prints out:
+\begin{myverb}
+Client address: ('127.0.0.1', 51091)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: POST /foo/bar HTTP/1.1
+    command: POST
+    path: /foo/bar
+    request_version: HTTP/1.1
+    Headers:
+        content-length: '256'
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+        content-type: 'multipart/form-data; boundary=---------------------------168072824752491622650073'
+    Form:
+        myfile ['This is a test.\nIt is only a test.\n']
+\end{myverb}
+Observe that the contents of the uploaded file is returned as a single
+string.
+
+
+\section{Secure HTTP}
+
+The Secure Socket Layer (SSL) protocol runs on top of TCP.
+HTTP requests and responses are sent via TCP, whereas
+HTTPS consists simply of HTTP requests and responses sent via SSL.
+
+\subsection{SSL server}
+
+The function \verb|ssl.wrap_socket()| wraps a TCP socket, returning an
+SSL socket.  All writes on the SSL socket are encrypted and written as
+ciphertext to the TCP socket, and all reads from the SSL socket read
+ciphertext from the TCP socket, decrypt it, and return the plaintext.
+
+If one wraps a listening socket, rather than a connection socket, then
+the result is a SSL listening socket.  When a connection is accepted,
+it creates a TCP connection socket and automatically wraps it in an
+SSL connection socket.
+
+The class {\tt SSLServer} is a specialization of {\tt TCPServer} that
+contains an SSL socket.  All communication with clients is encrypted.
+Here is an example of creating an {\tt SSLServer}:
+\begin{myverb}
+def ssl_test ():
+    server = SSLServer(('', 8003), TCPTestHandler)
+    start(server)
+    return server
+\end{myverb}
+Note that \verb|ssl_test()| and \verb|tcp_test()| are identical except for
+the server class.  In particular, they both use the same TCP test
+handler.  After starting \verb|ssl_test()|, visit the url:
+\begin{verbatim}
+https://localhost:8003/
+\end{verbatim}
+The results are also the same as for \verb|tcp_test()|, except that
+among the other information printed out, one will see:
+\begin{myverb}
+Cipher: ('AES256-SHA', 'TLSv1/SSLv3', 256)
+\end{myverb}
+
+
+\subsection{Secure HTTP Server}
+
+The class {\tt SecureHTTPServer} is a specialization of
+{\tt HTTPServer}.  The only modification is in the init method:
+the secure server wraps the socket and sets {\tt self.socket} to the
+resulting SSL socket.
+
+There is, again, a test function:
+\begin{myverb}
+def https_test ():
+    server = SecureHTTPServer(('', 8003), HTTPTestHandler)
+    start(server)
+    return server
+\end{myverb}
+Note that there is again no special handler: one uses the same HTTP
+test handler as in \verb|http_test()|.  After starting \verb|https_test()|,
+visit the url:
+\begin{verbatim}
+https://localhost:8003/
+\end{verbatim}
+The result is the same as for \verb|http_test()|, except that
+``Cipher'' is now present.
+
+Incidentally, {\tt SecureHTTPServer} also emulates {\tt HTTPServer}.
+If it is created with the keyword argument \verb|use_ssl=False|, it
+uses TCP without SSL, and listens (by default) to port 8000 instead of
+8003.
+
+
+\section{The Seal web server}
+
+The Seal web server builds on the functionality examined in the
+previous sections.
+
+\subsection{Overview}
+
+The Seal web server (class {\tt Server}) is a specialization of
+{\tt SecureHTTPServer}. 
+The handler it uses is of class {\tt HttpConnection}, which is a
+specialization of {\tt Base\-HTTP\-Re\-quest\-Hand\-ler}.  
+{\tt HttpConnection} supports a more abstract model of the
+interaction with the browser.  Its behavior is controlled by a
+user-provided {\df main function} that takes a request (\S\ref{server:request}) as input
+and
+produces a response (\S\ref{server:response}) as output.
+
+The function {\tt testfun()} provides an example of a main
+function.  Its definition is as follows:
+\begin{myverb}
+def testfun (req):
+    return StringResponse('Received: ' + str(req))
+\end{myverb}
+One instantiates the Seal server as follows:
+\begin{python}
+>>> server = Server(testfun, logfile=None)
+>>> start(server)
+\end{python}
+Then issue a {\tt GET} request:
+\begin{python}
+>>> print GET('http://localhost:8000/foo/bar?x=42&y=10')
+Received: <Request RC('foo') RC('bar', {x:['42'] y:['10']})>
+\end{python}
+The mime type of the response is {\tt text/plain}, and it renders as
+plain text in a browser.
+%>>> stop(server)
+
+In a little more detail, when the server receives an HTTP request, it
+creates a new {\tt HttpConnection}
+instance to handle it.  The connection instance processes the
+incoming HTTP request and encapsulates it as a {\tt Request} object,
+which it passes to the main function.
+The {\tt Request} object contains the digested path from the URL,
+along with any key-value pairs derived from the query string (in the
+case of {\tt GET}) or the form (in the case of {\tt POST}).
+
+The return value from the main function is a {\tt Response} object,
+which has a method {\tt render()} that generates an HTTP response.
+The \verb|seal.server| module provides one specialization, {\tt StringResponse},
+which generates an HTTP response of type {\tt text/plain}.  Additional
+types are defined in {\tt seal.html}, which is documented in the next chapter.
+
+The class {\tt Server} has the following attributes.
+\begin{itemize}
+\item \verb|server_address|: a pair ({\it host, port\/}).  The
+ {\it host\/} component is the IP address of the server, as a string.
+\item \verb|server_name|: the hostname of the server.
+\item \verb|server_port|: the second element of \verb|server_address|.
+\end{itemize}
+
+\begin{table}
+\begin{tabular}{|lp{3.2in}|}
+\hline
+Server & The {\tt Server} constructor expects a main function.\\[1ex]
+Main function & A main function is given a {\tt Request} as input and produces a
+ response as output.\\[1ex]
+Request & A {\tt Request} behaves as a list of request components.\\[1ex]
+Request component & A {\tt RequestComponent} has a {\tt filename()} (a
+string).  The last component may also have a form, which is accessed
+by the methods {\tt keys()}, {\tt has{\underscore}key()}, {\tt
+  getvalue()}, and {\tt getlist()}.\\[1ex]
+Response & A response is usually a specialization of {\tt Response}, but
+  the only hard requirement is that it provide a {\tt render()} method
+  that takes a connection as input.\\[1ex]
+Connection & A connection is anything that supports the methods {\tt send{\underscore}response()},
+  {\tt send{\underscore}error()}, {\tt send{\underscore}header()},
+  {\tt end{\underscore}headers()}, and {\tt write()}.  The classes
+  {\tt Http\-Con\-nect\-ion} and {\tt Pseu\-do\-Con\-nect\-ion} both qualify.\\
+\hline
+\end{tabular}
+\caption{A summary of the Seal server, the main function, requests,
+  responses, and connections.}
+\end{table}
+
+\subsection{Invocation details}
+
+The {\tt Server} constructor takes a few optional arguments.  The
+keyword {\tt logfile} is used to specify a pathname for the log file.
+A value of {\tt None} specifies a pseudo-file that collects what is
+written to it into a string.  The string can be retrieved as follows:
+\begin{myverb}
+>>> server.logfile.getvalue()
+'localhost - - [16/Apr/2012 21:44:27] "GET /foo/bar?x=42&y=10 HTTP/1.0" 200 -\n'
+\end{myverb}
+The default value for {\tt logfile} is ``{\tt -},'' which stands for
+standard output.
+
+Specifying \verb|use_ssl=True| causes the server to use SSL.  By
+default, it uses TCP without SSL.
+
+The keyword {\tt port} can be used to specify a port to listen on.
+The default port is 8000 without SSL, and 8003 with SSL.
+
+The function {\tt run()} creates the server and starts it.
+\begin{myverb}
+>>> run(testfun)
+\end{myverb}
+It takes the same keyword arguments as the {\tt Server} constructor.
+
+
+\subsection{The HTTP connection}
+
+The class {\tt HttpConnection} is a subclass of
+{\tt BaseHTTPRequestHandler}.  A request handler has input-side
+functionality and output-side functionality.
+On the input side, it reads and processes
+an incoming HTTP request.  This is done by the methods \verb|do_GET()| and
+\verb|do_POST()|.  {\tt HttpConnection} defines both methods to
+dispatch to the main function provided by the user.  It digests the
+request and packages it as a {\tt Request} object, which is passed to
+the main function.
+
+On the output side, the {\tt HttpConnection} generates an HTTP
+response to the client.  The main function returns a {\tt Response}
+object.  A {\tt Response} has a {\tt render()} method which takes an
+{\tt HttpConnection} and calls the methods that {\tt HttpConnection}
+provides for generating the actual HTTP response.
+
+An {\tt HttpConnection} has the following attributes.
+\begin{itemize}
+\item {\tt server}: the {\tt Server} instance.
+\item {\tt requestline}: the first line of the HTTP request.
+\item {\tt command}: the first word in the request line.  Usually
+ {\tt GET} or {\tt POST}.
+\item {\tt path}: the path component of the request line.  Includes query string.
+\item \verb|request_version|: the last component of the request line.
+Typically ``{\tt HTTP/1.1}.''
+\item {\tt headers}: the mime headers.  The value for a given
+key can be accessed as {\tt headers[key]}.  One may iterate over keys
+with ``{\tt for key in headers}.''
+\item \verb|client_address|: a ({\it host, port\/}) pair for the client.
+\item {\tt connection}: the connected socket.
+\item {\tt rfile}: an input file that reads from the socket.  In the case
+of a {\tt POST}, it still contains the data section.
+\item {\tt wfile}: an output file that writes to the socket.
+\end{itemize}
+To make it easier to generate well-formed HTTP responses, the
+following methods are provided.  They write to {\tt wfile}.  To
+generate an error response, call \verb|send_error()|.  Otherwise,
+one should send a response, followed by some number of headers,
+followed by end-headers, followed by some number of writes.
+\begin{itemize}
+\item \verb|send_response()|: takes a code and an optional message, and
+writes the HTTP response line.  There is a large set of response
+codes; they can be found in the table:
+\begin{myverb}
+>>> HttpConnection.responses
+\end{myverb}
+
+\item \verb|send_header()|: takes a keyword and value, and sends a mime header.
+After calling \verb|send_response()|, one calls the method \verb|send_header()|
+repeatedly to send mime headers.
+
+\item \verb|end_headers()|: called when all headers have been sent.  It
+writes an empty line on {\tt wfile}.
+
+\item \verb|write()|: takes a string and writes it to {\tt wfile}.  It
+converts the string to UTF-8 encoding if necessary.  This is called
+repeatedly to send the actual contents of the web page.
+
+\item \verb|send_error()|: takes a code and an optional message.  This is
+called as an alternative to the above methods.
+\end{itemize}
+
+\paragraph{PseudoConnection.}
+There is also a class {\tt PseudoConnection} that is useful for
+debugging.  Its constructor takes a pathname, including query string:
+\begin{python}
+>>> c = PseudoConnection('/foo/bar?x=42')
+\end{python}
+The attribute {\tt request} contains a request that is appropriate as
+input to the main function of a Seal server:
+\begin{python}
+>>> c.request
+<Request RC('foo') RC('bar', {x:['42']})>
+\end{python}
+The pseudo-connection also implements the response-generation methods
+that are required by the {\tt render()} method of a {\tt Response}
+object.
+\begin{python}
+>>> r = StringResponse('Hi there')
+>>> r.render(c)
+HTTP/1.1 200 OK
+Content-Type: text/plain
+
+Hi there
+\end{python}
+One may alternatively generate an error response:
+\begin{python}
+>>> c.send_error(404)
+HTTP/1.1 404 Not Found
+Content-Type: text/html
+Connection: close
+
+<html>
+<head><title>Error</title></head>
+<body>
+<h1>Error</h1>
+Not Found - Nothing matches the given URI
+</body>
+</html>
+\end{python}
+The output of these methods is sent to the connection's {\tt wfile}
+attribute, which is stdout by default, but can be initialized to a
+file by creating the pseudo-connection with {\tt outfn=}{\it filename.\/}
+
+The following illustrates using the pseudo-connection with {\tt testfun()}.
+\begin{python}
+>>> response = testfun(c.request)
+>>> response.render(c)
+HTTP/1.1 200 OK
+Content-Type: text/plain
+
+Received: <Request RC('foo') RC('bar', {x:['42']})>
+\end{python}
+
+\subsection{Requests}\label{server:request}
+
+The main function receives a {\tt Request} object as input.
+One may create a request manually using \verb|parse_request()|, which
+takes pathname including query string:
+\begin{python}
+>>> r = parse_request('/foo/bar?x=10&y=20&x=42')
+>>> r
+<Request RC('foo') RC('bar', {x:['10', '42'] y:['20']})>
+\end{python}
+The pathname portion can be obtained as a string using the method
+{\tt pathname()}:
+\begin{python}
+>>> r.pathname()
+'foo/bar'
+\end{python}
+Otherwise, a {\tt Request} is essentially a list of {\tt RequestComponent}s.
+\begin{python}
+>>> len(r)
+2
+>>> r[0]
+RC('foo')
+>>> r[1]
+RC('bar', {x:['10', '42'] y:['20']})
+\end{python}
+Each component has a {\tt filename()}:
+\begin{python}
+>>> r[0].filename()
+'foo'
+>>> r[1].filename()
+'bar'
+\end{python}
+The last component (only) may also have form information, which is
+accessed using the following methods:
+\begin{python}
+>>> r[1].keys()
+['y', 'x']
+>>> r[1].has_key('z')
+False
+>>> r[1].getvalue('x')
+['10', '42']
+>>> r[1].getvalue('y')
+'20'
+\end{python}
+Note that {\tt getvalue()} returns a list, if there are multiple
+values, but the value itself, if there is only one value.  There is an
+alternative method {\tt getlist()} that always returns a list, even
+when there is only one value.
+
+Empty components are generally suppressed: multiple slashes in
+sequence are treated as a single slash:
+\begin{python}
+>>> parse_request('foo//bar')
+<Request RC('foo') RC('bar')>
+\end{python}
+However, a trailing slash is not ignored; it causes a single
+empty-string component to be added:
+\begin{python}
+>>> parse_request('foo/bar/')
+<Request RC('foo') RC('bar') RC('')>
+\end{python}
+The motivation is that
+browsers do not consider ``\verb|/foo/bar|'' and ``\verb|/foo/bar/|''
+to be equivalent.  To see this, suppose the server returns the same
+page to both queries, and that the page contains a link to the
+relative pathname \verb|./baz.html|.  If the browser thinks the
+current URL is ``\verb|/foo/bar|,'' then it interprets the link as
+referring to ``\verb|/foo/baz.html|.''  But if the browser thinks the
+current URL is ``\verb|/foo/bar/|,'' then it interprets the link as
+referring to ``\verb|/foo/bar/baz.html|.''
+
+Adding an empty-string component when there is a trailing slash
+allows us to distinguish the two cases, without referring back to the
+original (unparsed) URL.  Instead of producing the same web page in
+response to both URLs, the server can issue a redirect if it
+receives a request ending in a directory name, and return the web page
+in response to a request ending in an empty filename.
+
+It is permissible to take slices of a request.  Trailing slices are
+particularly common, since the path is often used as a dispatch
+hierarchy.  That is, the
+toplevel function examines the first element in the path to determine
+what function to pass the request off to, and the second function may do
+likewise with the next element of the path, and so on.  In the cascade
+of dispatches, one usually wants to leave the form untouched until one
+reaches the end; hence the utility of making the form information part
+of the final component.
+\begin{python}
+>>> r[1:]
+<Request RC('bar', {x:['10', '42'] y:['20']})>
+\end{python}
+
+\subsection{Request components}
+
+The components in a request are of class {\tt RequestComponent}.
+Only the last component may have a form.
+The methods of a component are:
+\begin{itemize}
+\item {\tt filename()}: returns the string value of this component.
+\item {\tt form()}: returns the form, if any.  It is of class {\tt FieldStorage}.
+\item {\tt pathname()}: returns the pathname up to and including this component.
+\item {\tt keys()}: returns the keys in the form, if there is a form.
+\item \verb|has_key()|: whether or not a given key is present.
+\item {\tt getvalue()}: returns the value of a key, if it has a unique
+value, or a list of values, if it has multiple values.
+\item {\tt getlist()}: always returns a list, even if there is only one value.
+\end{itemize}
+
+\subsection{Responses}\label{server:response}
+
+The class {\tt Response} has a single method, {\tt render()}, which is
+intended to be overridden by subclasses.  (The return value from the
+main function does not actually need to be a specialization of {\tt Response},
+so long as it implements the {\tt render()} method.)
+
+One implementation of {\tt Response} is provided in {\tt seal.server}:
+namely, {\tt StringResponse}.  Here is the complete definition, which
+serves as an illustrative example:
+\begin{myverb}
+class StringResponse (Response):
+
+    def __init__ (self, string):
+        self.string = string
+
+    def render (self, http):
+        http.send_response(200)
+        http.send_header('Content-Type', 'text/plain')
+        http.end_headers()
+        http.write(self.string)
+        if not self.string.endswith('\n'):
+            http.write('\r\n')
+\end{myverb}
+
+An HTTP response has a similar structure to an HTTP request: it
+consists of a {\df response line}; then some number of {\df mime header}
+lines, terminated by an empty line; then data.
+The {\tt HttpConnection} provides the following methods for generating
+an HTTP response within a {\tt render()} method.
+
+In the above example, {\tt render()} first calls
+\verb|send_response()| with code 200 (``OK'').  Then it sends a single
+header, using \verb|send_header()|.  Next is a call to
+\verb|end_headers()|, and finally the data is sent by a call to
+{\tt write()}.
+
+In the case of an error, a {\tt render()} method should not call
+\verb|send_error()| directly, but should rather raise an
+{\tt HttpException}.
+
+The class {\tt Response} also implements the \verb|__str__()| method.
+It creates a {\tt PseudoConnection} whose {\tt wfile} writes to a
+string, calls its own {\tt render()} method on that connection, and
+returns the resulting string.  For example:
+\begin{python}
+>>> r = StringResponse('Hi there')
+>>> type(r)
+<class 'seal.server.StringResponse'>
+>>> print r
+HTTP/1.1 200 OK
+Content-Type: text/plain
+
+Hi there
+
+\end{python}
+
+
+</body>
+</html>

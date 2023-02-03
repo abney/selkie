@@ -1,0 +1,36 @@
+trace(stack)
+#
+_Determiner := /(Det.sg):(t.h.e + t.h.i.s)/
+#
+_RegVStem := /(V.i):(b.a.r.k) + (V.t):(c.h.a.s.e)/
+_IrrVStem := /(V.t):(c.a.t.c.h) + (V.i):(s.l.e.e.p)/
+_VStem := /_RegVStem + _IrrVStem/
+rel(_VStem)
+#
+_Verb_pres := /_VStem . (sg:Z + pl:_e_)/
+rel(_Verb_pres)
+#
+_Verb_regpast := /_RegVStem . past:(e.d)/
+rel(_Verb_regpast)
+#
+_IrrPastTransform := /(c.a.t.c.h):(c.a.u.g.h.t) + (s.l.e.e.p):(s.l.e.p.t)/
+_IrrPastStem := _IrrVStem % _IrrPastTransform
+show(_IrrPastStem)
+_Verb_irrpast := /_IrrPastStem . past:_e_/
+show(_Verb_irrpast)
+rel(_Verb_irrpast)
+#
+_Verb_regen := /_RegVStem . en:(e.d)/
+_Verb_irren := /_IrrPastStem . en:_e_/
+rel(_Verb_irren)
+#
+_Verb_base := /_VStem . base:_e_/
+#
+_Verb := /_Verb_pres + _Verb_regpast + _Verb_irrpast + _Verb_regen + _Verb_irren + _Verb_base/
+rel(_Verb)
+_Verb(<V,i,sg>)
+_Verb(<V,t,sg>)
+_Verb(<V,t,past>)
+_Verb(<V,i,sg>)
+_Verb(<V,i,en>)
+_Verb(<V,t,ing>)

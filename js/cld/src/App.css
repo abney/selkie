@@ -1,0 +1,73 @@
+
+.App {
+    flex-direction: row;
+    justify-content: center;
+}
+
+/*
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+*/
+
+.App-link {
+    cursor: pointer;
+    color: #3a8397;
+    /* color: #61dafb; */
+}
+
+.App-link:hover {
+    /* background-color: #61dafb; */
+    background-color: #b0edfe;
+}
+
+.LanguageList {
+    margin-left: 40px;
+}
+
+.MenuBar {
+    background-color: #d0f0ff;
+    padding: 5px 0px 5px 20px;
+    border-bottom: 1px solid #8090a0;
+    box-shadow: 1px 1px 3px #d0d0d0;
+}
+
+.Menu {
+    position: relative; /* So that MenuItems is positioned wrt this */
+    margin-left: 20px;
+}
+
+.MenuTitle {
+    font-size: 12pt;
+    background-color: inherit;
+    border: none;
+}
+
+.MenuItems {
+    position: absolute;
+    top: 24px;
+    left: 0px;
+    box-shadow: 3px 3px 5px #333;
+    /* visibility: hidden;*/
+    background-color: #f0f8ff;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    padding: 5px 15px 5px 15px;
+    list-style-type: none;
+    margin: 0px;
+}
+
+.visible {
+    visibility: visible;
+}
+
+.hidden {
+    visibility: hidden;
+}

@@ -1,0 +1,680 @@
+
+\section{Panlex}
+
+\subsection{Zip}
+
+One can examine the contents of the original zip file using the
+{\tt zip} command.  There are four subcommands:
+\begin{mydesc}
+\ditem{list} List the filenames.
+\ditem{head $f$} Print the first 50 records of file $f$.
+\ditem{cat $f$} Print all the records of file $f$.
+\ditem{table $f$} The table is like the contents, except that, if
+there is a field labeled {\tt ex}, two new columns are added: {\tt ex.tt}
+and {\tt ex.lv}.  The former contains the string contents of the
+expression and the latter is the language-variety code for the
+expression.  One may optionally provide an attribute $a$ and value $v$ to
+restrict the listing to records that have value $v$ for attribute $a$.
+Nota bene: this command is generally {\it much\/} slower than {\tt cat}.
+\end{mydesc}
+
+\subsection{Variety}
+
+A language is a set of varieties.
+\begin{myverb}
+$ panlex variety deu
+lv | lc | vc | sy | am | ex | ex.tt | ex.lv
+157 | deu | 0 | t | t | 274 | Deutsch | 157
+1349 | deu | 1 | t | t | 18586881 | Masematte | 1349
+1845 | deu | 2 | t | t | 18586883 | Hessisch | 1845
+9097 | deu | 3 | t | t | 12660638 | doitS | 9097
+\end{myverb}
+These are all the language varieties corresponding to ISO code
+``deu.''  Language variety 157 is deu0, variety 1349 is deu1, and so
+on.  I don't know what ``sy'' and ``am'' are.  The name of the variety
+is given in the variety itself.  Specifically, an expression (ex) is
+the pairing of a string (ex.tt) with an indiciation of which variety it is
+written in (ex.lv).
+
+To give another example, Ojibwe (oji) is a macrolanguage comprising
+Severn Ojibwa (ojs), Eastern Ojibwa (ojg), Central Ojibwa (ojc),
+Northwestern Ojibwa (ojb), Western Ojibwa (ojw), Chippewa (ciw),
+Ottawa (otw), and Algonquin (alq).
+\begin{myverb}
+$ python -m panlex variety oji ojs ojg ojc ojb ojw ciw otw alq
+lv | lc | vc | sy | am | ex | ex.tt | ex.lv
+30 | ojb | 0 | t | t | 18592962 | Anishinaabemowin | 30
+536 | ciw | 0 | t | t | 18586345 | Anishinaabemowin | 536
+934 | otw | 0 | t | t | 18593131 | Daawaamwin | 934
+4069 | ojw | 0 | t | t | 18592975 | Nakaw?mowin | 4069
+5598 | ojs | 1 | t | t | 7505858 | ????? | 5598
+6930 | ojg | 0 | t | t | 18592966 | Nishnaabemwin | 6930
+6931 | ojc | 0 | t | t | 18592964 | Ojibwe | 6931
+6932 | ojs | 0 | t | t | 18592970 | Anishininiimowin | 6932
+6933 | ciw | 1 | t | t | 8150 | Central Minnesota Chippewa | 187
+7415 | ciw | 2 | t | t | 17070963 | Minnesota Ojibwe | 187
+9170 | alq | 1 | t | t | 241072 | ???????? | 9170
+19 | alq | 0 | t | t | 45808 | anicin?bemowin | 19
+\end{myverb}
+%$
+The question marks represent Unicode characters that Latex does not handle.
+The information here does not appear to be entirely correct.  Panlex
+labels a wordlist that Margaret and Howard produced as documenting
+variety 536 (ciw0), which is Chippewa.  I would have thought that they
+speak Eastern Ojibwa.
+
+\subsection{Dicts}
+
+For each variety, there is a set of
+dictionaries.
+
+\begin{myverb}
+$ python -m panlex dicts 30 536 934 4069 5598 6930 6931 6932 6933 7415 9170 19
+128 | Freelang Ojibwe-English dictionary | 13741 | eng-ciw-Weshki
+153 | Freelang Ojibwe-English dictionary | 1319 | ciw-ojw-ojc-ojs-ojg-otw-mic-pot-eng-Weshki
+611 | Astronomia Terminaro | 2474 | mul-Rapley
+2409 | Swadesh Lists | 207 | art-mul-SL
+2815 | Anishinaabemowin–English | 131 | ciw-eng-Noori
+2830 | Ezhi-Giigidaang, How We Say It (Pronunciation) | 0 | ciw-eng-Kimewon
+4091 | Lexique de la langue algonquine | 0 | alq-fra-Cuoq
+3778 | Ojibwe Vocabulary Project | 0 | ciw-eng-Manidoons
+3779 | Ojibwe-English Wordlist | 0 | ciw-eng-Weshki
+4095 | Travels through the Canadas: Vocabulary of the Algonquin Tongue | 0 | alq-eng-Heriot
+4144 | The Ojibwe People’s Dictionary | 0 | eng-ciw-OPD
+\end{myverb}
+%$
+A dictionary may document more than one variety.
+
+\subsection{Dict}
+
+To see information about a dictionary:
+\begin{myverb}
+$ python -m panlex dict 128
+ap | lv
+128 | 187
+128 | 536
+
+id 128
+dt 2007-12-11
+tt eng-ciw:Weshki
+ur http://www.freelang.net/dictionary/ojibwe.php
+bn
+au Weshki-ayaad; Charles Lippert; Guy T. Gambill
+ti Freelang Ojibwe-English dictionary
+pb Freelang
+yr 2010
+uq 5
+ui 128
+ul TG 122; FreeLang.English_Ojibwe.wb
+li co
+ip Every author exercises rights with respect to the part of a list that represents that person’s own contribution.
+co Guy T. Gambill
+ad gambillgt1@yahoo.com
+\end{myverb}
+%$
+The first lines indicate which varieties the dictionary documents.  In
+this case, they are 187 (English, eng0) and 536 (Chippewa, ciw0).
+
+\subsection{Bidicts}
+
+To find out which dictionaries document a particular pair of
+varieties.
+\begin{myverb}
+$ python -m panlex bidicts 187 536
+128 | Freelang Ojibwe-English dictionary | 13741 | eng-ciw-Weshki
+153 | Freelang Ojibwe-English dictionary | 1319 | ciw-ojw-ojc-ojs-ojg-otw-mic-pot-eng-Weshki
+611 | Astronomia Terminaro | 2474 | mul-Rapley
+2409 | Swadesh Lists | 207 | art-mul-SL
+2830 | Ezhi-Giigidaang, How We Say It (Pronunciation) | 0 | ciw-eng-Kimewon
+3778 | Ojibwe Vocabulary Project | 0 | ciw-eng-Manidoons
+4144 | The Ojibwe People's Dictionary | 0 | eng-ciw-OPD
+\end{myverb}
+%$
+The columns are: dictionary ID ({\tt ap.ap}) title ({\tt ap.ti}),
+number of entries (count where {\tt mn.ap==ap}), and short code ({\tt aped.fp}).
+
+\subsection{Bidict}
+
+To extract a bidict:
+\begin{myverb}
+$ python -m panlex bidict 128 536 187 | uniq > tmp.out
+\end{myverb}
+%$
+The result is ASCII sorted (case sensitive), in two-column format,
+with a single tab character as column separator.  Let us think of the
+first column as the target language and the second column as the
+glossing language.  If a target-language word has multiple glosses,
+they produce multiple lines in the file, all sharing the same
+target-language word.  (Since the file is sorted, they form a
+contiguous block.)  For example, the following occurs in the middle of
+{\tt tmp.out}:
+\begin{myverb}
+aabizh  cut seams open on
+aabizhiishin    perk up
+aabiziishin     come to
+aabiziishin     revive
+\end{myverb}
+For some reason, the dictionaries sometimes contain duplicate
+entries---hence the ``uniq'' in the command line above.
+
+
+\section{Implementation}
+
+\subsection{Zip file}
+
+\begin{myverb}
+f = open_zipfile()
+\end{myverb}
+The Panlex zip file is \verb|~/src/cl/panlex-20140501-csv.zip|.
+
+Things you can do with a zip file:
+\begin{myverb}
+f.namelist()      # list of filenames
+f.printdir()      # print long listing
+s = f.read(name)  # one of the names from namelist
+\end{myverb}
+The entire file is read as a single string.
+
+The list of Panlex files:
+\begin{myverb}
+>>> from panlex import open_zipfile
+>>> f = open_zipfile()
+>>> for nm in f.namelist():
+...     print nm
+...
+panlex-20140501-csv/
+panlex-20140501-csv/af.csv
+panlex-20140501-csv/mi.csv
+panlex-20140501-csv/aped.csv
+panlex-20140501-csv/df.csv
+panlex-20140501-csv/wc.csv
+panlex-20140501-csv/av.csv
+panlex-20140501-csv/lv.csv
+panlex-20140501-csv/fm.csv
+panlex-20140501-csv/ex.csv
+panlex-20140501-csv/dm.csv
+panlex-20140501-csv/cp.csv
+panlex-20140501-csv/md.csv
+panlex-20140501-csv/dn.csv
+panlex-20140501-csv/cu.csv
+panlex-20140501-csv/ap.csv
+panlex-20140501-csv/wcex.csv
+panlex-20140501-csv/mn.csv
+panlex-20140501-csv/apli.csv
+\end{myverb}
+
+\subsection{Reading a file}
+
+\subsubsection{Raw contents}
+
+\begin{myverb}
+s = raw_contents(fn)
+\end{myverb}
+The {\tt fn} omits the directory name and the {\tt .csv} suffix.  That
+is, legitimate values are ``af,'' ``mi,'' etc.
+
+\subsubsection{Reader}
+
+\begin{myverb}
+r = reader(fn)
+\end{myverb}
+Uses {\tt csv.reader} to parse the csv format.
+The return value is an iterator over records, each record being a list
+of fields.  The first record contains the field names.
+\begin{myverb}
+>>> from panlex import reader
+>>> r = reader('af')
+>>> r.next()
+['ap', 'fm']
+>>> r.next()
+['1636', '24']
+\end{myverb}
+
+\subsubsection{Open file}
+
+\begin{myverb}
+(hdr, recs) = open_file(fn)
+\end{myverb}
+The header is the list of field names, and {\tt recs} is an iterator
+over the content records.
+
+\subsubsection{Print headers}
+
+Print the database schema: the names and headers of all the files.
+\begin{myverb}
+>>> from panlex import print_headers
+>>> print_headers()
+af: ap fm
+mi: mn tt
+aped: ap q cx im re ed fp etc
+df: df mn lv tt
+wc: wc dn ex
+av: ap lv
+lv: lv lc vc sy am ex
+fm: fm tt md
+ex: ex lv tt td
+dm: dm mn ex
+cp: lv c0 c1
+md: md dn vb vl
+dn: dn mn ex
+cu: lv c0 c1 loc vb
+ap: ap dt tt ur bn au ti pb yr uq ui ul li ip co ad
+wcex: ex tt
+mn: mn ap
+apli: id li pl
+\end{myverb}
+
+\subsubsection{Head and cat}
+
+The function {\tt head()} prints the first $n$ records.  The function
+{\tt cat()} dumps the contents readably.  \verb|cat(fn,'html')|
+produces HTML output.
+
+\subsection{Database tables}
+
+\subsubsection{Where}
+
+Select records containing specified values in a specified field.
+The return value is an iterator over records.
+\begin{myverb}
+>>> from panlex import where
+>>> for r in where('lv', 'lc', 'deu'):
+...     print '|'.join(r)
+...
+157|deu|0|t|t|274
+1349|deu|1|t|t|18586881
+1845|deu|2|t|t|18586883
+9097|deu|3|t|t|12660638
+\end{myverb}
+
+\subsubsection{Expand expressions}
+
+\begin{myverb}
+r = expand_expressions(recs, hdr)
+\end{myverb}
+Returns an iterator over records.  Two new columns are added: the
+first contains the expression's string, and the second contains the
+expression's variety.
+
+
+\subsection{Extracting dictionaries}
+
+\subsubsection{Dict entries}
+
+The function \verb|dict_entry_ids()| returns an iterator over the entry IDs
+({\it mnids\/}) for a given dictionary or dictionaries.
+\begin{myverb}
+>>> from panlex import dict_entries
+>>> len(list(dict_entry_ids('128')))
+13741
+\end{myverb}
+The function \verb|dict_entry_table()| returns a table whose keys are
+meaning IDs, and whose values are list of pairs of form ({\it lvid, w\/})
+where $w$ is a word string.
+\begin{myverb}
+>>> from panlex import dict_entries
+>>> ents = dict_entry_table('128')
+>>> len(ents)
+13741
+>>> mns = list(ents)
+>>> mns[0]
+'2525999'
+>>> ents[mns[0]]
+[('187', 'consider'), ('536', 'naagadawaabam')]
+>>> ents[mns[1]]
+[('187', 'knock against'), ('536', 'bitaakoshkan')]
+\end{myverb}
+
+\subsubsection{Bilex pairs}
+
+The function \verb|bilex_pairs()| returns an alphabetically sorted
+list of word pairs representing the entries of the given dictionary.
+\begin{myverb}
+>>> from panlex import bilex_pairs
+>>> pairs = bilex_pairs('128','536','187')
+>>> pairs[0]
+['Aabamadong', 'Fort Hope']
+>>> len(pairs)
+13739
+\end{myverb}
+Note that the pair of language IDs is not predictable from the
+dictionary.  The dictionary may contain more than two languages, and
+even if it only contains two, the dictionary does not specify their
+order.
+
+
+\section{Data schema}
+
+This section lists the data tables.  The following gives the various
+data types that occur in the data tables.
+\begin{trivlist}\item
+\begin{tabular}{|lp{3.75in}|}
+\hline
+{\it apid} & A dictionary ID.  Panlex calls dictionaries ``approvers.''\\
+{\it date} & A date.\\
+{\it dnid} & A word-sense ID.  Panlex calls word senses ``denotations.''\\
+{\it exid} & An expression ID.  An expression is a word or word sequence in
+  a particular language variety.\\
+{\it fm} & File format?\\
+{\it iso} & An ISO language code.\\
+{\it lic} & A 2-letter license code.\\
+{\it licid} & A license ID.\\
+{\it lvid} & A language-variety ID.\\
+{\it mnid} & An entry ID.  Panlex calls entries ``meanings.''\\
+{\it num} & A number.\\
+{\it str} & A string.\\
+{\it t/f} & t or f.\\
+{\it uni} & A Unicode code point.\\
+{\it url} & A URL.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\subsection{Expressions (ex)}
+
+Expressions are used not only for words in dictionaries but also for
+parts of speech and dictionary names.
+An expression is a word in a particular language variety.  It pairs a
+string with a language-variety ID.  Table {\tt ex} lists the expressions:
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt ex}\\
+\hline
+{\tt ex} & {\it exid} & The expression ID.\\
+{\tt lv} & {\it lvid} & The language variety of the expression.\\
+{\tt tt} & {\it str} & The string.\\
+{\tt td} & {\it str} & ``Degraded text'' version.  Contains only lowercase
+letters and digits.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\subsection{Language varieties (lv)}
+
+Languages are identified by 3-digit ISO codes.  A language variety is
+a specialization.  The varieties of a given language are numbered from
+0: {\tt eng0}, {\tt eng1}, etc.  There is also a numeric ID for each
+language variety.  For example, variety 187 is {\tt eng0}.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt lv}\\
+\hline
+{\tt lv} & {\it lvid} & The language variety ID.\\
+{\tt lc} & {\it iso} & Its ISO language code.\\
+{\tt vc} & {\it num} & Language-variety sequence number.  The varieties of a
+    particular ISO-coded language are numbered sequentially from 0.\\
+{\tt sy} & {\it t/f} & ?\\
+{\tt am} & {\it t/f} & ?\\
+{\tt ex} & {\it exid} & The name of the variety.  Names are usually given in
+    the variety (e.g., the name for German is given as ``Deutsch.''
+    But sometimes names are given in English.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+Additional information about language varieties is given in tables
+{\tt cp} and {\tt cu}.  I don't know what these tables contain,
+possibly punctuation characters in the language.
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt cp}\\
+\hline
+{\tt lv} & {\it lvid} & A language variety.\\
+{\tt c0} & {\it uni} & A code point.\\
+{\tt c1} & {\it uni} & A code point.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt cu}\\
+\hline
+{\tt lv} & {\it lvid} & A language variety.\\
+{\tt c0} & {\it uni} & A code point.\\
+{\tt c1} & {\it uni} & A code point.\\
+{\tt loc} & ? & ?\\
+{\tt vb} & ? & Values include {\tt pun}, {\tt priv}, {\tt aux}, {\tt
+  cit:fin:pri}, {\tt cit:kom:pri}.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\subsection{Dictionaries (ap)}
+
+\subsubsection{Dictionaries proper}
+
+An ``approver'' is a dictionary.  A
+dictionary documents one or more language varieties.
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt av}\\
+\hline
+{\tt ap} & {\it apid} & The dictionary.\\
+{\tt lv} & {\it lvid} & A variety that it documents.\\
+\hline
+\end{tabular}
+\end{trivlist}
+Metadata information is contained in the table {\tt ap}.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt ap}\\
+\hline
+{\tt ap} & {\it apid} & The dictionary ID.\\
+{\tt dt} & {\it date} & Registration date.\\
+{\tt tt} & {\it str}  & A short identifier, e.g.\ {\tt eng-ciw:Weshki}.\\
+{\tt ur} & {\it url}  & The URL.\\
+{\tt bn} & {\it str}  & ISBN, perhaps?\\
+{\tt au} & {\it str}  & Author.\\
+{\tt ti} & {\it str}  & Title.\\
+{\tt pb} & {\it str}  & Publisher.\\
+{\tt yr} & {\it str}  & Year of publication.\\
+{\tt uq} & {\it num}  & Quality?\\
+{\tt ui} & {\it apid} & Appears to be the same as {\tt ap}.\\
+{\tt ul} & {\it str}  & Some kind of summary line.\\
+{\tt li} & {\it lic}  & An IP license code.\\
+{\tt ip} & {\it str}  & An IP license statement.\\
+{\tt co} & {\it str}  & Company?\\
+{\tt ad} & {\it str}  & Email address\\
+\hline
+\end{tabular}
+\end{trivlist}
+The table {\tt af} appears to indicate the file format of the original
+source for the dictionary.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt af}\\
+\hline
+{\tt ap} & {\it apid} & The dictionary.\\
+{\tt fm} & {\it fm} & The format.  Example values are {\tt html},
+    {\tt html-curl}, {\tt pdf-lock/encrypt}, {\tt txt}, {\tt txt-wb},
+    {\tt xml}, {\tt pdf-img}, and {\tt db}.
+\\
+\hline
+\end{tabular}
+\end{trivlist}
+The table {\tt aped} appears to contain Panlex processing information
+for dictionaries.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt aped}\\
+\hline
+{\tt ap} & {\it apid} & The dictionary.\\
+{\tt q}  & {\it t/f}  & ?\\
+{\tt cx} & {\it num}  & ?\\
+{\tt im} & {\it t/f}  & ?\\
+{\tt re} & {\it t/f}  & ?\\
+{\tt ed} & ?          & ?\\
+{\tt fp} & ?          & A code that seems to indicate the documented
+    varieties and a one-word abbreviation of the title.  E.g., {\tt eng-ciw-Weshki}.\\
+{\tt etc} & {\it str} & Appears to be comments about what work
+    needs to be done yet.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\subsubsection{Supporting tables}
+
+The {\tt apli} table appears to map 2-letter license codes to
+3-letter codes.  I don't know what the codes mean.
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt apli}\\
+\hline
+{\tt id} & licid & License ID\\
+{\tt li} & lic & 2-letter code\\
+{\tt pl} & ? & 3-letter code\\
+\hline
+\end{tabular}
+\end{trivlist}
+The {\tt fm} table contains information about ``fm'' codes, which
+appear to be file formats for the original dictionary sources.
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt fm}\\
+\hline
+{\tt fm} & {\it fm} & Format ID?\\
+{\tt tt} & {\it str} & Dictionary name??\\
+{\tt md} & {\it str} & ?\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\subsection{Entries (mn)}
+
+A dictionary is a list of entries.  Panlex calls entries ``meanings'' (mn).
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt mn}\\
+\hline
+{\tt mn} & {\it mnid} & The entry ID.\\
+{\tt ap} & {\it apid} & The dictionary it belongs to.  The file is
+    sorted by this column.\\
+\hline
+\end{tabular}
+\end{trivlist}
+The tables {\tt df}, {\tt dm}, and {\tt mi} provide further
+information about entries.
+The {\tt df} table appears to represent definitions or explanations.
+Not all dictionaries have them.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt df}\\
+\hline
+{\tt df} & ? & Definition ID?\\
+{\tt mn} & {\it mnid} & The entry.\\
+{\tt lv} & {\it lvid} & Language variety of the definition.\\
+{\tt tt} & {\it str} & Definition.\\
+\hline
+\end{tabular}
+\end{trivlist}
+The {\tt dm} table possibly represents the semantic domain of an
+entry.  Not all dictionaries include it.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt dm}\\
+\hline
+{\tt dm} & ? & Some kind of ID.\\
+{\tt mn} & {\it mnid} & The entry.\\
+{\tt ex} & {\it exid} & The semantic domain?\\
+\hline
+\end{tabular}
+\end{trivlist}
+I have no idea what {\tt mi} represents.  The values in the {\tt tt}
+field are usually IDs of some sort, but occasionally English words.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt mi}\\
+\hline
+{\tt mn} & ? & ?\\
+{\tt tt} & ? & ?\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+
+\subsection{Word senses (dn)}
+
+\subsubsection{Word senses proper}
+
+An entry is a list of (synonymous) words.
+A word-sense is the occurrence of a word within an entry.
+Panlex calls word senses ``denotations'' (dn).
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt dn}\\
+\hline
+{\tt dn} & {\it dnid} & The word-sense ID, representing a particular
+    word within a particular entry.\\
+{\tt mn} & {\it mnid} & The entry.\\
+{\tt ex} & {\it exid} & The word.\\
+\hline
+\end{tabular}
+\end{trivlist}
+A word-sense may be associated with a part
+of speech.
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt wc}\\
+\hline
+{\tt wc} & ? & An ID for the assignment?\\
+{\tt dn} & {\it dnid} & The word sense.\\
+{\tt ex} & {\tt exid} & The part of speech.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+The {\tt md} table appears to give the part of speech as written
+in the original source.
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt md}\\
+\hline
+{\tt md} & ? & An ID for the assignment?\\
+{\tt dn} & {\it dnid} & The word sense.\\
+{\tt vb} & {\it str} & The kind of code?\\
+{\tt vl} & {\it str} & The original part of speech\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\subsubsection{Supporting tables}
+
+The {\tt wcex} table is a convenience listing of the part of
+speech expressions.
+
+\begin{trivlist}\item
+\begin{tabular}{|llp{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{\tt wcex}\\
+\hline
+{\tt ex} & {\it exid} & The part-of-speech expression.\\
+{\tt tt} & {\it str}  & The part-of-speech string.\\
+\hline
+\end{tabular}
+\end{trivlist}
+
+\end{document}

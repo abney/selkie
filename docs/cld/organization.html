@@ -1,0 +1,168 @@
+<html>
+<head>
+<title>Overall Structure</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Overall Structure</h1>
+
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="Modules">Organization into modules</h2>
+<p>
+The module <tt>seal.app</tt> can be considered to belong to CLD.  All
+other CLD modules are within the package <tt>seal.cld</tt>.</p>
+<ul>
+<li>Toplevel: <tt>seal.cld.ui.__init__</tt></li>
+    <ul>
+    <li><tt>seal.cld.__init__</tt></li>
+    </ul>
+</li>
+<li>Infrastructure: <tt>seal.cld.ui.file</tt>
+    <ul>
+    <li><tt>seal.cld.file</tt></li>
+    <li><tt>seal.cld.permissions</tt></li>
+    <li><tt>seal.cld.pool</tt></li>
+    <li><tt>seal.cld.writer</tt></li>
+    </ul>
+</li>
+<li>Corpus: <tt>seal.cld.ui.corpus</tt>
+    <ul>
+    <li><tt>seal.cld.corpus</tt></li>
+    <li><tt>seal.cld.ui.users</tt></li>
+    <li><tt>seal.cld.users</tt></li>
+    </ul>
+</li>
+<li>Language: <tt>seal.cld.ui.language</tt>
+    <ul>
+    <li><tt>seal.cld.language</tt></li>
+    </ul>
+</li>
+<li>Text and page: <tt>seal.cld.ui.text</tt>
+    <ul>
+    <li><tt>seal.cld.text</tt></li>
+    <li><tt>seal.cld.ui.toc</tt></li>
+    <li><tt>seal.cld.toc</tt></li>
+    <li><tt>seal.cld.ui.page</tt></li>
+    <li><tt>seal.cld.page</tt></li>
+    </ul>
+</li>
+<li>Word: <tt>seal.cld.rom</tt>
+<li>Tokenized text: <tt>seal.cld.token</tt>
+    <ul>
+    <li><tt>seal.cld.ui.igt</tt></li>
+    </ul>
+</li>
+<li>Lexicon: <tt>seal.cld.ui.lexicon</tt>
+    <ul>
+    <li><tt>seal.cld.lexicon</tt></li>
+    <li><tt>seal.cld.sim</tt></li>
+    </ul>
+</li>
+<li>Concordance: <tt>seal.cld.ui.conc</tt></li>
+<li>Audio: <tt>seal.cld.ui.media</tt>
+    <ul>
+    <li><tt>seal.cld.media</tt></li>
+    <li><tt>seal.cld.ui.audio</tt></li>
+    <li><tt>seal.cld.audio</tt></li>
+    <li><tt>seal.script.clips</tt></li>
+    </ul>
+</li>
+<li>Video: <tt>seal.cld.ui.video</tt></li>
+<li>Drill: <tt>seal.cld.ui.course</tt>
+    <ul>
+    <li><tt>seal.cld.course</tt></li>
+    <li><tt>seal.cld.drill</tt></li>
+    </ul>
+</li>
+<li>Defunct: <tt>seal.cld.old_lexicon</tt></li>
+</ul>
+
+<h2 id="URL">Organization by URL</h2>
+
+The most natural starting point for examining code
+is often the URL that you use to reach a page.  Each page is generated
+by a particular method of an HTML directory instance.  The page
+connects to other pieces of source code:
+there may be Javascript code associated with the page, placing
+callbacks to the HTML directory; and the HTML directory
+is generally associated with one or more disk objects.
+
+The quickest way to determine the page and directory associated with a
+URL is to run a query in python (\S\ref{seal.script.cld.sec:running}).
+For example, in the directory \verb|~/git/cld|, do:
+\begin{myverb}
+>>> from seal.cld.app import App
+>>> app = App('test.cfg')
+>>> app('/langs/lang.oji/texts/text.7/page/xscript/edit.0')
+&lt;HtmlPage Media 33>
+>>> page = _
+\end{myverb}
+From the page, one can get the parent (and determine its class):
+\begin{myverb}
+>>> page.__parent__
+&lt;seal.cld.ui.media.Transcriber object at 0x10bde84a8>
+\end{myverb}
+One can also determine the name that was used to access the page:
+\begin{myverb}
+>>> page.__file__.name
+'edit.0'
+\end{myverb}
+
+The last directory component of the URL pathname (``{\tt xscript},''
+in our example) often determines a unique directory class.  The
+following table lists the associations.
+\begin{tabbing}mmmmmmmmm\=\kill
+{\tt /}\>{\tt CorpusEditor} \S\ref{CorpusEditor:sec}\\
+{\tt users}\>{\tt GroupsEditor}\\
+{\tt langs}\>{\tt LanguageListEditor} \S\ref{LanguageListEditor:sec}\\
+{\tt lgsel}\>{\tt LanguageSelector}\\
+{\tt lang.}{\it name\/}\>{\tt LanguageEditor} \S\ref{LanguageEditor:sec}\\
+{\tt texts}\>{\tt TocEditor} \S\ref{TocEditor:sec}\\
+{\tt text.}{\it id\/}\>{\tt TextEditor} \S\ref{TextEditor:sec}\\
+{\tt page}\>{\tt PageEditor} \S\ref{PageEditor:sec}\\
+{\tt xscript}\>{\tt Transcriber} \S\ref{Transcriber:sec}
+\end{tabbing}
+
+The following provides an overview of the interface pages.  The names
+are classes within {\tt seal.cld.ui}, and the arguments are classes
+within {\tt seal.cld}.
+\begin{tt}
+\begin{tabbing}mm\=mm\=mm\=\kill
+CorpusEditor(corpus:Corpus)\\
+\>corpora: CorpusListEditor(contents:CorpusList)\\
+\>\>lang: LanguageEditor(lang:Language)\\
+\>\>\>text: TextEditor
+\end{tabbing}
+\end{tt}
+
+\begin{tabbing}mmmmmmmmm\=mmmmmmmmm\=\kill
+{\tt langs}
+\>{\tt LanguageListEditor}({\tt contents}: {\tt LanguageList})\\
+\>{\it Search\/} \>\ra\ {\tt langs/search}\\
+\>{\it Ojibwa\/} \>\ra\ {\tt lang.oji}\\[2ex]
+{\tt lgsel}
+\>{\tt LanguageSelector}({\tt langlist}: {\tt LanguageList})\\[2ex]
+{\tt lang.}$\ell$
+\>{\tt LanguageEditor}({\tt lang}: {\tt Language})\\
+\>{\it Texts\/} \>\ra\ {\tt texts}\\
+\>{\it Lexicon\/} \>\ra\ {\tt lexicon}\\[2ex]
+{\tt texts}, {\tt text.}$i$
+\>{\tt TextEditor}({\tt text}: {\tt Text})\\
+\>{\it Redirect\/} \>\ra\ {\tt toc}, {\tt page}, {\tt stub}\\[2ex]
+{\tt toc}
+\>{\tt TocEditor}({\tt toc}: {\tt Toc})\\
+\>{\it Noodin Lessons\/} \>\ra\ {\tt ../text.26}\\[2ex]
+{\tt page}
+\>{\tt PageEditor}({\tt page}: {\tt Page})\\
+\>[{\tt PlainTextPanel}]\\
+\>{\it click\/} \>\ra\ {\tt igt}\\[2ex]
+{\tt igt}
+\>{\tt IGTEditor}\\
+\>[{\tt IGTEditor}, {\tt LexentViewer}]\\
+\end{tabbing}
+
+
+</body>
+</html>

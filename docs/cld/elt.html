@@ -1,0 +1,413 @@
+<html>
+<head>
+<title>Elements</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="api/default.css"/>
+</head>
+<body>
+<h1>Elements</h1>
+
+<h2 id="1">Element class</h2>
+<p>
+The class Element is the base class for the following.  Every
+element has the member <tt>contents,</tt> which is a list of content items.
+The Element also provides
+two methods: <tt>add</tt> is used to add items to the
+contents, and the default <tt>__iter__</tt> method simply yields each
+item in <tt>contents.</tt></p>
+<p>
+When defining an element, one may override the <tt>__iter__</tt>
+method, but one should be sure to include any
+sub-elements in <tt>contents</tt> so that they will be found by
+<tt>iterelements.</tt>
+When overriding the <tt>__iter__</tt> method, one should remember that
+strings of class HTML are rendered as they stand, whereas
+regular strings will be escaped before rendering.</p>
+
+<h2 id="2">Spans</h2>
+
+<h3 id="2.1">Font changes and headings</h3>
+<p>
+There are elements corresponding to the font-changing tags B,
+I, and TT, as well as the headers H1 to H6.</p>
+<pre class="source">
+>>> e = B(page, 'test 1 2 3')
+>>> print(e)
+&lt;b&gt;test 1 2 3&lt;/b&gt;
+</pre>
+<p>
+They accept multiple arguments.</p>
+<pre class="source">
+>>> e = H1(page, 'The ', I('Titanic'))
+>>> print(e)
+&lt;h1&gt;The &lt;i&gt;Titanic&lt;/i&gt;&lt;/h1&gt;
+</pre>
+
+<h3 id="2.2">Spacers</h3>
+<p>
+BR is not a function but a variable.</p>
+<pre class="source">
+>>> print(BR)
+&lt;br /&gt;
+</pre>
+<p>
+NBSP is a tag, but it also can be called as a function
+taking an optional argument that indicates the
+number of spaces.
+<pre class="source">
+>>> print(NBSP)
+&amp;nbsp;
+>>> e = NBSP(2)
+>>> print(e)
+&amp;nbsp;&amp;nbsp;
+</pre>
+
+<h2 id="3">Blocks</h2>
+
+<h3 id="3.1">Paragraphs</h3>
+<p>
+P produces a paragraph.  It accepts any number of arguments.</p>
+
+<h3 id="3.2">Pre</h3>
+<p>
+Pre produces a pre-formatted block.  It accepts a single
+argument, and an optional <tt>width</tt> parameter.
+Note that the restriction to a single item is not limiting: one can
+pass in a list.</p>
+<pre class="source">
+>>> e = Pre(['hi there\r\n', 'foo bar\r\n'])
+>>> print(e)
+&lt;pre class="source"&gt;
+hi there
+foo bar
+&lt;/pre&gt;
+</pre>
+
+<h3 id="3.3">Lists</h3>
+<p>
+UL takes multiple arguments.  Each is rendered as a list item.
+One may also create a UL and add items one at a time.</p>
+<pre class="source">
+>>> e = UL('Lather', 'Rinse', 'Repeat')
+>>> print(e)
+&lt;ul>
+&lt;li>Lather&lt;/li>
+&lt;li>Rinse&lt;/li>
+&lt;li>Repeat&lt;/li>
+&lt;/ul>
+</pre>
+<p>
+Additional items can be added using the <tt>add</tt> method.</p>
+
+<h3 id="3.4">Stack</h3>
+<p>
+Stack is not a standard HTML element.  It takes multiple
+arguments, and connects them with <tt>BR</tt>s.</p>
+<pre class="source">
+>>> e = Stack('Hi there', 'A test')
+>>> print(e)
+Hi there&lt;br />
+A test
+</pre>
+
+<h3 id="3.5">Table</h3>
+<p>
+One can create a table all at once, or add a row at a time, or mix the
+two modes.</p>
+<pre class="source">
+>>> e = Table(Row('hi', 'there'), Row('foo', 'bar'))
+>>> print(e)
+&lt;table class="display">
+&lt;tr>&lt;td>hi&lt;/td>&lt;td>there&lt;/td>&lt;/tr>
+&lt;tr>&lt;td>foo&lt;/td>&lt;td>bar&lt;/td>&lt;/tr>
+&lt;/table>
+</pre>
+<p>
+One may also use Header instead of Row.  A Header is
+a row in which each cell is wrapped in <tt>th</tt> instead of <tt>td.</tt>
+Additional rows can be added using the <tt>add</tt> method.</p>
+<p>
+To change the <tt>rowspan</tt> or the <tt>colspan</tt> of a cell, one must
+create an explicit <tt>Cell</tt> object.  For example:</p>
+<pre class="source">
+>>> t = Table(Row('hi', 'there'), Row(Cell('boo', colspan=2)))
+>>> print(t)
+&lt;table class="display">
+&lt;tr>&lt;td>hi&lt;/td>&lt;td>there&lt;/td>&lt;/tr>
+&lt;tr>&lt;td colspan="2">boo&lt;/td>&lt;/tr>
+&lt;/table>
+</pre>
+
+<h2 id="4">Navigation</h2>
+
+<h3 id="4.1">Link</h3>
+<p>
+A Link represents an HTML anchor.  It takes two arguments: the
+text and the URL.</p>
+<pre class="source">
+>>> e = Link('go there', '/foo')
+>>> print(e)
+&lt;a href="/foo">go there&lt;/a>
+</pre>
+<p>
+An optional third argument is the <tt>target.</tt>  Typical values are
+<tt>'_top'</tt> or <tt>'_blank'.</tt></p>
+
+<h3 id="4.2">Button</h3>
+<p>
+The Button constructor takes two arguments:
+the text that appears on the button, and the URL to be visited if the
+button is clicked on.  If the URL is None, the button is
+disabled.  An optional argument is <tt>target,</tt> which specifies the
+window that the URL should be opened in.</p>
+
+<h3 id="4.3">Path</h3>
+<p>
+A Path is a sequence of links representing the path to the
+current directory.  It takes an HtmlDirectory as argument.  For example:
+<pre class="source">
+>>> from seal.examples.ui import RootDirectory
+>>> root = RootDirectory()
+>>> text = root(parse_request('doc.10/page.3/text'))
+>>> page = text.__parent__
+>>> print(Path(page))
+&lt;div class="path">
+&lt;a href="/">top&lt;/a> &gt; &lt;a href="/doc.10/">doc.10&lt;/a> &gt; page.3
+&lt;/div>
+</pre>
+
+<h3 id="4.4">Menubar</h3>
+<p>
+A Menubar is a <tt>div</tt> created from a list of buttons.</p>
+
+<h2 id="5">Forms</h2>
+<p>
+Forms comprise a number of different elements, so I put them in a
+section of their own.</p>
+
+<h3 id="5.1">Form element</h3>
+<p>
+The Form constructor takes a single argument,
+which is the callback URL.  The information in the form will be
+POSTed to the callback URL when the form is submitted.</p>
+<pre class="source">
+>>> e = Form('do_it')
+>>> e.add(Submit('Go!'))
+>>> print(e)
+&lt;form enctype="multipart/form-data" action="do_it" method="post">
+&lt;input type="submit" name="submit" value="Go!"/>
+&lt;/form>
+</pre>
+<p>
+Each form element generates a key-value pair in the POST data.
+Each of the following constructors takes a key as its first argument.</p>
+
+<h3 id="5.2">Check boxes</h3>
+<p>
+The CheckBoxes constructor takes two arguments: a key and a list
+of values.  One checkbox is generated for each value.  An optional
+argument is <tt>selected,</tt> which may be a value or a list of values
+that should initially be checked.  By default, no boxes are checked.
+Another optional argument is <tt>separator,</tt> which specifies
+what should be placed between each pair of adjacent check boxes.  By
+default, it is a single space.</p>
+
+<h3 id="5.3">Dropdown</h3>
+<p>
+The Dropdown class represents a dropdown list.  The constructor
+takes two arguments: key and values.  The key identifies this
+piece of information in the form.  Values is a list of
+possible values.  The initially selected value is the first in the
+list.  An optional argument <tt>selected</tt> allows one to specify one of
+the other values as the initially selected value.</p>
+
+<h3 id="5.4">File upload</h3>
+<p>
+A File element supports file upload.  In the form, it takes the
+form of a browse button that allows a user to select a file.  In the
+POST information, the entire contents of the file, as a string,
+is the value of key associated with the File element.</p>
+<p>
+Here is an example:</p>
+<pre class="source">
+class FileTest (HtmlDirectory):
+
+    def getitem (self, name, args, kargs):
+        if name == '': return self.test()
+        elif name == 'upload': return self.upload(**kargs)
+
+    def test (self):
+        form = Form('upload')
+        form.add(Table(Row('File:', File('file')),
+                       Row(Cell(Submit('Submit'), colspan=2))))
+        p = HtmlPage(title='File Test')
+        p.add(form)
+        return p
+
+    def upload (self, file='', submit=''):
+        p = HtmlPage(title='File Contents')
+        p.add(Pre(file))
+        return p
+</pre>
+<p>
+To run it:</p>
+<pre class="source">
+>>> from seal.wsgi import App, run
+>>> from seal.examples.ui import FileTest
+>>> run(App(FileTest()))
+</pre>
+<p>
+Then visit <tt>http://localhost:8000/.</tt></p>
+
+<h3 id="5.5">Hidden</h3>
+<p>
+A Hidden element can be used to pass information from the code
+that creates the form to the code that receives the resulting POST.
+The constructor takes two arguments: key and value.</p>
+
+<h3 id="5.6">Not editable</h3>
+<p>
+The NotEditable constructor takes two arguments, key and value.
+Like a hidden element, the key-value pair is included in the POST.
+But unlike a hidden element, the value is displayed -- though it is not
+editable.</p>
+
+<h3 id="5.7">Radio buttons</h3>
+<p>
+The RadioButtons constructor takes two arguments: a key and a
+list of values.  Each value generates a radio button.  An optional
+argument is <tt>selected,</tt> which contains one of the values.  By
+default, none of the boxes is initially selected.  Another optional
+argument is <tt>separator,</tt> which specifies what should be between
+each pair of adjacent radio buttons.  By default, it is a single space.</p>
+
+<h3 id="5.8">Submit</h3>
+<p>
+A Submit button constructor takes two optional arguments.  The
+first is the <i>value,</i> which is the text to display on the button.
+It defaults to <tt>'Submit'.</tt>
+The second is the <i>name,</i> which is the key in the key-value pair
+that is generated by pressing the button.  It defaults to <tt>'action'.</tt></p>
+
+<h3 id="5.9">Text box</h3>
+<p>
+The Textbox constructor takes two arguments: key and value.  The
+value provides the initial text in the box.  If omitted, it defaults
+to the empty string.  An optional argument is <tt>size,</tt> whose value
+is an integer representing the width of the text box in characters.</p>
+
+<h3 id="5.10">Text area</h3>
+<p>
+The Textarea constructor is just like Textbox, except that
+the <tt>size</tt> parameter expects a pair of numbers, representing the
+number of rows and columns in the box.</p>
+
+<h3 id="5.11">Example</h3>
+<p>
+The class FormTest illustrates the use of a form.  It is defined
+as follows:</p>
+<pre class="source">
+class FormTest (HtmlDirectory):
+
+    def getitem (self, name, args, kargs):
+        if name == '': return Redirect('form.42')
+        elif name == 'form': return self.form(*args)
+        elif name == 'update': return self.update(**kargs)
+
+    def form (self, id):
+        t = Table(Row('Name:', Textbox('name')),
+                  Row('Password:', Password('passwd')),
+                  Row('Sex:', RadioButtons('sex',
+                                           ['Female', 'Male'])),
+                  Row('Income:', Dropdown('inc',
+                                          ['', 'Some', 'Lots'])),
+                  Row('Pets:', CheckBoxes('pets',
+                                          ['Dog', 'Cat', 'Python'])))
+        form = Form('update')
+        form.add(t)
+        form.add(Hidden('id', id))
+        form.add([Submit('Submit'), NBSP(), Submit('Cancel')])
+
+        p = HtmlPage(title='Form Example')
+        p.add(H1('Form'))
+        p.add(form)
+        return p
+
+    def update (self, id='', name='', passwd='', sex='',
+                inc='', pets=[], submit=''):
+        p = HtmlPage(title='Update')
+        p.add(Table(Row('Id:', id),
+                    Row('Name:', name),
+                    Row('Password:', passwd),
+                    Row('Sex:', sex),
+                    Row('Income:', inc),
+                    Row('Pets:', ', '.join(pets)),
+                    Row('Submit:', submit)))
+        return p
+</pre>
+<p>
+Note the line <code>getlist('pets')</code> in <tt>update.</tt>  With check
+boxes, multiple boxes may be checked, yielding multiple values for <tt>"pets"</tt>.</p>
+<p>
+To run the test:
+<pre class="source">
+>>> d = FormTest()
+>>> d.run()
+</pre>
+<p>
+Visit <tt>http://localhost:8000/.</tt>  The browser will redirect to
+<tt>form.42.</tt>  Fill in some information and click either <tt>Submit</tt>
+or <tt>Cancel.</tt>  You should get a web page showing what you entered.</p>
+
+
+<h2 id="6">Widgets</h2>
+<p>
+A widget is an element that does something.  In particular:</p>
+<ul>
+<li>it contains Javascript code in addition to HTML,</li>
+<li>it has its own stylesheet,</li>
+<li>it can be addressed in a URL and handles page requests.</li>
+</ul>
+<p>
+Here is a simplified example.</p>
+<pre class="source">
+class Foo (Widget):
+
+    __pages__ = {'doit': 'doit'}
+
+    def __init__ (self, parent, **kwargs):
+        Widget.__init__(self, parent, **kwargs)
+        Div(self, htmlid='foodiv')
+        script = Script(self)
+        String(script, "new Foo('%s');\r\n" % self.callback_prefix())
+
+    def doit (self, x=None):
+        resp = Text(self)
+        resp.write(str(x + 2))
+        return resp
+</pre>
+<p>
+In addition to the Widget definition, one must also provide
+files called Foo.js and Foo.css in the Seal data
+directory.  The script in the widget definition provides
+initialization code for the Javascript class Foo defined in
+Foo.js.</p>
+<p>
+The widget behaves like a directory, accessed by name.
+For example, the code for the page containing the Foo widget
+might contain:</p>
+<pre class="source">
+def edit (self):
+    page = HtmlPage()
+    Foo(page, name='foo1')
+    return page
+</pre>
+<p>
+Then a URL addressing the widget's <tt>doit</tt> callback would have the
+form:</p>
+<pre class="source">
+/path/mypage/foo1/doit.42
+</pre>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<html>
+<head>
+<title>Ch 7: Implementation as WSGI app</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 7: Implementation as WSGI app</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="1">The WSGI specification</h2>
+
+<h3 id="1.1">Overview</h3>
+<p>
+WSGI stands for Web Server Gateway Interface.  It is a Python
+standard, but it is implemented by Apache and other web servers.
+A WSGI script is much like a CGI script, except that it is executed by
+Python rather than by the shell.  A WSGI script usually has file
+suffix <tt>.wsgi</tt> and resides in the web server's <tt>cgi-bin</tt> directory.
+The script must set the variable <tt>application</tt> to an application that
+conforms to WSGI expectations.</p>
+<p>
+A WSGI application may also be called from a CGI script using
+the CGIHandler class from wsgiref.handlers.</p>
+
+<h3 id="1.2">Definition</h3>
+<p>
+The WSGI standard defines a <b>WSGI application</b> to be a callable
+that behaves as follows: it takes two arguments, <i>environ</i>
+and <i>callback,</i> and it responds by
+passing status and header information to <i>callback,</i>
+and by returning the page contents as
+a list of byte-strings.  The following provides a
+bare-bones example:</p>
+<pre class="source">
+def app (environ, callback):
+    value = [b'This is a test.\r\n'
+             b'It is only a test.\r\n']
+    nbytes = sum(len(s) for s in value)
+    callback('200 OK', 
+             [('Content-Type', 'text/plain'),
+              ('Content-Length', str(nbytes))])
+    return value
+</pre>
+<p>
+This little example ignores <i>environ.</i>
+The value for <i>callback</i> is a function that accepts two
+arguments, <i>status_line</i> and <i>headers.</i>
+The <i>status_line</i> is a string that conforms to the HTTP standard;
+here it is <tt>'200 OK'.</tt>  The value for <i>headers</i> is a list
+of pairs of form (<i>key,</i> <i>value</i>).  Keys and values are all
+strings.  The keys must be valid HTTP header keys.</p>
+<p>
+The server further expects the app's return value to be a list of byte-strings
+representing the contents of the HTTP response.
+<tt>'Content-Length'</tt> must be included in the headers passed to <i>callback,</i>
+and its value must match the total number of bytes in the return value.
+Note that
+the arguments to <i>callback</i> consist of strings, whereas 
+the return value consists of byte-strings.</p>
+
+<h3 id="1.3">Running a WSGI application</h3>
+<p>
+Python also provides an implementation of a WSGI server, which can be
+run as in the following example:
+<pre class="source">
+>>> from wsgiref.simple_server import make_server
+>>> server = make_server('localhost', 8000, app)
+>>> server.serve_forever()
+</pre>
+<p>
+Then visit the URL <tt>http://localhost:8000/.</tt>
+Alternatively, do the following in a separate terminal window:</p>
+<pre class="source">
+$ curl http://localhost:8000/
+</pre>
+<p>
+One can alternatively run a WSGI application inside
+a CGI script.  Here is a hypothetical example:</p>
+<pre class="source">
+#!/home/clling/bin/python
+import site
+site.addsitedir('/home/my/python')
+from mystuff import app
+from wsgiref.handlers import CGIHandler
+CGIHandler().run(app)
+</pre>
+
+<h2 id="2">WsgiApp</h2>
+
+<h3 id="2.1">The WsgiApp __call__ method</h3>
+<p>
+The class <tt>WsgiApp</tt> wraps a
+Seal application function and makes it behave like a WSGI app.  To be precise,
+the WsgiApp constructor is called on a Resources instance, which
+contains a pointer to a Seal application in the member <tt>app.</tt>
+The WsgiApp accepts <i>environ</i> and <i>callback</i> arguments
+in accordance with the WSGI specification, and it instantiates Request
+from the environ and resources.  It passes the request to the
+Seal application to obtain a
+Response, and it calls the
+Response methods <tt>http_status()</tt>, <tt>http_headers()</tt>,
+and <tt>body()</tt> to get the pieces of the WSGI output.
+In accordance with the WSGI specification,
+the status headers are passed to <i>callback,</i> and the body is returned.</p>
+<p>
+If an error occurs in the call to the Seal application, the
+WsgiApp constructs the status, headers, and body
+from the error.</p>
+
+<h3 id="2.2">Response methods</h3>
+<p>
+The Response provides the following three methods for the use of
+WsgiApp:</p>
+<dl>
+<dt><tt>http_status()</tt></dt> <dd>Returns a string consisting of the page's
+ <tt>response_code</tt> and the corresponding message.</dd>
+<dt><tt>http_headers()</tt></dt> <dd>With the exception of redirects
+(status 303), there are two headers: <tt>Content-Type</tt> and <tt>Content-Length.</tt>
+The value of the <tt>Content-Type</tt> header is constructed from the mime type and
+character encoding, and the value of the <tt>Content-Length</tt>
+header comes from <tt>nbytes.</tt>
+A redirect substitutes <tt>Location</tt> for <tt>Content-Type;</tt> the
+value for <tt>Location</tt> comes from
+the page's <tt>uri</tt> member.</dd>
+<dt><tt>body()</tt></dt>
+<dd>Simply returns the <tt>contents.</tt></dd>
+</dl>
+<p>
+The WsgiApp calls these three methods and returns the results
+to its caller in accordance with the WSGI specification.</p>
+
+</body>
+</html>

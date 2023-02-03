@@ -1,0 +1,20 @@
+form input 0
+lemma input 0
+cpos input 0
+fpos input 0
+morph input 0
+form input 1
+fpos input 1
+fpos input 2
+fpos input 3
+role lc input 0
+form stack 0
+lemma stack 0
+cpos stack 0
+fpos stack 0
+morph stack 0
+role stack 0
+fpos stack 1
+form govr stack 0
+role lc stack 0
+role rc stack 0

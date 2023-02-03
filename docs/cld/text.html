@@ -1,0 +1,336 @@
+<html>
+<head>
+<title>22 Texts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>22 Texts</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="Data model">Data model</h2>
+<p>
+A <a href="../seal/cld/text.html#Text"><tt>Text</tt></a>
+is a shell that can represent several kinds of textual objects,
+depending on its contents.  It is a specialization
+of <a href="../seal/cld/file.html#Structure">Structure</a>, with six possible
+members: <tt>audio</tt>, <tt>media</tt>, <tt>orig</tt>, <tt>toc</tt>, <tt>trans</tt>, <tt>xscript</tt>.
+The kind of text is determined by which members are actually present.</p>
+<table class="display">
+<tr><th>If</th> <th>Then it is:</th></tr>
+<tr><td><tt>toc</tt></td> <td>A <b>complex text</b>: a
+    document or document section.</td></tr>
+<tr><td><tt>orig</tt></td> <td>A <b>written page</b>.</td></tr>
+<tr><td><tt>media</tt>, [<tt>audio</tt>]</td> <td>A <b>recording</b>,
+ which is a <b>media page</b>.</td></tr>
+<tr><td><i>none&nbsp;of&nbsp;the&nbsp;above</i></td> <td>An undifferentiated <b>stub</b>.</td></tr>
+</table>
+<p>
+It is invalid for a text directory to contain more than one of these
+four files.</p>
+
+<h3 id="Complex texts"><a href="document.html">Complex texts</a></h3>
+<table class="display">
+<tr><td><tt>toc</tt></td> <td><tt>Toc</tt></td></tr>
+</table>
+<p>
+Complex texts represent hierarchical structures whose leaves are
+pages.</p>
+
+<h3 id="Written Page">Written page</h3>
+<table class="display">
+<tr><td><tt>orig</tt></td> <td><tt>TokenFile</tt></td></tr>
+<tr><td><tt>trans</tt></td> <td><tt>Translation</tt></td></tr>
+</table>
+<p>
+Pages subsume both written pages and recordings.
+A page may have a <b>plaintext</b> version and a <b>translation</b>.
+The plaintext is always tokenized.
+Together, plaintext and translation
+constitute <a href="igt.html">interlinear glossed text (IGT)</a>.</p>
+<p>
+The method <tt>plaintext()</tt> returns a text's plaintext
+representation.  For a written page, the plaintext
+resides in <tt>orig</tt> and is represented by class TokenFile.
+For recordings, the plaintext is derived from the transcript and is
+represented by class TranslationUnits.</p>
+<p>
+The translation resides in <tt>trans</tt>.</p>
+
+<h3 id="Recordings">Recording (media page)</h3>
+<table class="display">
+<tr><td><tt>media</tt></td> <td><tt>MediaFile</tt></td></tr>
+<tr><td><tt>trans</tt></td> <td><tt>Translation</tt></td></tr>
+<tr><td><tt>xscript</tt></td> <td><tt>Transcription</tt></td></tr>
+</table>
+<p>
+Old-style audio page (deprecated):</p>
+<table class="display">
+<tr><td><tt>audio</tt></td> <td><tt>AudioDirectory</tt> (deprecated)</td></tr>
+<tr><td><tt>trans</tt></td> <td><tt>Translation</tt></td></tr>
+</table>
+<p>
+A recording may have a <b>transcription</b>.  If the <tt>media</tt>
+subdirectory is present, the transcription is in a
+separate <tt>xscript</tt> directory.  If <tt>audio</tt> is present
+(deprecated), the transcription is <tt>audio/transcript</tt>.</p>
+<p>
+The main difference between <tt>audio</tt> and <tt>media</tt> is that,
+in the former case, the actual audio recording is stored in
+the <tt>audio</tt> subdirectory.  In the case of <tt>media</tt>, the
+actual audio or video file is stored in a central media directory.</p>
+<p>
+The <tt>plaintext()</tt> for a recording is read-only.  It is derived
+from the transcript, and is represented by class TranslationUnits.</p>
+<p>
+Like a written page, a recording may also have a translation,
+represented by the subdirectory <tt>trans</tt>.</p>
+
+<h3 id="Stub">Stub</h3>
+<p>
+A freshly-created text is a stub; it has no subdirectories.</p>
+
+
+<h2 id="Plaintext">Plaintext</h2>
+
+<h3>Plaintext file</h3>
+<p>
+The Texts of a language describe a tree in which complex documents
+supply the interior nodes and the leaf nodes are either written pages
+or recordings.  (We set stubs aside since they are transitory.)  The
+contents of written pages and recordings have a common representation
+in the form of <a href="../seal/cld/token.html#Plaintext"><b>plaintext</b></a>, optionally combined with a
+translation.  The <a href="../seal/cld/text.html#Text.plaintext"><tt>Text.plaintext()</tt></a> method returns the
+plaintext representation of a textual leaf node.</p>
+<p>
+A <b>plaintext file</b> provides the plaintext representation of a page.
+A plaintext file is a piece of
+tokenized, monolingual, target-language text that is of a suitable
+size for editing and storage on disk as a single file.  Stripped to
+its essence, a <b>monolingual corpus</b> is a list of plaintext files.</p>
+<p>
+As we have seen, "plaintext file" does not name a class, but is represented by three
+different classes that occur in four different contexts:</p>
+<ul>
+<li>The <tt>orig</tt> member of a <a href="../seal/cld/text.html#Text">Text</a> is a
+<a href="../seal/cld/token.html#TokenFile">TokenFile</a>; it represents a written page.</li>
+<li>The <tt>transcript</tt> member of
+  a <a href="../seal/cld/media.html#Transcription">Transcription</a> is also a
+  TokenFile.  It represents a sequence of text fragments, one for each
+  small clip of a recording.</li>
+<li>A <a href="../seal/cld/token.html#TransTokenFile">TransTokenFile</a> is not
+  a specialization of TokenFile, but it behaves like a TokenFile.
+  It presents a read-only <b>plaintext view</b> of a transcript in which the text
+  fragments are stitched together into more natural sentence-like units.</li>
+<li>TranslationUnits is an older, now deprecated, class that
+  TransTokenFile replaces.</li>
+</ul>
+
+<h3>Segments and Tokens</h3>
+<p>
+Conceptually, a plaintext file is a list of sentence-sized <b>segments</b>, and a
+segment is a list of <b>tokens</b>.  Some of the tokens are
+distinguished as <b>lexical tokens</b>, or word-form occurrences.
+They are collected into the lexicon.</p>
+<p>
+There is no hard-and-fast definition of what sized unit constitutes a "segment"
+and what constitutes a "plaintext file".  For the sake of
+responsiveness and incrementality, a plaintext file should be of
+moderate size, ideally about the size of a page of printed text.  A
+"segment" is any convenient subdivision for editing in a text box.
+Segments also serve as <b>translation units</b>, in the sense of
+the units of the plaintext file that align one-for-one
+with units of the English translation.  The same units are used
+for <b>interlinear glossed text (IGT)</b>.
+Typically, segments are sentences, but they may be larger (for
+example, paragraphs) or smaller (fragments).
+It is important to distinguish them from <b>orthographic sentences,</b>
+which are delimited by final punctuation, or <b>root clauses</b>,
+which are the natural units for grammatical analysis.
+How large the segments are, and how large the plaintext files are, is
+ultimately up to the person that creates the text.</p>
+<p>
+Segments are represented by the class <a href="../seal/cld/token.html#TokenBlock">TokenBlock</a>.
+A TokenFile behaves like a list of TokenBlocks, and a TokenBlock
+behaves like a list of <a href="../seal/cld/token.html#Token">Tokens</a>.</p>
+
+
+<h2 id="Indices">Indices</h2>
+<p>
+Changes to texts are tracked in two central locations:</p>
+<ul>
+<li><p><b>TID table.</b>  Tracks the <i>location</i> of a text.
+  Each Text is assigned a <a href="../seal/cld/text.html#TID"><b>text ID
+  (TID)</b></a>, and the TID table maps TIDs to pathnames, to make it
+  possible to find a text given its ID.</li>
+
+<li><p><b>Lexicon.</b>  Tracks the <i>contents</i> of a text.
+  The tokens of the text are interned to create lexical entries, and
+  references to the token locations are kept in the lexical
+  entries.  A reference is represented by
+  a <a href="../seal/cld/token.html#SID"><b>segment ID (SID)</b></a>;
+  token locations are tracked at the granularity of the segment.</p></li>
+</ul>
+
+<h3>Segment-level changes</h3>
+<p>
+Changes to plaintext files need to be propagated to the lexicon.  The lexicon
+includes every word form that occurs in a plaintext, and keeps a list
+of references to the SIDs where tokens of each
+word form occur.  Whenever a plaintext file is edited, references need to
+be added and deleted.  When the last reference to a word is
+deleted, its lexical entry is deleted as well.</p>
+<p>
+The use of SIDs assumes that a TID identifies a unique plaintext.  The
+presence of both transcript and plaintext view break that assumption.
+The transcript/view separation makes things
+tricky in another way, as well.  When going from the lexical entry for
+a form to places where
+the form occurs, it is most natural to refer to the plaintext view,
+not to the fragments in the transcript.  However, the plaintext view is
+read-only; it is the transcript that is edited.</p>
+<p>
+Our solution is this.  All lexical updates triggered by edits to plaintext
+go through
+the <a href="../seal/cld/token.html#TokenBlock">TokenBlock</a>
+methods <tt>set_contents()</tt> and <tt>delete_contents()</tt>.  We
+let the transcript be represented by a standard
+<a href="../seal/cld/token.html#TokenFile">TokenFile</a>, with the
+consequence that the references to the tokens of a recording are at
+the granularity of fragments.</p>
+<p>
+The trick is in going from a lexical reference back to a TextBlock.
+A SID combines a TID with the sequence number for a TokenBlock.  Both
+the transcript and plaintext view of a recording share the same TID.
+Dereferencing a SID is done by
+<a href="../seal/cld/language.html#Language.deref_parid">Language.deref_parid()</a>.
+It dereferences the TID to the value
+of <tt><i>text</i>.plaintext()</tt>, which is not the transcript, but
+the plaintext view.  The "misdirection" is not actually a problem, as
+long as we arrange that the sequence number for a transcript fragment leads us
+to the correct TokenBlock in the plaintext view.</p>
+<p>
+To find the TokenBlock with a given sequence number, TransTokenFiles (and TokenFiles)
+contain a table that maps sequence numbers to
+TextBlocks.  Nothing prevents us from mapping multiple sequence numbers
+to the same TextBlock.  When initializing a TransTokenFile from a
+transcript, we concatenate multiple fragments to form a given
+TokenBlock.  We simply index the TokenBlock under all of the
+fragment sequence numbers.  This has the consequence that the
+TokenBlock's sequence number is not uniquely defined, but read-only
+TokenBlocks have no internally-recorded SID, so there is no need for
+uniqueness.</p>
+
+<h3>Text-level changes</h3>
+<p>
+To modify the number and arrangement of nodes in the hierarchy of
+Texts, one uses the methods
+of <a href="../seal/cld/text.html#TocWriter">TocWriter</a> listed in
+the table below: <tt>new_child()</tt> to create a
+node, <tt>delete_child()</tt> to delete a node,
+and <tt>transfer_children()</tt> to change the parent of one or more
+nodes.</p>
+<p>
+A <a href="../seal/cld/text.html#TextType">TextType</a> object
+provides TocWriter with a single point of contact for updating the TID
+table and lexicon.  There is a separate TextType for each language, returned by the
+<tt>text_type()</tt> method of <a href="../seal/cld/language.html#Language">Language</a>.
+The text-change methods of TocWriter, and the TextType or
+TextTypeWriter methods that they call, are shown in the
+following table.  I include the <tt>load()</tt> method of Toc as well,
+since it also calls TextType methods.</p>
+<table class="display">
+<tr><th>Toc[Writer]</th> <th>TextType</th> <th>TextTypeWriter</th></tr>
+<tr><td>load()</td> <td>get_class(), check_item()</td> <td></td></tr>
+<tr><td>new_child()</td> <td>get_class()</td> <td>allocate()</td></tr>
+<tr><td>delete_child()</td> <td>descendants()</td> <td>deleting()</td></tr>
+<tr><td>transfer_children()</td> <td>to_list(), descendants()</td> <td>moved()</td></tr>
+</table>
+<p>
+Updates to the TID table are performed by <a href="../seal/cld/pool.html#ItemType">ItemType</a>, which TextType
+inherits from.  In particular, <tt>allocate()</tt> creates a new entry
+in the ID table, <tt>deleting()</tt> removes an entry,
+and <tt>moved()</tt> updates an entry.</p>
+<p>
+TextType adds a call to LexiconWriter.
+If the text contains a TokenFile,
+<tt>deleting()</tt> calls the <tt>delete_contents()</tt>
+method of each block in the TokenFile.  The other two
+hierarchy-changing methods
+do not affect the lexicon.  In particular, <tt>new_child()</tt>
+always creates an empty text, and <tt>transfer_children()</tt> changes the
+pathnames but not the TIDs of the moved texts.</p>
+
+<h2 id="Examples">Examples</h2>
+<p>
+
+
+<h2 id="Editor">Editor</h2>
+<p>
+Visiting a text in the UI returns a
+<a href="../seal/cld/ui/text.html#TextEditor"><tt>TextEditor</tt></a>.
+After <a href="app.html">instantiating the app</a>:
+</p>
+<pre class="source">
+>>> e6 = app.follow('/langs/lang.oji/texts/text.6')
+>>> e6
+&lt;seal.cld.ui.text.TextEditor object at 0x...&gt;
+</pre>
+<p>
+A TextEditor is little more than a dispatcher.  The Text
+is found in the <tt>file</tt> member:</p>
+<pre class="source">
+>>> e6.file
+&lt;Text langs/oji/texts/30&gt;
+</pre>
+<p>
+The home page <tt>''</tt> of the editor is represented by the
+<tt>root()</tt> method, which returns a redirect to <tt>'toc/'</tt> if the toc
+exists:</p>
+<pre class="source">
+>>> e6.file.ls()
+_meta   _perm   toc
+>>> e6.file.toc.exists()
+True
+>>> e6.root()
+&lt;Redirect 'toc/'&gt;
+</pre>
+<p>
+Otherwise, <tt>root()</tt> returns a redirect to <tt>'page/'</tt>:
+<pre class="source">
+>>> e7 = app.follow('/langs/lang.oji/texts/text.7')
+>>> e7.file.ls()
+_meta   _perm   media   xscript
+>>> e7.file.toc.exists()
+False
+>>> e7.root()
+&lt;Redirect 'page/'&gt;
+</pre>
+<p>
+The redirects are handled by the <tt>toc()</tt> method and the
+<tt>page()</tt> method.  The former returns a <tt>TocEditor</tt>
+editting the text's <tt>toc</tt>, and the
+latter returns a <tt>PageEditor</tt> editing the text itself.
+<pre class="source">
+>>> e6.toc()
+&lt;seal.cld.ui.toc.TocEditor object at 0x...&gt;
+>>> e7.page()
+&lt;seal.cld.ui.page.PageEditor object at 0x...&gt;
+</pre>
+<p>
+Stub texts are also handled by PageEditor.
+
+
+<h2 id="Toc">Toc</h2>
+
+<h3>Data model</h3>
+<p>
+A <a href="../seal/cld/text.html#Toc"><tt>Toc</tt></a> is essentially
+just a list of component Texts.</p>
+
+<h3>User view</h3>
+<p>
+<a href="../seal/cld/ui/toc.py#TocEditor">TocEditor</a></p>
+
+</body>
+</html>

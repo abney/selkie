@@ -1,0 +1,65 @@
+
+% Features
+
+nform  = sg/pl
+tns    = nform
+vform  = tns/pl/base/en/psv/ing
+pform  = about/loc/to/as
+cform  = that/q/inf
+trans  = i/t
+select = pform/cform/adj/np/- default -
+bool   = +/- default -
+gap    = np/pform/- default -
+
+
+% Variables
+
+P  pform
+
+
+% Categories
+
+!adjp  []
+!measp []
+!np    []
+!num   []
+!pp    []
+!vp    []
+
+adj   [select:select]
+adj1  [select:select]
+adjp  []
+aux   [form:vform, select:vform]
+c     [form:cform]
+cadjp []
+comma []
+conj  []
+date  []
+deg   []
+det   [form:nform, wh:bool]
+fname []
+lname []
+measp []
+month []
+n     [form:nform]
+n1    [form:nform]
+n2    [form:nform]
+n3    [form:nform, wh:bool]
+name  [form:nform]
+np    [form:nform, wh:bool]
+num   [form:nform]
+pron  [form:nform, wh:bool]
+p     [form:pform]
+pp    [form:pform, wh:bool, gap:gap]
+rc    []
+root  []
+rpron [form:nform]
+s     [gap:gap]
+sc    [form:cform, gap:gap]
+unit  [form:nform]
+unitmod []
+unitp [form:nform]
+v     [form:vform, trans:trans, select:select]
+vp    [form:vform, gap:gap]
+vp0   [form:vform, gap:gap]
+

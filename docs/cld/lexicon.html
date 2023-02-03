@@ -1,0 +1,110 @@
+<html>
+<head>
+<title>21 Lexicon</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>21 Lexicon</h1>
+
+<h2 id="1">Lexical entry</h2>
+
+<h3 id="1.1">Description</h3>
+<p>
+I define <b>form</b> very broadly to include
+(inflected) word forms as they appear in text; their
+stems, roots, and affixes; dialectal variants; spelling
+variants and outright misspellings; and so on.  The lexicon includes
+an entry for each, not just for traditional headwords.</p>
+<p>
+I actually use the term <b>lexical entry</b> for what would be a
+numbered sense within a traditional entry.  That is, a form maps to a
+list of LexicalEntry objects, and the sense number is the index of the
+LexicalEntry in that list.</p>
+<p>
+One may alternatively view a lexicon as mapping a <b>lexid,</b> which
+is a form paired with a sense number, to a LexicalEntry.  Lexids are
+represented as strings; a dot separates the form and sense number.  A
+form standing alone is equivalent to a lexid with sense number 0.</p>
+<p>
+A lexical entry is a mapping from <b>lexical fields</b> to values.
+The lexical fields include part
+of speech, semantics, morphological analysis, and the like.
+A lexical field is a structured object, but it is
+immutable and suitable for use as key in a mapping.  The lexical field
+includes information about the type of value that is expected.</p>
+<p>
+In addition, a lexical entry contains a list of <b>parids</b>
+representing the locations where tokens of the lexid occur.
+A parid is the
+pairing of a textid with a paragraph number, separated
+by a dot.</p>
+<p>
+Finally, a lexical entry contains two back-links.  The first is a
+simple back-link to the lexicon itself.  The second is
+the <b>index</b> of the lexical entry within an ordered list of
+all lexical entries, which is also part of the lexicon.</p>
+<p>
+In short, the members of LexicalEntry are: form, sense, fields, refs,
+lexicon, and index.</p>
+
+<h3 id="1.2">Lexical fields</h3>
+<p>
+There are currently only a few lexical fields.  The <b>gloss</b> is an
+English rendering of the meaning.  The value of <b>components</b> is a
+list of lexids representing parts of the form.  The components
+typically represent a morphological decomposition but they can
+represent any sort of decomposition.  The field <b>derived forms</b>
+is automatically generated as the inverse of <i>components.</i>
+If <i>c</i> is a component of <i>f,</i> then <i>f</i> is a derived
+form of <i>c.</i></p>
+<p>
+Forms that are dialectal variants, spelling variants, misspellings, or
+the like, have a <b>canonical form.</b>  The inverse of
+<i>canonical form</i> is <b>variants;</b> it is also automatically
+generated.  Finally, a variant form (one that has a non-null canonical
+form) has a <b>variety,</b> which is a string indicating what kind of
+variant it is: what dialect it belongs to, or what orthographical
+tradition, or its status as a spelling error.</p>
+<p>
+There is a fixed list of lexical fields.  Each lexical field contains
+the following information:</p>
+<ul>
+<li>Its <b>name</b>.</li>
+<li>A two-letter <b>abbreviation</b> of the name.</li>
+<li>Which lexical field is its <b>inverse</b>, if any.  Inverseness is
+  reflexive: if <i>f</i> has inverse <i>g,</i> then <i>g</i> has
+  inverse <i>f.</i></li>
+<li>Whether it is <b>settable.</b>  Automatically-generated inverses
+  are not settable; all other fields are settable.</li>
+<li>The <b>type</b> of the value.  The possible types are String, XRef
+  (a single lexid), or XRefs (a list of lexids).  The type provides a
+  method to parse a string representation into a value, and a
+  method to convert a value into a string representation.</li>
+<li>Its <b>index</b> in the list of lexical fields.</li>
+</ul>
+
+<h2 id="2">Lexicon</h2>
+<p>
+A Lexicon has three content members:</p>
+<ul>
+<li><tt>_lexents</tt> - a list of LexicalEntries.  Different senses of
+  a form are separate LexicalEntry instances on the list.</li>
+<li><tt>_table</tt> - a dict whose keys are forms.  The value for a
+  form is a list of LexicalEntries, where the sense number equals the
+  index in the list.  That is, _table[form][sno] is a LexicalEntry.</li>
+<li>_indices - a LexicalIndices instance.  It contains three indices,
+  one that maps forms to similar forms, one that maps gloss words to
+  similar gloss words, and one that maps gloss words to lexical
+  entries.</li>
+</ul>
+
+
+<h2 id="3">Similarity</h2>
+
+<h2 id="4">Editor</h2>
+
+<h2 id="5">Concordance</h2>
+
+</body>
+</html>

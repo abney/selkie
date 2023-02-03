@@ -1,0 +1,46 @@
+
+from nell import ex
+from nell.sh import *
+
+cat(ex.g1)
+cat(ex.lex1)
+
+from nell import cf, cky
+g = cf.Grammar(ex.g1)
+lex = cf.Lexicon(ex.lex1)
+s = 'I book a flight in May'.split()
+cky.recognize(s, g, lex)
+
+chart = cky.Chart(4, set)
+chart[1,2]
+chart[2,1]
+chart[1,2].add('hi')
+chart[1,2]
+
+cky.lhss('V', 'NP', g)
+
+trees = cky.parse(s, g, lex)
+for tree in trees: tree.pprint()
+
+cell = cky.Cell()
+cell.find('VP')
+cell.add('VP', ['V', 'NP'])
+cell.find('VP')
+_.expansions
+cell.add('VP', ['VP', 'PP'])
+cell.find('VP')
+_.expansions
+
+e = cky.Entry('VP', ['V', 'NP'])
+e.cat
+e.expansions
+e.add(['VP', 'PP'])
+e.expansions
+
+e1a = cky.Entry('V', 'book')
+e1b = cky.Entry('N', 'book')
+e2 = cky.Entry('Pron', 'it')
+e0 = cky.Entry('VP', [e1a, e2])
+e0.add([e1b, e2])
+for tree in e0.trees(): tree.pprint()
+

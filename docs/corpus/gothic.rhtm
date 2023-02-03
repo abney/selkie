@@ -1,0 +1,57 @@
+\g=gothic
+<html>
+<head>
+<title>Salish</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="default.css"/>
+</head>
+<body>
+<table>
+<tr>
+<td valign="top">
+<table class="display">
+
+<tr><td><tt>a</tt></td> <td>\ga\0</td></tr>
+<tr><td><tt>b</tt></td> <td>\gb\0</td></tr>
+<tr><td><tt>g</tt></td> <td>\gg\0</td></tr>
+<tr><td><tt>d</tt></td> <td>\gd\0</td></tr>
+<tr><td><tt>e</tt></td> <td>\ge\0</td></tr>
+<tr><td><tt>q</tt></td> <td>\gq\0</td></tr>
+<tr><td><tt>z</tt></td> <td>\gz\0</td></tr>
+<tr><td><tt>h</tt></td> <td>\gh\0</td></tr>
+<tr><td><tt>th</tt></td> <td>\gth\0</td></tr>
+<tr><td><tt>i</tt></td> <td>\gi\0</td></tr>
+<tr><td><tt>k</tt></td> <td>\gk\0</td></tr>
+<tr><td><tt>l</tt></td> <td>\gl\0</td></tr>
+<tr><td><tt>m</tt></td> <td>\gm\0</td></tr>
+
+</table>
+</td>
+
+<td>&nbsp;&nbsp;&nbsp;</td>
+
+<td valign="top">
+<table class="display">
+
+<tr><td><tt>n</tt></td> <td>\gn\0</td></tr>
+<tr><td><tt>j</tt></td> <td>\gj\0</td></tr>
+<tr><td><tt>u</tt></td> <td>\gu\0</td></tr>
+<tr><td><tt>p</tt></td> <td>\gp\0</td></tr>
+<tr><td><tt>90</tt></td> <td>\g90\0</td></tr>
+<tr><td><tt>r</tt></td> <td>\gr\0</td></tr>
+<tr><td><tt>s</tt></td> <td>\gs\0</td></tr>
+<tr><td><tt>t</tt></td> <td>\gt\0</td></tr>
+<tr><td><tt>w</tt></td> <td>\gw\0</td></tr>
+<tr><td><tt>f</tt></td> <td>\gf\0</td></tr>
+<tr><td><tt>x</tt></td> <td>\gx\0</td></tr>
+<tr><td><tt>hv</tt></td> <td>\ghv\0</td></tr>
+<tr><td><tt>o</tt></td> <td>\go\0</td></tr>
+<tr><td><tt>900</tt></td> <td>\g900\0</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</body>
+</html>

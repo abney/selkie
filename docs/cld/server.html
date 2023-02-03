@@ -1,0 +1,69 @@
+
+<h2 id="1">Server</h2>
+
+<h3 id="1.1">Overview</h3>
+<p>
+The Seal web server is essentially a controller for a ServerDaemon
+instance, which is a specialization of the standard
+ThreadingHTTPServer (from the standard <tt>server</tt> module).  The
+server daemon runs in a separate thread, so that it does not
+monopolize the main thread.</p>
+<p>
+When the server daemon receives an HTTP request, it starts a
+thread for that request and instantiates an HTTPRequestHandler in the
+new thread.  It is possible for the daemon to receive multiple
+requests in rapid sequence, thus that multiple request-handler threads
+run simultaneously.</p>
+<p>
+The HTTP request handler is a specialization of the standard class
+BaseHTTPRequestHandler (from the standard <tt>server</tt> module).
+BaseHTTPRequestHandler has a large number of members and methods, so
+to avoid any risk of adverse interactions, our specialization hands
+off all the actual work to a separate class called ApplicationCaller.
+The ApplicationCaller is instantiated with a back pointer to the HTTP
+request handler, then its <tt>run()</tt> method is called.</p>
+<p>
+User control of the server and application caller is via a
+configuration dict, which is passed first to the Server, and thence to
+the ServerDaemon.  The request handler is created within standard
+library code, but the standard code provides it with a backlink to the
+server daemon.  Hence the application caller's backlink to the handler
+gives it indirect access to the server daemon, and thence to the
+configuration dict.</p>
+<p>
+The application caller creates a Request, fetches the application
+function from the configuration dict, passes the request to the
+application function and
+receives a Response in return.  Then it renders the response in HTTP
+format on the handler's output stream, which is connected to the
+client.</p>
+
+
+<h2 id="3">Old Server</h2>
+<p>
+The Server class is a wrapper for the "real" server, which is a
+Python web server.  The web
+server that is used combines WSGIServer (from module wsgiref.simple_server) with
+ThreadingMixIn (from module socketserver).</p>
+<p>
+The Server constructor takes a single argument, a WsgiApp.
+It should be used in a with-statement.  The <tt>__enter__()</tt> method
+calls <tt>start(),</tt> which runs <tt>_start_server()</tt>
+in a separate thread.  The <tt>start()</tt> function waits, and does not return,
+until the <tt>started</tt> flag has been set.</p>
+<p>
+The <tt>_start_server()</tt> method instantiates the real server, sets
+the <tt>started</tt> flag, and immediately calls the web
+server's <tt>serve_forever()</tt> method.  In other words,
+the <tt>start()</tt> method returns once the real-server thread has
+started up and the real server has been created.</p>
+<p>
+The Server's <tt>__exit__()</tt> method dispatches to <tt>stop(),</tt>
+which calls the real server's <tt>shutdown()</tt> method to request
+shutdown.  Then it waits for the <tt>stopped</tt> flag to be set
+before returning.</p>
+<p>
+When the real server shuts down, the subordinate thread
+function <tt>_start_server()</tt> receives control again, and it sets
+the <tt>stopped</tt> flag.  Then it returns, terminating the
+subordinate thread.</p>

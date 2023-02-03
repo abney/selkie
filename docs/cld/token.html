@@ -1,0 +1,282 @@
+<html>
+<head>
+<title>23 Tokenized Text</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>23 Tokenized Text</h1>
+
+<h2 id="1">Tokenization</h2>
+
+<h3 id="1.1">Definition</h3>
+<p>
+We use a simple whitespace-separated definition of <i>token.</i>
+We strip off punctuation at the beginning and end of the token; what
+remains is the <b>orthographic form.</b>  In addition, the
+orthographic form may end with a <b>sense number</b> in the form of a
+dot followed by one or more digits.</p>
+<p>
+Hence, a token is conceptually the concatenation of four strings: leading
+punctuation, the token proper, and trailing punctuation.  We classify
+the token proper as a <b>word token</b> if it contains any alphabetic characters,
+a <b>numeric token</b> if it contains digits but no alphabetic
+characters, and a <b>miscellaneous token</b> otherwise.
+For a word token, the ASCII string of the token proper is called an
+<b>orthographic form.</b>  The orthographic form may subdivide into
+word and sense number.</p>
+<p>
+For example, consider the (nonsense) text:</p>
+<pre class="display">
+``'ac, \$23 n`a.1,'' 'ac,.
+</pre>
+<p>
+How this tokenizes depends on the romanization.  Let us assume a
+romanization in which <tt>'a</tt> represents &aacute;, <tt>`a</tt> represents
+&agrave;, and <tt>c,</tt> represents &ccedil;.  Then the tokenization is:</p>
+<table class="display">
+<tr><th>Type</th> <th>Pre</th> <th>Form</th> <th>Post</th></tr>
+<tr><td><tt>word</tt></td> <td><tt>``</tt></td> <td><tt>'ac,</tt></td> <td></td></tr>
+<tr><td><tt>num</tt></td>  <td><tt>\$</tt></td> <td><tt>23</tt></td>   <td><tt></td></tr>
+<tr><td><tt>word</tt></td> <td><tt></tt></td>   <td><tt>n`a.1</tt></td>  <td><tt>,''</td></tr>
+<tr><td><tt>word</tt></td> <td><tt></tt></td>   <td><tt>'ac,</tt></td> <td><tt>.</td></tr>
+</table>
+<p>
+Here the first column represents the token type, the
+second column represents leading punctuation, the third contains
+orthographic forms, and the fourth column
+represents trailing punctuation.</p>
+<p>
+The orthographic form <tt>n`a.1</tt> subdivides into word <tt>n`a</tt>
+and sense number 1.  Only <tt>word</tt> tokens may contain sense
+numbers, and sense numbers are never obligatory.  A missing sense
+number is equivalent to sense 0.</p>
+
+<h3 id="1.2">Token</h3>
+<p>
+A <b>Token</b> instance has methods <tt>form,</tt> <tt>sense,</tt>
+<tt>lpunc,</tt> <tt>rpunc,</tt> <tt>lexent,</tt> and <tt>unicode.</tt>
+The value for <tt>unicode</tt> is provided by the romanization.  The
+form does not include the sense number.  For a word token, the form
+and sense number are used to find the entry in the lexicon (lexent);
+non-word tokens have no lexent.</p>
+<p>
+Annotation, whether of part of speech or word sense, is uniformly treated
+via the sense number.  That
+is, the sense division is maximally fine-grained.  A coarser-grained
+distinction, such as part of speech, corresponds to a partition of the senses.
+For example, <tt>fish.0</tt> and <tt>fish.1</tt> may both be noun senses,
+whereas <tt>fish.2</tt> and <tt>fish.3</tt> are verb senses.</p>
+<p>
+Limiting annotation to the addition of sense number allows one
+to edit the annotated text as plain text.
+One can edit the text in any plain-text editor, for example
+rearranging words using cut and paste, and as long as orthographic
+forms are not separated from their sense numbers, the annotation is
+preserved.</p>
+<p>
+Because a token without sense number is treated as having sense number 0,
+unannotated text becomes a special case of annotated text.</p>
+
+<h2 id="2">Token file</h2>
+
+<h3 id="2.1">Sentences</h3>
+
+Tokenized text is represented by the class TokenFile, discussed below.
+A token file consists of units that I will call <b>sentences,</b>
+although the units are not necessarily actually sentences.
+The defining feature of the units is that they are the units of
+translation, hence a more accurate term
+would be <b>translation unit.</b>  In
+the code, the units are also sometimes called <i>paragraphs</i> or <i>segments.</i>
+The class that represents them is TokenBlock.</p>
+<p>
+Although sentences generally occur as elements in a token file, it is also
+possible to create temporary sentences that are free-floating.</p>
+<p>
+A token file behaves like a list of sentences, and a sentence's <b>index</b>
+is its position in the list.  A sentence is also assigned a permanent
+ID that is unique within the file.  IDs are assigned to sentences in
+order of creation.  Because sentences may be
+inserted, deleted, and reordered, a sentence's ID may well differ from
+its index.</p>
+<p>
+The sentence ID identifies the sentence uniquely only within its
+file.  A sentence is uniquely identified within its language by its
+<b>location,</b> which is a pair consisting of the text ID and the
+sentence ID.  An ID is immutable and unique within its scope, but one
+should not make any other assumptions.  In particular, a text ID is a
+string but a sentence ID is an integer.</p>
+<p>
+If <i>tf</i> is a token file, one may access a sentence either by
+index or by ID:</p>
+<pre class="source">
+>>> s1 = tf[i]
+>>> s2 = tf.by_id(id)
+</pre>
+<p>
+One may create a new sentence by appending a string, which is
+tokenized to create the sentence:</p>
+<pre class="source">
+>>> s3 = tf.append('foo bar baz')
+</pre>
+<p>
+It is assigned the next available ID and appended to the end of the file.</p>
+<p>
+A sentence behaves like a list of Tokens:</p>
+<pre class="source">
+>>> token = s1[j]
+</pre>
+
+
+
+<h2 id="PageEditor">PageEditor</h2>
+
+<h3 id="Pages">Pages and PageEditor</h3>
+<p>
+A <b>page</b> is either a written page or a recording.  Viewed as a
+page, a recording's content is its transcript, which always exists,
+though it may be empty.  A page is represented by a Text instance,
+since the page contents generally resides in multiple members of Text.
+The original-language <b>plaintext</b> resides either in <tt>orig</tt>
+or <tt>xscript</tt>, and the reference-language <b>translation</b> is
+in <tt>trans</tt>.</p>
+<p>
+A <a href="../seal/cld/ui/page.html#PageEditor">PageEditor</a>
+provides a UI view of a page.  The page resides in its <tt>file</tt>
+member.</p>
+<pre class="source">
+>>> ped = app.follow('/langs/lang.oji/texts/text.3/toc/text.1/page')
+>>> ped
+&lt;seal.cld.ui.page.PageEditor object at 0x...>
+>>> ped.file
+&lt;Text langs/oji/texts/26/toc/14>
+>>> ped.file.title()
+'Lesson 8: Intransitive Inanimate Verbs'
+</pre>
+<p>
+The PageEditor constructor takes three arguments: the parent (of
+class <tt>TextEditor</tt>), the text (of class <tt>Text</tt>), and
+optionally the string <tt>'nt'</tt> standing for "no translation."
+The parent is accessible in the member <tt>__parent__</tt>, the text is
+accessible in the member <tt>file</tt>, and whether or not a
+translation should be included is recorded in the member
+<tt>parallel</tt>:</p>
+<pre class="source">
+>>> ped.parallel
+True
+>>> tmp = app.follow('/langs/lang.oji/texts/text.3/toc/text.1/page.nt')
+>>> tmp.parallel
+False
+</pre>
+
+<h3 id="Edit">Edit</h3>
+<p>
+The main view of a page is provided by the <a href="../seal/cld/ui/page.html#PageEditor.edit"><tt>PageEditor.edit()</tt></a> method.
+The displayed HTML page includes a number of links:</p>
+<ul>
+<li>a 'Transcribe' button linking to <tt>xscript/edit</tt>
+  or <tt>audio/edit</tt>, as appropriate.
+  See <a href="xscript.html#Transcription">Transcription</a>.</li>
+<li>...</li>
+</ul>
+<p>
+The home page is generated by the <tt>edit()</tt> method.
+<tt>PlainTextPanel</tt> represents the central HTML element that displays
+text with translation.
+The PlainTextPanel contains javascript that may place a callback
+to the PageEditor method <tt>edit_par()</tt>.
+It is described in the javascript section below.</p>
+
+<h3 id="Stub">Stub</h3>
+<p>
+Since this is a page, it has no <tt>toc</tt>.
+If it also has no <tt>plaintext()</tt>, then it is a stub.
+</p>
+
+<h2 id="PlainTextPanel">PlainTextPanel</h2>
+
+<h3>PlainTextPanel widget</h3>
+<p>
+A PlainTextPanel is a widget.  The constructor takes four
+arguments: the HTML page, the text's plaintext, the text's translation
+(that is, the <tt>trans</tt> member), and a boolean <tt>parallel</tt> indicating whether
+the translation should be displayed or not.
+The panel renders as an H2 title "Text" followed by
+a div that contains a table.  If <tt>parallel</tt> is true, there are
+two columns in the table, with the
+left column consisting of target-language paragraphs and the right column
+consisting of English translations.  If <tt>parallel</tt> is false, the
+right column is suppressed.</p>
+<p>
+The div has ID <tt>textdiv</tt>.
+The table has class ParallelText if there are two columns and
+PlainText if there is only one.
+Existing paragraphs are included in the generated HTML table.
+New paragraphs are generated by javascript.</p>
+<p>
+If the plaintext is of class TokenFile, it is editable.
+Otherwise, the plaintext is a TranslationUnits object
+representing a view of a transcript, in which case
+it is read-only.</p>
+
+<h3 id="PlainTextPanel.js">PlainTextPanel.js</h3>
+<p>
+<a href="../js/PlainTextPanel.html">PlainTextPanel.js</a> is activated by a call <tt>PlainTextPanel(<i>w,d</i>)</tt>,
+where <i>w</i> indicates whether the text is writable or not
+and <i>d</i> indicates whether this text is derived from
+an underlying transcription or not.
+The PlainTextPanel instance contains the main control methods.</p>
+<p>
+The script interacts with the server at five points.  Two of them are
+merely buttons that cause a new page to be requested:</p>
+<ul>
+<li>The "IGT" button visits the page <tt>igt.<i>i</i>/edit</tt>, where <i>i</i>
+  is the current paragraph (row) number.</li>
+<li>The "audio" button visits the page <tt>../audio/tunit.<i>i</i></tt>,
+  where <i>i</i> is the current paragraph (row) number.</li>
+</ul>
+<p>
+The remaining three points of interaction are ajax calls.  All are
+calls to the same server-side method, namely, <tt>edit_par()</tt>.
+Each nominally applies to a single cell of the matrix.
+In the callback, one specifies an operation and the text that the user entered.</p>
+<ul>
+<li>The main interaction with the user is when the user enters a
+paragraph in the text box.  When 'enter' is pressed or 'commit'
+is clicked, a callback is placed.  The operation is <tt>'insert'</tt> if this is a new
+paragraph and <tt>'replace'</tt> if it is an old paragraph.</li>
+<li>If the text box is empty when the user finishes, and the
+paragraph is not a new one, a callback is placed whose operation is
+<tt>'delete'</tt>.</li>
+<li>If the user clicks the little 'X' button inside a box, a
+  callback is placed with operation <tt>'delete'</tt>.</li>
+</ul>
+<p>
+The server-side method is <tt>edit_par(<i>op, i, j, s</i>)</tt>.
+As we have seen, <i>op</i> is one of <tt>'insert'</tt>, <tt>'replace'</tt>, or <tt>'delete'</tt>,
+<i>i</i> is the paragraph (row) number and <i>j</i> is the column number (0 =
+original, 1 = translation), and <i>s</i> is the (ASCII) text that the user
+entered.  <i>S</i> is ignored if <i>op</i> is <tt>'delete'</tt>.
+The callback nominally applies to only one cell of the matrix: <i>j</i> is
+required to be either <tt>'0'</tt> or <tt>'1'</tt>.
+However, deletion affects the entire row,
+and insertion is only permitted with <i>j</i> = <tt>'0'</tt>, and causes an empty
+translation cell to be inserted.
+The argument <i>s</i> is the text that the user typed into the text box; it is
+only meaningful for <tt>'insert'</tt> and <tt>'replace'</tt>.
+In the cases where <i>s</i> is provided, the script
+expects the server to send back an answer, which is the text in the
+native orthography (Unicode) for display.</p>
+<p>
+The calls are passed on to the <tt>PageWriter</tt> for the editor's page.
+Specifically, an <tt>'insert'</tt> call translates to <tt>insert_par(<i>s,i</i>)</tt>;
+an <tt>'insert'</tt> call translates to <tt>set_orig(<i>i,s</i>)</tt>
+if <i>j</i> is <tt>'0'</tt> and <tt>set_trans(<i>i,s</i>)</tt> if <i>j</i> is
+<tt>'1'</tt>; and a <tt>'delete'</tt> call translates to <tt>delete_par(<i>i</i>)</tt>.
+In addition, <i>s</i> is converted to Unicode, using the text's
+romanization if <i>j</i> is <tt>'0'</tt> and the default romanization if <i>j</i>
+is <tt>'1'</tt>, and the Unicode is sent back to the script.</p>
+
+</body>
+</html>

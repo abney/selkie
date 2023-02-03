@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>Generic regular files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Generic regular files</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+<p>
+In addition to the <a href="../seal/cld/db/file.html#File">File</a>
+class, the module <tt>seal.cld.db.file</tt> provides several generic
+regular file types.  ("Regular file" here means non-directory.)</p>
+<ul>
+<li>Integer: value(), set(v), incr()</li>
+<li>String: value(), set(s)</li>
+<li>Strings: __len__(), __iter__(), __getitem__(i), __setitem__(i,s),
+  append(s), insert(i,s), delete(i).  To do: rename delete to __delitem__.</li>
+<li>Table: getitem(i), append(rec), __len__(), __iter__().</li>
+<li>PropDict: class variable property_names; __len__(),
+  __contains__(k), __iter__(), __getitem__(k),
+  __get__(k), keys(), values(), items(), __setitem__(k,v).</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,240 @@
+<html>
+<head>
+<title>Ethnologue language listing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../default.css"/>
+</head>
+<body>
+<h1>Ethnologue language listing</h1></p>
+
+<h2 id="1">Overview</h2>
+<p>
+The database in <tt>seal.data.langdb</tt> is compiled by merging data from
+the <i>Ethnologue,</i> from the Library of Congress's official
+ISO 639-2 database, and from Panlex.
+It uses the <tt>iso-639-2</tt> and <tt>iso-639-3</tt> packages.</p>
+<p>
+The database is called <tt>languages</tt>:</p>
+<pre class="python">
+>>> from seal.data.langdb import languages
+</pre>
+The information in <tt>languages</tt> exactly reflects the published
+databases, with the following exceptions:</p>
+<ul>
+<li>In the published databases, retired codes had no entry for scope
+  or type, with the exception of one retired code, which had
+  scope-type of <tt>IL</tt> (living language).  For the sake of
+  uniformity, I have assigned all retired codes scope <tt>'R'</tt> and
+  type <tt>'R'</tt>.</li>
+<li>In the published databases, the <tt>names</tt> field was filled
+  only if the language had multiple names, in which case <tt>names</tt>
+  included the reference name.  For the sake of uniformity, <tt>names</tt>
+  now always includes the reference name, and may be a singleton list
+  containing only the reference name.  Inverted names have been
+  treated similarly.</li>
+</ul>
+
+<h2 id="2">Language codes</h2>
+
+<h3 id="2.1">Code sets</h3>
+<p>
+The standard three-letter language codes are ISO 639-3 codes.  There
+are several other code sets in the ISO 639 family.</p>
+<ul>
+<li>ISO 639-1: These are the standard two-letter language codes.
+  Only 184 languages have a 639-1 code.</li>
+<li>ISO 639-2: These were created for librarians.  418 languages
+  have a 639-2 code.  20 languages have two different 639-2 codes: 
+  a "bibliographic" code (639-2/B) and a "terminological" code (639-2/T).
+  The Library of Congress is the registration authority.</li>
+<li>ISO 639-2/B: The bibliographic version of 639-2 codes.
+  These do not always agree with 639-3.</li>
+<li>ISO 639-2/T: The terminological version of 639-2 codes.  These
+  constitute a subset of 639-3.</li>
+<li>ISO 639-3: The standard three-letter language codes.  SIL is the
+  registration authority.  These extend the 639-2/T codes to 8121 languages.</li>
+<li>ISO 639-5: An extension to 639-2 to cover language groupings.
+  The Library of Congress is the registration authority.</li>
+</ul>
+
+<h3 id="2.2">Access by code</h3>
+<p>
+The database can be accessed by ISO-639-3 code to get a language:</p>
+<pre class="python">
+>>> print(languages['spa'])
+Code:      spa
+Code2B:    spa
+Code2T:    spa
+Code1:     es
+Type:      Living
+Scope:     Language
+RefName:   Spanish
+Name:      Spanish
+Varieties: 
+Dicts:     
+</pre>
+<p>
+The four codes listed are 639-3, 639-2/B, 639-2/T, and 639-1, in that order.</p>
+
+<h2 id="3">Language instances</h2>
+<p>
+Although one accesses <tt>languages</tt> as a table, one iterates over it
+as a list of languages.</p>
+<pre class="python">
+>>> len(languages)
+8282
+>>> sum(1 for lang in languages if lang.code2b != lang.code2t)
+20
+</pre>
+<p>
+A language instance has the following members:</p>
+<dl>
+<dt>code</dt> <dd>The 639-3 language code (a string).</dd>
+<dt>code2b</dt> <dd>The 639-2/B language code, or <tt>None</tt>.</dd>
+<dt>code2t</dt> <dd>The 639-2/T language code, or <tt>None</tt>.</dd>
+<dt>code1</dt> <dd>The 639-1 language code, or <tt>None</tt>.</dd>
+<dt>scope</dt> <dd>The value is <tt>'I'</tt> for individual language,
+ <tt>'M'</tt> for macrolanguage, <tt>'S'</tt> for special code, and <tt>'R'</tt>
+ for retired codes.
+ The special codes are used when one needs a code for something that is
+ not actually a language.  They are <tt>'mis'</tt> for an uncoded language, <tt>'mul'</tt>
+ when the thing to be coded contains multiple different languages, <tt>'und'</tt>
+ when the language is undetermined, and <tt>'zxx'</tt> when the thing to
+ be coded does not actually have linguistic content.</dd>
+<dt>type</dt> <dd>The value is <tt>'A'</tt> for an ancient language, <tt>'C'</tt>
+for a constructed language, <tt>'E'</tt> for an extinct language, <tt>'H'</tt> 
+for an historical language, <tt>'L'</tt> for a living language, <tt>'S'</tt>
+for a special code, and <tt>'R'</tt> for retired codes.</dd>
+<dt>name</dt> <dd>The reference name for the language.</dd>
+<dt>names</dt> <dd>All names for the language, including the reference name.</dd>
+<dt>inv{\underscore</dt>n<dd>ames} Inverted names (like <tt>'English, Old'</tt>).</dd>
+<dt>comment</dt> <dd>Comments.</dd>
+<dt>parent</dt> <dd>The macrolanguage that this language belongs to,
+  if any.</dd>
+<dt>members</dt> <dd>The member languages, if this is a
+  macrolanguage.</dd>
+<dt>retirement</dt> <dd><tt>None</tt> unless this is a retired code.  If this
+is a retired code, the value is an object with the following members:
+<tt>code</tt> repeats the language code, <tt>name</tt> repeats the name,
+<tt>reason</tt> is the retirement reason, <tt>date</tt> is the retirement
+date (a string), <tt>replacement</tt> is the new code this one was
+replaced with (if any), and <tt>split</tt> is an English string indicating
+which codes this one was split into (if any).  The retirement reasons
+are: <tt>'C'</tt> for a code change, <tt>'D'</tt> for deletion of a
+duplicate code, <tt>'M'</tt> for the merger of multiple codes into a new
+code, <tt>'S'</tt> for the splitting of one code into multiple codes, and
+<tt>'N'</tt> for deleting of a code that represents a non-existent
+language.  There is a value for <tt>replacement</tt> for the <tt>'C'</tt>,
+<tt>'D'</tt>, and <tt>'M'</tt> cases, and a a value for <tt>split</tt> for the
+<tt>'S'</tt> case.</dd>
+<dt>varieties</dt> <dd>The varieties of this language, as identified by
+Panlex.  For details about varieties, see the chapter on Panlex.</dd>
+</dl>
+
+<h2 id="4">Search</h2>
+
+<h3 id="4.1">Normalization</h3>
+<p>
+The methods <tt>named()</tt>, <tt>find()</tt> and <tt>search()</tt>
+permit one to search for languages by name.
+All three methods normalize both the language names and the search
+key, as follows:</p>
+<ul>
+<li>
+<p>
+Letters are normalized to lower case.  I.e., search is
+  case-insensitive:</p>
+<pre class="python">
+>>> languages.named('SPANISH')
+[&lt;Living Language spa 'Spanish'>]
+</pre>
+</li>
+<li>
+<p>
+Anything in parentheses is ignored.</p>
+<pre class="python">
+>>> languages.named('wali')
+[&lt;Living Language wll 'Wali (Sudan)'>, &lt;Living Language wlx 'Wali (Ghana)'>]
+</pre>
+</li>
+<li>
+<p>
+Hyphens are treated like spaces:</p>
+<pre class="python">
+>>> languages.named('karkar yuri')
+[&lt;Living Language yuj 'Karkar-Yuri'>]
+>>> languages.named('old-english')
+[&lt;Historical Language ang 'Old English (ca. 450-1100)'>]
+</pre>
+</li>
+<li>
+<p>
+Accents are removed:</p>
+<pre class="python">
+>>> languages.named('yari')
+[&lt;Retired Code Retired Code yri 'Yar\xed'>]
+</pre>
+<p>
+Here the Unicode character U+ED represents <i>&iacute;</i> (letter <i>i</i>
+with an acute accent).</p>
+</li>
+<li>
+<p>
+Everything that is not a letter is ignored in comparison:</p>
+<pre class="python">
+>>> languages.named('p!ao?')
+[&lt;Living Language blk "Pa'o Karen">, &lt;Retired Code Retired Code ppa 'Pao'>]
+</pre>
+</li>
+</ul>
+
+<h3 id="4.2">By name</h3>
+<p>
+One can access languages by complete name.  Since names are sometimes
+ambiguous, this returns a list:</p>
+<pre class="python">
+>>> languages.named('spanish')
+[&lt;Living Language spa 'Spanish'>]
+>>> languages.named('pao')
+[&lt;Living Language blk "Pa'o Karen">, &lt;Retired Code Retired Code ppa 'Pao'>]
+</pre>
+<p>
+Note that the key need not be the
+reference name: "Pa'O" is one of the alternate names for language
+<tt>blk</tt>:</p>
+<pre class="python">
+>>> languages['blk'].names
+["Pa'O", "Pa'o Karen"]
+>>> languages['blk'].name
+"Pa'o Karen"
+</pre>
+
+<h3 id="4.3">By name part</h3>
+<p>
+The method <tt>named()</tt> does not find a language if one provides only
+part of the name:</p>
+<pre class="python">
+>>> languages.named('chin')
+>>> languages.named('matu chin')
+[&lt;Living Language hlt 'Matu Chin'>]
+</pre>
+<p>
+To find a language if one knows only part of the name, used the method
+<tt>find()</tt>:</p>
+<pre class="python">
+>>> len(languages.find('chin'))
+33
+</pre>
+
+<h3 id="4.4">By character sequence</h3>
+<p>
+The method <tt>find()</tt> looks for complete words in the name.
+(Remember that hyphen is treated as a word separator.)  To find a
+language given only a part of a word, use <tt>search()</tt>:</p>
+<pre class="python">
+>>> languages.search('ruman')
+[&lt;Living Language rup 'Macedo-Romanian'>]
+</pre>
+
+</body>
+</html>

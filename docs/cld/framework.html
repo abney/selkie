@@ -1,0 +1,295 @@
+<html>
+<head>
+<title>The SealApp framework</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>The SealApp framework</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="0">Writing a Seal application</h2>
+
+<h3 id="0.1">App and request handler</h3>
+<p>
+In order to inherit a variety of functionality, it is useful to define
+an application function as a class that is instantiated.  One may
+then customize it by overriding methods.  This approach is most useful
+if we may also store information inside the application instance while
+processing a request.</p>
+<p>
+However, we must take care in a multi-threaded environment.  In
+particular, the Python web server may handle multiple simultaneous
+requests, and each of those requests is handled in a separate thread.
+If a Seal application function stores any internal state, <b>there
+must be one application instance per request.</b></p>
+<p>
+This creates a quandary: we pass a single Seal application function to
+the server, but we need separate instances for each request.
+Our solution is to distinguish between a SealApp and a
+SealRequestHandler.  There is a single instance of SealApp, held by
+the web server (wrapped in a WsgiApp).  When the SealApp is called on
+a request, it immediately creates a SealRequestHandler that is
+dedicated to that single request, and it calls the request handler.  In
+short, SealApp is a very simple shell; all the real work is done by
+the request handler.  The request handler receives the request
+as an argument of __init__, and its __call__ method takes no
+arguments.  It will not be called multiple times; it is discarded
+after one call.</p>
+<p>
+One defines a new application by specializing SealRequestHandler.
+The application function is then created by doing:</p>
+<pre class="source">
+my_app_function = SealApp(MyRequestHandler)
+</pre>
+<p>
+The resulting function <i>my_app_function</i> is thread-safe.  Each time it is called on a
+request, it calls <code>MyRequestHandler(request)()</code> and returns
+the result.</p>
+
+<h3 id="0.2">Specialization</h3>
+<p>
+Each time a Seal request handler is instantiated, it calls three methods:</p>
+<ul>
+<li><b>make_root:</b> returns the root web directory.</li>
+<li><b>open_file:</b> instantiates the application file, represented in memory by a Database object.</li>
+<li><b>make_context:</b> instantiates a Context object that is wrapped around each
+  request and provides global resources as one descends through the web
+  hierarchy.</li>
+</ul>
+<p>
+Specializations of SealRequestHandler may override the first two methods to provide
+the UI and disk portions, respectively, of the application content.</p>
+<p>
+To define a new application, one minimally needs to define a root
+web directory.  To assist in doing so,
+the classes HtmlDirectory and Page are provided, along with a number
+of specializations.  The Seal request handler does not specifically require that
+one use them, but they do assure that the request handler's expectations are met,
+namely:</p>
+<ul>
+<li>A <b>web directory</b> must have a <tt>__getitem__()</tt> method that
+  takes a string and returns either another web directory or a web page.</li>
+<li>A <b>web page</b> must have:
+    <ul>
+    <li>A member <tt>response_code</tt> whose value is an int representing
+      an HTTP response code: 200 for a regular page, 303 for a
+      redirection, etc.</li>
+    <li>A member <tt>content_type</tt> whose value is either a pair of strings
+      (mime-type, encoding) or a common filename suffix, such
+      as <tt>'html'</tt>, <tt>'txt'</tt>, <tt>'css'</tt>, <tt>'js'</tt>, <tt>'mp3'</tt>,
+      etc.  (Exception: <tt>content_type</tt> is not required
+      if <tt>response_code</tt> is 303.)</li>
+    <li>A member <tt>uri</tt>, if <tt>response_code</tt> is 303.</li>
+    <li>A method <tt>__iter__()</tt> that returns an iteration over
+      a mixture of strings and byte-like objects.  (Strings are not allowed
+      if encoding is None.)</li>
+    </ul>
+</li>
+</ul>
+<p>
+One may write an application by specializing SealRequestHandler and overriding (some
+of) the methods that are called during set-up, namely:</p>
+<ul>
+<li><code>make_context(<i>request</i>)</code>:
+  the return value must be a specialization of Context.</li>
+<li><code>open_file(<i>filename, context</i>)</code>:
+  opens the application file.  No constraints are placed on the application file.</li>
+<li>
+ <code>make_root(<i>rootpfx, file, context</i>)</code>:
+  to instantiate the root web directory.
+  The member <tt><i>context</i>.root</tt> is set to the return value.</li>
+</ul>
+<p>
+Alternatively, one may provide classes for the root web directory,
+application file, and context, by setting the following keys in the
+config file, or by providing them as keywords to the App constructor:</p>
+<ul>
+<li><tt>'rootclass'</tt>: the class for the web root directory</li>
+<li><tt>'fileclass'</tt>: the class for the application file, or:</li>
+<li><tt>'file'</tt>: the pre-instantiated application file</li>
+</ul>
+<p>
+No facility is provided for specializing Context, apart from
+overriding the <tt>make_context</tt> method.</p>
+
+<h2 id="1">Initialization</h2>
+<p>
+<span class="todo">THE REST OF THIS PAGE IS OUT OF DATE</span></p>
+<p>
+The App's __init__ method takes
+arguments <i>mode</i> and <i>settings,</i> and any number of keyword
+arguments.  The members of App are set as follows:</p>
+<ul>
+<li><p><tt>execmode</tt> is set to <i>mode.</i></p></li>
+
+<li><p><tt>config</tt> is set to a new Config instance.
+  The <i>settings</i> and keyword arguments are passed to
+  the Config constructor.
+  (See the section on <a href="#3">Config</a>
+  below.)
+  Then <code>config['app']</code> is set to the
+  App itself.</p></li>
+
+<li><p><tt>filename</tt> is set to the absolute pathname of <code>config['application_filename']</code>.</p></li>
+
+<li><p><tt>server_dir</tt> is set to the absolute pathname of <code>config['server_dir']</code>.</p></li>
+
+<li><p><tt>server_type</tt> is set to <code>config['server_type']</code>.</p></li>
+
+<li><p><tt>server_port</tt> is set to <code>config['server_port']</code>,
+ converted to an int.</p></li>
+
+<li><p><tt>log</tt> is set to a newly created Logger.  If
+  the <tt>execmode</tt> is a desktop mode, the log file is stdout.
+  Otherwise, the log file is the absolute pathname
+  of <code>config['logfile']</code>, interpreted relative to the <tt>server_dir.</tt>
+  The logging conditions are taken
+  from <code>config['logging']</code>, split at whitespace.</p></li>  
+
+<li><p><tt>wsgi</tt> is set to a newly created WsgiApp.</p></li>
+
+<li><p><tt>auth_dir</tt> is set to the absolute pathname
+  of <code>config['auth_dir']</code>, if specified, and otherwise it
+  is set equal to <tt>server_dir.</tt></p></li>
+
+<li><p><tt>authenticator</tt> is set to a newly created Authenticator,
+  unless <tt>auth_dir</tt> is None, in which
+  case <tt>authenticator</tt> is also None.</p></li>
+
+<li><p><tt>server</tt> is set to None.  It will be set by
+  the <tt>run</tt> method if the App is run
+  as a desktop application.</p></li>
+</ul>
+<p>
+Then <tt>run</tt> is called.  If <tt>execmode</tt> is <tt>'cgi'</tt>,
+a CGIHandler is created and run, directing callbacks to <tt>wsgi.</tt>
+If <tt>execmode</tt> is <tt>'run'</tt> or <tt>'call'</tt>, a Server is
+created and stored as <tt>server,</tt> with callbacks directed to the
+App.  The server's <tt>run</tt>
+or <tt>call</tt> method, respectively, is then invoked.</p>
+
+
+<h2 id="2">Running</h2>
+<p>
+Exactly what "running"
+means depends on the <b>execution mode,</b> as discussed in the
+following sections.</p>
+
+<h3 id="2.1">Internal and external servers</h3>
+<p>
+The App is designed to run in the context of two different kinds of
+server.  An <b>internal server</b> is a python web server that is
+launched by the App and run in a separate thread.  When using the App
+as a stand-alone application, it is natural to use an internal server.
+An <b>external server</b> is a standard web server, such as Apache.
+When using an external server, the App runs in a CGI or WSGI script.</p>
+<p>
+When run with an external server, a fresh instance of App is created
+for every request.  When run with an internal server, a single App
+instance handles all requests.  However, as already mentioned, an App
+instance behaves as a stateless function; this guarantees that the
+behavior is identical whether a single App instance is re-used or a
+new one is created for each request.</p>
+<p>
+There is one caveat.  The App class does have certain configuration
+parameters.  Multiple instances of App behave identically <i>if they
+are configured in the same way</i>.  With an external server, the
+configuration parameters are usually read from a static file, assuring
+that all instances of the App are configured identically.</p>
+
+<h3 id="2.2">Running as application</h3>
+<p>
+The only required argument for the App constructor is <i>mode</i>.
+It determines the manner in which the application executes.  There
+are two modes for running as a desktop application (<tt>'run'</tt>
+and <tt>'call'</tt>) and two for running as a web service (<tt>'cgi'</tt>
+and <tt>'wsgi'</tt>).</p>
+<p>
+When running as an application, the App's __init__ method
+ends by launching an
+internal web server that calls back to the App to handle requests.  For example,
+the module <tt>seal.script.encyd</tt> ends with:</p>
+<pre class="source">
+EncyApp('run', sys.argv[1:], server_port='8004')
+</pre>
+<p>
+The server runs in a subordinate thread.  To stop it, one may call the
+Server's <tt>quit</tt> method, or one may use control-C at the terminal.</p>
+<p>
+The internal web server is an instance of class <a href="api/seal/cld/app.html#Server">Server</a>.
+The mode determines which method of the server is
+invoked: <tt>run</tt> or <tt>call.</tt>
+The only difference between them is that
+<tt>run</tt> calls <tt>sys.exit</tt> when it completes,
+but <tt>call</tt> does not.</p>
+<p>
+When running as an application, logging by default goes to stdout,
+whereas when running as a web service, logging by default goes to
+a log file.</p>
+
+<h3 id="2.3">Running as a CGI script</h3>
+<p>
+There are two modes for running as a web service, <tt>'cgi'</tt>
+and <tt>'wsgi'</tt>.  The choice depends on
+whether the service is invoked in a CGI script or in a WSGI script.</p>
+<p>
+In <tt>'cgi'</tt> mode,
+the App's __init__ method ends by launching a generic CGI script
+engine (CGIHandler from wsgiref.handlers) that reads the request from
+the execution environment, calls back to the App instance to
+process the request, and prints the response in the form that a CGI
+script expects.</p>
+<p>
+For example, the following is a possible CGI script for CLD:</p>
+<pre class="source">
+#!/Users/abney/anaconda/bin/python
+
+import site
+site.addsitedir('/Users/abney/git/seal/python')
+
+from seal.cld.app import CLDApp
+CLDApp('run', '/Users/abney/git/cld/corpus.cld')
+</pre>
+<p>
+To test how the application behaves in a CGI context
+without actually placing it in the
+cgi-bin directory of a running web server, one can use the function cgi_call
+to emulate a web server.  It sets up os.environ to reflect the
+environment in which a CGI script runs, uses cgi_run
+to run the application, captures the output and returns it as a byte
+sequence.  For example:</p>
+<pre class="source">
+>>> from seal.app import cgi_call
+>>> url = 'http://localhost:8000/bar/foo.10'
+>>> bs = cgi_call(TestDirectory(), url)
+>>> print(bs.decode('ascii'))
+Status: 200 OK
+...
+</pre>
+
+<h3 id="2.4">Running as a WSGI script</h3>
+<p>
+The <tt>'wsgi'</tt> mode is the only one that simply initializes the
+App without launching an engine that calls back to it.
+In this
+case, the App creates a WsgiApp in its <tt>wsgi</tt> member.  The
+WsgiApp is not executed, but it will eventually be executed by the web
+server.  The WsgiApp will accept a call from the web server in the
+form specified by the WSGI protocol,
+convert it to a request, pass it to the App, receive
+a Page from the App, and convert it to a WSGI-compliant response.</p>
+<p>
+For example, the following is a possible WSGI script for CLD:</p>
+<pre class="source">
+#!/Users/abney/anaconda/bin/python
+
+import site
+site.addsitedir('/Users/abney/git/seal/python')
+
+from seal.cld.app import CLDApp
+application = CLDApp('wsgi', '/Users/abney/git/cld/corpus.cld').wsgi
+</pre>
+
+</body>
+</html>

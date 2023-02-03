@@ -1,0 +1,34 @@
+_reg_nouns := {'dog', 'buzz', 'kiss', 'church'}
+_reg_nouns
+_a := fsa(_reg_nouns)
+show(_a)
+lang(_a)
+rel(_a)
+_NStem := /N:_reg_nouns/
+rel(_NStem)
+_irr_sg_nouns := {'child', 'goose'}
+_irr_pl_nouns := {'children', 'geese'}
+_NounI := /(N.sg):_irr_sg_nouns + (N.pl):_irr_pl_nouns/
+_Noun0 := /_NStem . (sg:_e_ + pl:S) + _NounI/
+rel(_Noun0)
+_Orth := new_fsa()
+E(1, s, 2)
+E(1, z, 2)
+E(1, h, 2)
+E(1, S:s, 1)
+E(1, _else_, 1)
+F(1)
+E(2, S:_e_, 3)
+E(2, s, 2)
+E(2, z, 2)
+E(2, h, 2)
+E(2, _else_, 1)
+E(3, _e_:e, 4)
+E(4, _e_:s, 1)
+F(2)
+_Noun := _Noun0 % _Orth
+rel(_Noun)
+good(<N,sg>, <d,o,g>)
+good(<N,pl>, <d,o,g,s>)
+good(<N,pl>, <c,h,u,r,c,h,e,s>)
+check(_Noun)

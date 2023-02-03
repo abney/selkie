@@ -1,0 +1,19 @@
+lx |lexicon.lex
+idx |lexicon.idx
+texts :
+  :
+    id |1
+    ty |story
+    ti |Eine kleine Geschichte
+    ch |2 3
+  :
+    id |2
+    ty |page
+    ti |p1
+    fn |2.txt
+  :
+    id |3
+    ty |page
+    ti |p2
+    fn |3.txt
+    audio |3.wav

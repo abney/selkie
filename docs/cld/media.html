@@ -1,0 +1,317 @@
+<html>
+<head>
+<title>24 Recordings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>24 Recordings</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="1">External media directory</h2>
+
+<h3 id="1.1">On disk</h3>
+<p>
+Audio files are orders of magnitude larger than text files.  For
+example, my working <tt>corpus.cld</tt> directory as of this writing contains
+one WAV file of size 41.845 MB, and all other files together amount to
+0.147 MB.  Video files are an order of magnitude larger than audio
+files.  If nothing else, such lopsidedly large files are problematic for distributing
+the <tt>corpus.cld</tt> directory by GIT.  For this reason,
+we create an external <b>media directory</b> and distribute media files
+separately.</p>
+<p>
+The location of the media directory is specified in the configuration
+table used to instantiate <tt>App</tt>, under the key <tt>'media'</tt>.
+In our earlier example (<a href="app.html">Instantiating the App class</a>), recall
+that we specified:</p>
+<pre class="source">
+>>> cfg['media'] = '~/git/cld/media'
+</pre>
+<p>
+One may also access the value from the app as <code>app.config['media']</code>.</p>
+<p>
+The media directory is subdivided by user.  Upload to the media
+directory is outside the usual permissions system, but one may only
+upload to one's own subdirectory.  A user's subdirectory is
+simply a flat directory containing audio and video files.  There are
+no constraints on file names except that it is expected that each
+filename have a standard suffix representing the format (wav, mp3,
+mp4, etc.)  The filename without the suffix we call the <b>recording ID</b>.
+For example:</p>
+<pre class="source">
+$ cd ~/git/cld/media
+$ ls
+abney
+$ ls abney
+otw-bmcc-01-010-sample.clips    otw-mchi-01-004.clips
+otw-bmcc-01-010-sample.mp4      otw-mchi-01-004.wav
+otw-bmcc-01-010-sample.wav
+</pre>
+<p>
+There are two recording IDs, otw-bmcc-01-010-sample and otw-mchi-01-004,
+and multiple files for each ID.</p>
+
+<h3 id="1.2">MediaDirectory</h3>
+<p>
+In memory, the media directory is represented by a MediaDirectory
+object.  This is not a specialization of File, as it does not
+represent a disk-file within the corpus.
+When the top-level CorpusEnvironment is instantiated, it creates a
+MediaDirectory and stores it under the key <tt>'media'.</tt>
+It can be accessed as <code>env.media()</code>.</p>
+<p>
+The method <tt>files</tt> is called with <i>username</i> as argument and
+returns an iteration over RawMediaFile objects for the named user.
+The list of files is obtained by reading the user's subdirectory of
+the media disk-directory.  The user's <b>media index</b> is used to
+determine which text, if any, each file is associated with.
+(See <a href="#2.2">below</a>.)
+</p>
+<p>
+For example:</p>
+<pre class="source">
+>>> media = corpus.env.media()
+>>> media
+&lt;seal.cld.media.MediaDirectory object at 0x...&gt;
+>>> files = list(media.files('abney'))
+</pre>
+<p>
+The MediaDirectory also provides a method <b>add</b> for uploading
+a media file.  It takes three arguments: a User instance,
+an fname, and the contents (bytes).</p>
+
+<h3 id="1.3">RawMediaFile</h3>
+<p>
+The files are instances of RawMediaFile.  They have members <tt>username</tt>,
+<tt>fname</tt>, and <tt>text</tt>:</p>
+<pre class="source">
+>>> files[4]
+&lt;RawMediaFile abney otw-mchi-01-004.wav 16>
+>>> files[4].username
+'abney'
+>>> files[4].fname
+'otw-mchi-01-004.wav'
+>>> files[4].text
+'16'
+</pre>
+<p>
+<b>CAUTION:</b> A RawMediaFile is meant to be a short-lived object.
+In particular, if a new association between media file and text is
+created, it will not be tracked to any existing RawMediaFile.</p>
+
+<h2 id="2">Media texts (recordings)</h2>
+
+<h3 id="2.1">Media file</h3>
+<p>
+Media files are usually associated with
+particular texts.
+Such a text has a child named <tt>media</tt> of class MediaFile.</p>
+<p>
+A MediaFile behaves like a dict that maps a media file suffix (such
+as <tt>.wav</tt> or <tt>.mp3</tt>) to a RawMediaFile.
+Internally, it contains a table that maps suffixes to
+pairs (<i>username, fname</i>), where
+fname includes the suffix, e.g. <tt>otw-mchi-01-004.wav</tt>.  It then
+uses the MediaDirectories <tt>files</tt> method to get a RawMediaFile.</p>
+<p>
+The usual dict methods are supported: __getitem__, get, __contains__,
+__len__, __iter__.</p>
+<p>
+More conveniently, the
+method <tt>data()</tt> takes a suffix and returns a RawFile containing
+the media file contents.  It may be called without a suffix, in which
+case it returns the default entry.</p>
+<p>
+MediaFile has a method <tt>media_filename()</tt>
+that takes a suffix (optionally) and returns the absolute pathname of the media
+file.</p>
+<pre class="source">
+>>> text16.media.media_filename('wav')
+/Users/abney/git/cld/media/abney/otw-mchi-01-004.wav
+</pre>
+<p>
+A new entry can be added using the method <b>set.</b>  It takes a
+username and fname.  If the table was previously empty, the fname's
+suffix becomes the default suffix.  One can explicitly change the
+default suffix using <b>set_default,</b> which takes a suffix as
+argument.</p>
+
+<h3 id="2.2">User media index</h3>
+<p>
+The reverse index, mapping media filenames to texts, is found in the
+User object, in a file named <tt>media</tt>.  It is a PropDict
+whose keys are fnames and whose values are text names.</p>
+
+<h2 id="3">Audio and Video</h2>
+
+<h3 id="3.1">Media</h3>
+<p>
+The module seal.cld.ui.media
+contains MediaSelector and Transcriber.  The latter is discussed in
+the next section, <a href="xscript.html">Transcription</a>.</p>
+<p>
+The <tt>MediaSelector</tt> displays the current user's media files.  If
+the media file is associated with a text, a link to the text is shown,
+otherwise a link is shown that calls the <tt>set_media()</tt>
+method of the parent.</p>
+
+<h3 id="3.2">Audio</h3>
+
+<h3 id="3.3">Video</h3>
+
+
+<h2 id="4">Transcription</h3>
+
+<h3 id="4.1">Transcription (data object)</h3>
+<p>
+A <a href="../seal/cld/media.html#Transcription">Transcription</a>
+(seal.cld.corpus.transcript)
+is the written version of an audio or audio-visual
+recording.  On disk, a text contains a child called 'media' that
+represents the audio or movie file, and a child called 'xscript'
+that represents the transcription.</p>
+<p>
+The xscript child loads into memory as a Transcription
+object.  For example:</p>
+<pre class="source">
+>>> x = oji/'texts'/'33'/'xscript'
+>>> x
+&lt;Transcription langs/oji/texts/33/xscript>
+</pre>
+<p>
+The user interface is represented by the <a href="../seal/cld/ui/media.html#Transcriber">Transcriber</a>
+class (seal.cld.ui.media).
+It is intended to make transcription as
+easy as possible.  Functionality is intentionally limited; it is meant
+to server one purpose as well as possible.</p>
+<p>
+The approach is as follows.  The user
+plays a small bit of audio, writes down what was said,
+and then proceeds to the next bit of audio.  Precise alignment is not
+important.  Support for additional tiers of annotation is not provided
+in the transcription interface.</p>
+The units of transcription are expected to consist of only a word or
+two, at most a second or two of audio.  We call these units
+<b>clips</b> (or "snippets").  Keeping clips small not
+only makes transcription easier, it also allows finer-grained access
+to audio from text or lexicon.</p>
+<p>
+A clip consists of a start position
+in the recording, an end position, and a bit of target-language text
+as transcription.  In the interest of simplicity,
+we require that the start position of a clip be the
+same as the end position of the previous clip.  A possible criticism
+is that there may be silence or non-speech sound between clips, but
+we address that possibility by using clips labeled with the empty
+string to represent non-speech.</p>
+<p>
+Clips are smaller than translation units.  A consequence is that
+there is a conversion step to obtain translation units from a
+transcription.  In the interest of simplicity, we simply add a flag
+indicating whether or not a clip begins a new translation unit or not.
+This presumes that a clip never spans a translation unit
+boundary, a constraint that seems acceptable.
+</p>
+<p>
+In sum, a transcription can be thought of as a table in which each
+record represents a clip.  The columns are the end position, the text,
+and a boolean indicating whether the clip begins a new translation
+unit.  The clip's start position is determined by the end position
+of the previous clip, and the first clip's start position is 0.</p>
+
+<h3 id="4.2">TransTokenFile</h3>
+<p>
+A TransTokenFile (seal.cld.corpus.token) is the result of converting a
+list of snippets into translation units.  Its constructor takes a Transcription.
+
+<h3 id="4.2">Transcriber (server-side UI)</h3>
+<p>
+The web directory is represented on the server side by the class
+<a href="../seal/cld/ui/xscript.html#Transcriber">Transcriber</a>.  For
+example:</p>
+<pre class="source">
+>>> t = app.follow('/langs/lang.oji/texts/text.7/page/xscript')
+>>> t
+&lt;seal.cld.ui.media.Transcriber object at 0x...>
+>>> t.file
+&lt;Transcription langs/oji/texts/33/xscript>
+</pre>
+<p>
+Its <tt>edit()</tt> method generates the transcription
+page.  The <tt>edit()</tt> method accepts two
+arguments, <i>i</i> and <i>n</i>, where <i>i</i> represents the index
+of the first clip to display (default 0), and <i>n</i> represents the
+number of clips to display on the page.  It is expected that <i>i</i>
+is a multiple of <i>n/2</i>.  <i>n</i> is a maximum, not an
+exact number; it is possible that fewer clips are available.</p>
+
+<h3 id="4.3">XScript.js (client-side UI)</h3>
+<p>
+The web page consists of a media element
+(audio or video) followed by a table of clips in a navigation frame.
+The table displays a "pageful" of clips, a pageful being up to
+<i>n</i> clips, depending on how many are available.
+The navigation frame allows one to move among pagefuls.  Motion is by
+the half-page so that context is preserved.</p>
+<p>
+The navigation frame and an empty clip table element are included in
+the web page.  The clip records are generated by javascript.
+The user interaction is handled by the javascript
+file <a href="../js/XScript.html"><tt>XScript.js</tt></a>.
+</p> 
+<p>
+The following is an example of a clip record:</p>
+<img src="../figs/snippet.jpg"></img>
+<p>
+The controls are as follows:</p>
+<ul>
+<li>A <b>play button</b> that plays the clip.</li>
+<li>A <b>record button</b> that allows one to (re-)set the end point of the
+  clip.  After clicking, the label changes to "cut," and a second
+  click sets the end point and shifts focus to the text box.
+  The end time precedes that actual click
+  by a fraction of a second.</li>
+<li>Next to the record button are <b>left nudge</b>
+  and <b>right nudge</b> buttons that adjust the end time by about half
+  a second.  They replay the last half-second of the adjusted clip.</li>
+<li>A <b>new-paragraph checkbox.</b>  If it is checked, this clip
+  introduces a new translation unit in the text.</li>
+<li>The <b>text box</b>.  One enters transcription text and
+  saves it by pressing enter.  One may cancel by pressing escape.</li>
+</ul>
+<p>
+If the new end position is earlier than the old end position, a new
+empty clip is inserted to fill the gap.  If the new end position is
+later than the old one, any following clips that are completely
+covered are deleted, and their texts are appended to the current
+clip's text.  A following clip that is only partially covered
+has its start position adjusted.  Apart from these automatic
+insertions and deletions, the interface provides no facility for
+changing the number of clips.</p>
+<p>
+Nudging is not problematic.
+Nudging simultaneously alters the end time of the nudged clip and the start time
+of the following clip (if any).
+A left nudge is not allowed if it would make the clip shorter than a
+fixed minimum length, and a right nudge is disallowed if it would make
+the following clip too short.</p>
+<p>
+Since no facility is provided to add new clips, there is always an
+empty "sentinel" clip at the end of the table that covers the
+untranscribed remainder of the recording.  (The sentinel clip is not
+included in the file on disk, only in the interface.)
+If the final "true" clip ends at the end of the recording, there is no
+need for the sentinel, but the standard Python library does not
+provide the ability to extract
+data (including duration) from movie files.  Rather than linking to an
+external library or attempting to parse movie files directly, we
+always include the sentinel.  If it is unneeded, it does no harm.</p>
+<p>
+If the start index is greater than zero, the <b>previous button</b> is
+activated.  It links to <tt>edit.</tt><i>i-n/2</i>.
+If the end index is less than the transcript length plus one, the
+<b>next button</b> is activated.  It links to <tt>edit.</tt><i>i+n/2</i>.</p>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+
+from nell import ex, cf, chart
+
+g = cf.Grammar(ex.g1)
+lex = cf.Lexicon(ex.lex1)
+s = 'I book a flight in May'.split()
+ts = chart.parse(s, g, lex, trace=True)
+for t in ts: t.pprint()
+
+from nell import earley
+ts = earley.parse(s, g, lex, trace=True)
+for t in ts: t.pprint()
+

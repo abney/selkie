@@ -1,0 +1,578 @@
+<html>
+<head>
+<title>Ch 6: The Request-Response abstraction</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 6: The Request-Response abstraction</h1>
+
+<h2 id="1">HTTP request information</h2>
+
+<h3 id="1.1">HTTP requests</h3>
+<p>
+The information in a Request to a Seal application
+originally comes from an HTTP request.
+An HTTP request consists of:</p>
+<table class="display">
+<tr><td>Method</td> <td>GET and POST are currently handled</td></tr>
+<tr><td>URL</td> <td></td></tr>
+<tr><td>Headers</td> <td>E.g., content-type, content-length</td></tr>
+<tr><td>Body</td> <td>For POST requests</td></tr>
+</table>
+<p>
+The body is consumed in the process of digesting the HTTP request, but
+it is preserved in digested form.</p>
+<p>
+A URL has internal structure.
+Consider the following example:</p>
+<pre class="source">
+https://abney@foo.com:8000/cgi-bin/app/foo.2.5/edit.1?x=0&y=42
+</pre>
+<p>
+It breaks into a number of pieces:</p>
+<table class="display">
+<tr><td>Scheme</td> <td><tt>https</tt></td></tr>
+<tr><td>User</td> <td><tt>abney</tt></td></tr>
+<tr><td>Host</td> <td><tt>foo.com</tt></td></tr>
+<tr><td>Port</td> <td><tt>8000</tt></td></tr>
+<tr><td>External Pathname</td> <td><tt>/cgi-bin/app/foo.2.5/edit.1</tt></td></tr>
+<tr><td>Query String</td> <td><tt>x=0&amp;y=42</tt></td></tr>
+</table>
+<p>
+When the server processes the incoming HTTP request,
+it splits the external pathname into two pieces:
+the <b>root prefix</b> is
+the portion that addresses the CGI script, and the <b>internal
+pathname</b> is the remainder.  The dividing slash is assigned to
+the internal pathname, with the result that the internal pathname has the form
+of an absolute pathname.  Conceptually, the internal pathname is an
+address within the application's web space.</p>
+<p>
+In our example URL, the external pathname subdivides into:</p>
+<table class="display">
+<tr><td>Root prefix</td> <td><tt>/cgi-bin/app</tt></td></tr>
+<tr><td>Internal pathname</td> <td><tt>/foo.2.5/edit.1</tt></td></tr>
+</table>
+
+<h3 id="1.2">CGI environment</h3>
+<p>
+When an application runs under a web server, whether it is Apache or
+the python web server, the application is invoked within a CGI script,
+and the server uses environment variables to pass
+the HTTP request to the CGI script.  In particular, each URL piece
+just mentioned is assigned to a separate environment variable.
+Let us call the collection of environment
+variables containing the pieces of an HTTP request
+the <b>CGI environment.</b></p>
+<p>
+The convenience function <tt>make_environ()</tt> can be used to create
+a CGI environment.  It is not used in normal processing but can be
+useful for testing or illustration.</p>
+<pre class="python">
+>>> from seal.app.env import make_environ
+>>> cgienv = make_environ(rootprefix='/cgi-bin/app',
+...                       path='/foo.2.5/edit.1',
+...                       qs='x=0&amp;y=42',
+...                       user='abney')
+...
+>>> for key in sorted(cgienv):
+...     print(repr(key), repr(cgienv[key]))
+...
+'HTTPS' 'off'
+'PATH_INFO' '/foo.2.5/edit.1'
+'QUERY_STRING' 'x=0&amp;y=42'
+'REQUEST_METHOD' 'GET'
+'SCRIPT_NAME' '/cgi-bin/app'
+'USER' 'abney'
+</pre>
+<p>
+Within Python, the CGI environment is represented as a dict-like object.
+Seal makes use of the values for the following keys:</p>
+<dl>
+<dt><tt>'SCRIPT_NAME'</tt></dt> <dd>The value is the root prefix, e.g. <tt>'/cgi-bin/app'.</tt></dd>
+<dt><tt>'PATH_INFO'</tt></dt> <dd>The value is the internal pathname,
+e.g., <tt>'/foo.2.5/edit.1'.</tt></dd>
+<dt><tt>'QUERY_STRING'</tt></dt> <dd>If the method is <tt>GET,</tt> this
+  contains the portion of the URL following "<tt>?</tt>".</dd>
+<dt><tt>'wsgi.input'</tt></dt> <dd>If the method is <tt>PUT,</tt> this
+  is an open file containing the data portion of the request.</dd>
+<dt><tt>'REQUEST_METHOD'</tt></dt> <dd>The value is <tt>'GET'</tt> or
+  <tt>'POST'.</tt></dd>
+<dt><tt>'USER'</tt></dt> <dd>The user name, when the server is running locally.</dd>
+<dt><tt>'REMOTE_USER'</tt></dt> <dd>The user name, in the case of a
+  secure connection with an authenticated user.</dd>
+</dl>
+
+<h3 id="1.2">Digested environ</h3>
+<p>
+The Request constructor takes a CGI environment as argument, but it
+digests it into a more convenient internal form, that I call
+the <b>digested environment.</b>  The conversion is done by the
+function <tt>digest_environ()</tt>
+of <a href="../api/namespaceseal_1_1app_1_1env.html">seal.app.env</a>.
+The digest environment is a dict that
+contains the following keys:</p>
+<dl>
+<dt><tt>'original'</tt></dt>
+<dd>The original CGI environment that was passed to <tt>digest_environ().</tt></dd>
+
+<dt><tt>'rootprefix'</tt></dt>
+<dd>The pathname of the CGI script itself.</dd>
+</dd>
+
+<dt><tt>'pathname'</tt></dt>
+<dd>The internal pathname, excluding the root prefix.</dd>
+
+<dt><tt>'form'</tt></dt>
+<dd>The digested form, a dict.  Keys have been normalized in that: (1)
+  any initial "file:" has been deleted, and (2) any initial "*" has
+  been deleted.  Values are lists if there was originally a "*", and
+  single strings otherwise.</dd>
+
+<dt><tt>'user'</tt></dt>
+<dd>The alleged username.</dd>
+
+<dt><tt>'cookie'</tt></dt>
+<dd>A dict.  The empty dict if no cookie is set.</dd>
+
+<dt><tt>'https_on'</tt></dt>
+<dd>True just in case the request came by HTTPS (based on the
+  environment variable <tt>'HTTPS'</tt>).</dd>
+
+<dt><tt>'client_addr'</tt></dt>
+<dd>The client address.</dd>
+
+</dl>
+<p>
+Continuing our example:</p>
+<pre class="python">
+>>> from seal.app.config import Config
+>>> config = Config()
+>>> from seal.app.env import digest_environ
+>>> environ = digest_environ(cgienv, config)
+>>> for key in sorted(environ):
+...     if key != 'original':
+...         print(repr(key), repr(environ[key]))
+...
+'client_addr' None
+'cookie' {}
+'form' {'x': '0', 'y': '42'}
+'https_on' False
+'pathname' '/foo.2.5/edit.1'
+'rootprefix' '/cgi-bin/app'
+'user' 'abney'
+</pre>
+<p>
+In the example, I skip the value for <tt>'original'</tt> because it is
+the same as the value of <tt>cgienv.</tt></p>
+<p>
+Note that <tt>digest_environ()</tt> is called by the Request
+constructor; users generally have no need to call it directly.</p>
+
+<h2 id="2">Requests</h2>
+
+<h3 id="2.2">The components of a Request</h3>
+<p>
+The sole argument to a Seal application function is a
+<a href="api/seal/app/request.html#Request">Request</a>, and the
+return value is a Response.  There are no side channels between
+browser and application, hence all required information must be
+packaged into Request and Response.  In particular, cookies used to
+maintain state must be included in the Request and Response.</p>
+<p>
+The Request constructor takes two arguments: a CGI environment and a
+Resources instance.</p>
+<p>
+A Request has the following members:</p>
+<table class="display">
+<tr><td><tt>resources</tt></td> <td>the Resources instance given to
+    the Request constructor.</td></tr>
+<tr><td><tt>config</tt></td> <td>a Config instance, taken from resources.</td></tr>
+<tr><td><tt>log</tt></td> <td>a Logger instance, taken from resources.</td></tr>
+<tr><td><tt>server</tt></td> <td>a Server instance, taken from resources.</td></tr>
+<tr><td><tt>authenticator</tt></td> <td>an Authenticator instance,
+    created when one calls <tt>authenticate().</tt></td></tr>
+
+<tr><td><tt>webenv</tt></td> <td>the digested environment, returned by <tt>digest_environ().</tt></td></tr>
+<tr><td><tt>path</tt></td> <td>a tuple of URLPathComponent instances, created
+  from webenv.</td></tr>
+<tr><td><tt>username</tt></td> <td>the authenticated user name, or <tt>''</tt> if
+  no username is provided or authentication fails.</td></tr>
+<tr><td><tt>root</tt></td> <td>an HttpDirectory instance representing
+  the root web directory.  Initially it is None, but it is set by
+  App.</td></tr>
+<tr><td><tt>file</tt></td> <td>the application file.  Initially it is None, but
+  it is set by App.</td></tr>
+</table>
+
+<h3 id="2.3">Pathnames</h3>
+<p>
+An application generally uses script-internal pathnames to represent locations,
+inasmuch as internal pathnames are not affected if the script is moved or renamed.</p>
+<p>
+However, filenames that occur in URLs, particularly in URLs appearing
+in links on web pages, must be full external pathnames.
+As long as we use relative pathnames, no problem arises.  However, if
+we use an absolute pathname like <tt>/.lib/default.css,</tt> it will cause
+the browser to request an invalid location: the browser must instead
+request <tt>/cgi-bin/app/.lib/default.css.</tt>  That is,
+before including an
+absolute pathname in a web page, we must convert it to external form
+by prepending the script location.</p>
+<p>
+Some detailed issues regarding slashes introduce further
+complexities.  If a browser requests <tt>/foo/bar</tt> and the returned
+page contains a link to the relative path <tt>baz,</tt> the browser interprets it
+as <tt>/foo/baz,</tt> whereas if the the browser requests
+<tt>/foo/bar/,</tt> then <tt>baz</tt> is interpreted as <tt>/foo/bar/baz.</tt>
+That is, the interpretation of a link depends on the presence or
+absence of a trailing slash in the URL that the browser used to
+request the page.</p>
+<p>
+A Request is careful to preserve the ambiguity, to allow the
+application to deal with it appropriately.  Leading and trailing slashes
+are never deleted.  Rather, the URL path is split at slashes, yielding
+a list of <b>path components.</b>  For example, the
+path <tt>/foo/bar</tt> is interpreted as <tt>('', 'foo', 'bar')</tt>,
+whereas <tt>/foo/bar/</tt> is interpreted as <tt>('', 'foo', 'bar', '')</tt>.</p>
+<p>
+Strictly speaking, a <tt>Request</tt> should address a page, not a
+directory, since only a page can be returned as an HTTP response.
+The Request itself cannot determine whether the path addresses a page
+or a directory; that is the responsibility of the application.
+The App class deals with a
+request for a directory by sending the browser a redirect to the
+directory's <b>home page,</b> whose name is the empty string.  That
+is, the redirect adds a trailing slash.</p>
+<p>
+The empty-string component at the beginning of the path
+corresponds to the <b>root directory.</b>  An empty-string path has a single
+empty-string component, which addresses the root directory itself.
+The path <tt>/</tt> corresponds to components <tt>('', '')</tt>, which
+address, not the root directory, but the home page of the root directory.</p>
+<p>
+Note that one should <i>not</i> use <tt>os.path.join</tt> with URL pathnames.
+Usually it introduces a slash between its
+arguments, but not if the leading argument is the empty string:</p>
+<pre class="python">
+>>> import os
+>>> os.path.join('foo', 'bar')
+'foo/bar'
+>>> os.path.join('foo', '')
+'foo/'
+>>> os.path.join('', 'foo')
+'foo'
+</pre>
+<p>
+The result we desire is <tt>/foo,</tt> not <tt>foo.</tt></p>
+
+<h3 id="2.4">URLPathComponent</h3>
+<p>
+A pathname component is represented by the class <tt>URLPathComponent</tt>.
+It is a specialization of str, but it also has a record of the full
+external pathname corresponding to the component.  One may use
+a URLPathComponent's <tt>join</tt> method to extend the path,
+instead of using <tt>os.path.join.</tt></p>
+<p>
+In the example introduced above, the request's path consists of three
+components:</p>
+<table class="display">
+<tr><th></th> <th>Cpt</th> <th>Pathname</th></tr>
+<tr><td><tt>path[0]</tt></td> <td><tt>'/cgi-bin/app'</tt></td> <td><tt>'/cgi-bin/app'</tt></td></tr>
+<tr><td><tt>path[1]</tt></td> <td><tt>'foo.2.5'</tt></td> <td><tt>'/cgi-bin/app/foo.2.5'</tt></td></tr>
+<tr><td><tt>path[2]</tt></td> <td><tt>'edit.1'</tt></td> <td><tt>'/cgi-bin/app/foo.2.5/edit.1'</tt></td></tr>
+</table>
+<p>
+The first component represents the root; its pathname is the script location.
+Each subsequent pathname is obtained by adding a slash and the next
+component's string value.</p>
+<p>
+The Request constructor calls <tt>path_from_env()</tt> to convert the
+digested environment into a path.  To continue our previous example
+for the sake of illustration:</p>
+<pre class="python">
+>>> from seal.app.request import path_from_env
+>>> path = path_from_env(environ)
+>>> for (i, cpt) in enumerate(path):
+...     print('[%d]' % i, repr(cpt), repr(cpt.pathname))
+...
+[0] '/cgi-bin/app' '/cgi-bin/app'
+[1] 'foo.2.5' '/cgi-bin/app/foo.2.5'
+[2] 'edit.1' '/cgi-bin/app/foo.2.5/edit.1'
+</pre>
+
+<h3 id="2.5">Forms</h3>
+<p>
+A form is a set of key-value assignments.  Where it
+comes from depends on the HTTP request method.
+In the case of a GET request, the form comes from the query string in
+the URL, and in the case of a POST request, the form comes from the
+body of the HTTP request.</p>
+<p>
+The form is translated to a dict of
+keyword arguments attached to the final URLPathComponent.
+For example, the final URLPathComponent generated from the
+URL <tt>'/foo.2/edit.1?x=hi&amp;y=there'</tt>
+has the form dict:</p>
+<pre class="source">
+{'x': 'hi', 'y': 'there'}
+</pre>
+<p>
+There is one nonstandard aspect to my treatment of form information.
+I permit variable names to be prefixed with an asterisk, making them
+<b>list-valued.</b>  For example, the query string
+<tt>'*x=2&*x=5&*y=hi&z=lo'</tt> produces the form dict:</p>
+<pre class="source">
+{'x': ['2', '5'], 'y': ['hi'], 'z': 'lo'}
+</pre>
+
+<h3 id="2.6">Calls</h3>
+<p>
+A path component is parsed into a <b>call</b> by splitting it at
+dots.  The first element is the <b>component name,</b> and the
+remaining elements are positional arguments.  The call also contains a
+keyword-arguments dict.  For the last component, it consists of the
+form information, and for other components, it is an empty dict.</p>
+<p>
+For example:</p>
+<pre class="python">
+>>> for (i, cpt) in enumerate(path):
+...     print('[%d]' % i, cpt.call)
+...
+[0] None
+[1] ('foo', ('2', '5'), {})
+[2] ('edit', ('1',), {'x': '0', 'y': '42'})
+</pre>
+<p>
+There is no call for the first path component.  The first component
+is associated with the root directory, and each call addresses
+a child (subdirectory or page) of the previous component.</p>
+
+<h3 id="2.7">Miscellany</h3>
+<p>
+In addition to the path and form, the request extracts two further
+pieces of information from the URL:</p>
+<ul>
+<li><tt>user</tt> - The name of the user, as provided in the URL or environment.</li>
+<li><tt>is_secure</tt> - True if the scheme is https, False otherwise.</li>
+</ul>
+<p>
+Two further pieces of information are included in an HTTP request, but
+are not part of the URL:</p>
+<ul>
+<li><tt>cookie</tt> - A string containing key-value pairs.  Key and
+        value are separated by <tt>'='</tt>, and pairs are separated
+        by <tt>';'</tt>.</li>
+<li><tt>client_addr</tt> - The address of the client.</li>
+</ul>
+
+
+<!--
+<h3 id="3.3">Addressing widgets</h3>
+
+A pathname may also include a ``widget'' component.  A web page may
+contain one or more widgets, and a widget accepts a call.  The name of
+the widget is separated from the page name by a semicolon, and the
+call to the widget is separated from the widget name by a second semicolon.
+For example:
+\begin{python}
+>>> r = Request('/foo/bar.2;w;f.6?x=42')
+>>> r.pprint()
+Request:
+    user: ''
+    rootprefix: ''
+[0] None '' 
+[1] 'foo' '/foo' foo()
+[2] 'bar.2' '/foo/bar.2' bar('2')
+[3] 'w' '/foo/bar.2;w' w
+[4] 'f.6' '/foo/bar.2;w;f.6' f('6', x='42')
+\end{python}
+Note that the call for the widget selector is just the name of the
+widget; this is an exception to the usual pattern for calls.
+
+In addition to {\tt up} and {\tt down}, the method {\tt root()}
+takes one to the topmost {\tt File} in a linked list, and {\tt leaf()}
+takes one to the bottom-most file.
+\begin{python}
+>>> f = r.path.leaf()
+>>> f.pathname
+'/foo/bar.2;w;f.6'
+>>> f.root() == r.path
+True
+\end{python}
+There is also a method {\tt directory()} that takes one up to the closest
+component naming a directory.  This is usually the parent, but not in
+the case of a widget component.
+\begin{myverb}
+>>> f.directory()
+<File 'foo' '/foo'>
+\end{myverb}
+-->
+
+<h2 id="3">Response</h2>
+<p>
+A Response packages up the information needed to produce an HTTP
+response.  There are two cases: regular responses and redirect
+responses.
+
+<h3 id="3.1">Regular responses</h3>
+<p>
+A regular response is created by providing
+the <tt>contents</tt> and optionally
+a <tt>code,</tt> <tt>content_type,</tt> and <tt>authenticator.</tt>
+<ul>
+<li><tt>contents</tt> - An iteration that may contain strings, bytes,
+  and byte-arrays.</li>
+<li><tt>code</tt> - The legal values are part of the HTTP
+  specification.  A subset is currently supported, given in the table
+  below.  The default value is 200 (OK).</li>
+<li><tt>content_type</tt> - A filename suffix.  The table of supported
+      values is given below.  The default value is <tt>'txt'.</tt></li>
+<li><tt>authenticator</tt> - Created when one authenticates a
+  Request.</li>
+</ul>
+
+<h3 id="3.2">Redirect responses</h3>
+<p>
+A redirect is created by providing <tt>code=303,</tt> in which case
+one must also provide the keyword argument <tt>location</tt> to
+specify which URI to redirect to.  No other arguments are
+permitted.</p>
+
+<h3 id="3.2">Code and suffix tables</h3>
+<p>
+The following table lists the HTTP status codes that are currently used,
+along with the corresponding messages:</p>
+<table class="display">
+<tr><th>Code</th> <th>Message</th></tr>
+<tr><td>200</td> <td><tt>OK</tt></td></tr>
+<tr><td>303</td> <td><tt>See Other</tt></td></tr>
+<tr><td>400</td> <td><tt>Bad Request</tt></td></tr>
+<tr><td>404</td> <td><tt>Not Found</tt></td></tr>
+<tr><td>500</td> <td><tt>Internal Server Error</tt></td></tr>
+</table>
+<p>
+The following table lists the currently recognized filename suffixes,
+along with the corresponding Mime type and character encoding.
+An encoding of None indicates binary data.</p>
+<table class="display">
+<tr><th>Suffix</th> <th>Mime Type</th> <th>Encoding</th></tr>
+<tr><td><tt>css</tt></td> <td><tt>text/css</tt></td> <td><tt>us-ascii</tt></td></tr>
+<tr><td><tt>gl</tt></td> <td><tt>text/x-glab</tt></td> <td><tt>utf-8</tt></td></tr>
+<tr><td><tt>html</tt></td> <td><tt>text/html</tt></td> <td><tt>utf-8</tt></td></tr>
+<tr><td><tt>js</tt></td> <td><tt>application/javascript</tt></td> <td><tt>us-ascii</tt></td></tr>
+<tr><td><tt>pdf</tt></td> <td><tt>text/pdf</tt></td> <td><tt>None</tt></td></tr>
+<tr><td><tt>txt</tt></td> <td><tt>text/plain</tt></td> <td><tt>utf-8</tt></td></tr>
+<tr><td><tt>wav</tt></td> <td><tt>audio/wave</tt></td> <td><tt>None</tt></td></tr>
+</table>
+
+<h2 id="4">Authentication</h2>
+
+<h3 id="4.1">Authenticator</h3>
+<p>
+The locus of authentication is the class Authenticator (seal.app.auth).
+Authentication is done separately for each Request; an
+Authenticator is instantiated when one calls the
+request's <i>authenticate</i> method.  Request.authenticate dispatches
+to Authenticator.authenticate, and the result
+is a username, which is stored both in the Authenticator and in the
+Request.  On authentication failure, the username is the empty string.</p>
+<p>
+The application function may interact with the authenticator by
+calling the following methods of Request:</p>
+<ul>
+<li>authenticate() - Do authentication; sets <i>username.</i></li>
+<li>login(user, password) - Log in; sets <i>username</i> on either
+  success or failure.</li>
+<li>logout() - Log out; sets <i>username</i> to the empty string.</li>
+<li>change_password(old,new) - Updates the user's password, if the old
+  password is correct.</li>
+</ul>
+<p>
+Those methods of Request hand off to methods of Authenticator, listed below.</p>
+<p>
+Changes in the username must be passed back to the client in the form
+of a cookie.  That happens in the method Response.http_headers, which
+calls Authenticator.response_headers() and includes the resulting
+headers (if any) among the headers that are passed back to the
+client.</p>
+<p>
+There is one last connection needed to close the loop.  When creating
+the Response, one must pass the Authenticator to the Response
+constructor.  If one defines the application function using the App
+framework described below (Chapters 13-16), a web page is a
+specialization of Item, and maintains an internal pointer to the
+Request in its <i>context</i> member.  The Response constructor is
+called in the Item method <a href="requests.html#2.5">to_response</a>,
+which takes the Authenticator from the request and passes it to the
+Response constructor.  The <i>to_response</i> method is called in
+App.__call__.</p>
+<p>
+The members and methods of Authenticator are:</p>
+
+<dl>
+<dt><tt>auth</tt></dt>
+<dd>The Authenticator, but only if the request comes
+  over a secure connection.</dd>
+
+<dt><tt>username</tt></dt>
+<dd>The name of the user, if authenticated.</dd>
+
+<dt><tt>cookie</tt></dt>
+<dd>When the user logs in, a session token is
+  created and is stored client-side in a cookie.  Whenever the cookie
+  is modified, the updated information is sent back to the client by
+  the Response instance.</dd>
+
+<dt><tt>authenticate()</tt></dt>
+<dd>This method is automatically called when
+  the Context is created.  If the client passes a cookie along with
+  the request, and the authenticator checks that the token matches the session key stored for the
+  user in the session file, and that the session key has not expired.
+  The session key expires after a certain period, but each time the
+  key is used, the clock restarts.</dd>
+
+<dt><tt>login(user, password)</tt></dt>
+<dd>Uses the authenticator to log in the user.  On success, the
+  username is set and the cookie is updated.  The authenticator also
+  creates a new session key, overwriting any previous one.</dd>
+
+<dt><tt>logout()</tt></dt>
+<dd>The session key is deleted, but only if the current user has a
+  valid token.  In any case, the cookie is cleared.</dd>
+
+<dt><tt>change_password(oldpass, newpass)</tt></dt>
+<dd>The user's password is changed to <i>newpass</i>, but only
+  if <i>oldpass</i> authenticates.  Changing the password does not in
+  itself terminate the current session, even though it was starting
+  using the old password.  But any subsequent calls to login() or
+  change_password() will need to use the new password.</dd>
+
+<dt><tt>response_headers()</tt></dt>
+<dd>Called by Response's <i>http_headers</i> method.  This returns an
+  iteration over 'Cookie' headers that pass username and token
+  information back to the web client.</dd>
+
+</dl>
+
+<h3 id="4.2">The Auth script</h3>
+<p>
+The <tt>auth</tt> script is used to manage authentication files.
+There are two files that the authenticator makes use
+of, <tt>users.txt</tt> and <tt>sessions.txt</tt>, both located in the
+directory <tt>config['auth_dir']</tt>.</p>
+<p>
+The auth script assumes that the current working directory is the
+authentication directory, and it uses or modifies <tt>./users.txt</tt>
+and <tt>./sessions.txt</tt>.
+The following provide examples of usage:</p>
+<pre class="source">
+$ auth ls            # lists the users
+$ auth set uname     # prompts for password, saves it
+$ auth check uname   # prompts for password, checks it
+$ auth delete uname
+</pre>
+
+</body>
+</html>

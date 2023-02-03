@@ -1,0 +1,897 @@
+<html>
+<head>
+<title>Ch 9: Files and directories</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 9: Files and directories</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+<p>
+The <tt>seal.cld.db</tt> package provides a database implemented as a
+directory hierarchy whose files and subdirectories represent database
+objects.</p>
+
+<h2 id="1">Persistent Objects</h2>
+
+<h3 id="1.1">The File class</h3>
+<p>
+A File represents a persistent object, that is, one whose contents
+live on disk.  Files support multiple users, including a permissions
+system and file locking and backup.  The main
+complexity lies in synchronizing changes between the object in memory and the disk
+representation.</p>
+<p>
+One does not directly instantiate File, rather, one
+defines specializations of File.  When defining a specialization, the
+most basic information that is required is how to <b>write</b> the
+contents of the object to a stream, and how to <b>read</b> the
+contents from a stream.  The methods <tt>__write__</tt>
+and <tt>__read__</tt> implement those operations, and must be provided
+by the specialization.</p>
+<p>
+One also does not directly instantiate
+the specialization.
+Rather, a File is obtained from a persistent Directory,
+either by calling the Directory's <b>__getitem__</b> method to obtain an existing
+object or by calling its <b>new_child</b> method to create a new
+object.  (The root object is created by calling <b>open_database,</b>
+discussed below.)
+Each child has a <b>name</b> (a string) that uniquely
+identifies it relative to the parent directory.</p>
+<p>
+When instantiating a child, the Directory determines which
+class to instantiate by determining the
+child's <b>typename.</b>  The environment, which is accessible as the
+File member <b>env,</b> provides a one-one mapping
+between typenames (which are strings) and classes.  The child's typename is determined
+as follows:</p>
+<ul>
+<li>If the child already exists, it is stored with a record of its
+  typename.</li>
+<li>The Directory may have a <b>signature,</b> which is a
+  table that maps child names to typenames.</li>
+<li>If the child name is not listed in the signature, or there is no signature,
+  the Directory may have a value
+  for <b>childtype,</b> giving a default typename to use for
+  children.</li>
+<li>Otherwise, the user must specify the typename when
+  calling <b>new_child.</b></li>
+</ul>
+<p>
+A File's representation on disk is created by the method <b>__create__.</b>
+The new_child method immediately calls __create__.
+The function <b>create_database</b> is used to create root File.  It
+calls open_database to instantiate the root file, and then it calls
+the file's <b>create</b> method (no underscores).  The <i>create</i>
+method is only available for root Files.</p>
+<p>
+When a File is instantiated, its contents are not
+immediately loaded.  The reason is that one should be able to list the contents of a
+directory without loading into memory the entire hierarchy, or even all the files
+in the directory.  To break the recursion, Files are initially instantiated
+as unloaded stubs.</p>
+<p>
+The possible <b>states</b> that a File may be in are as
+follows:</p>
+<ul>
+<li><b>instantiated</b> - the object has been instantiated, but
+  its contents have not yet been loaded from disk.</li>
+<li><b>loaded</b> - the object has been loaded from disk; its content
+  members have been set.</li>
+<li><b>writing</b> - we are currently within the scope of a writer.</li>
+<li><b>modified</b> - the contents have been modified and a save is
+  required.  Saving will return the object to the loaded state.</li>
+<li><b>deleted</b> - the object has been deleted.  Any attempt to
+  access the content members results in an error.</li>
+</ul>
+<p>
+The following methods change the object's state:</p>
+<ul>
+<li><b>__create__</b> - This is a private method intended
+  for the sole use of <i>new_child</i> and <i>create.</i>  It creates an empty
+  content file.  If any of the ancestor directories are missing, it
+  creates them, as well.
+  Note that __create__ does <i>not</i> do permissions checks nor
+  update the index.  Those are handled by <i>new_child,</i> and unnecessary in
+  the case of the <i>create</i> method.</li>
+<li><b>require_load</b> - Assures that the contents have been loaded, and
+  that they are only loaded once.  The
+  first time require_load is called, it immediately calls __load__, and
+  after that, it is a no-op.</li>
+<li><b>__load__</b> - Opens an input stream and
+  calls __read__, which a specialization must
+  implement.  This is a private method intended for the sole use of
+  require_load.</li>
+<li><b>writer</b> - Any modification to the contents should be done
+  within the scope of a writer, which means, in
+  the body of a <i>with self.writer()</i> statement.  One need not actually modify
+  the contents, but if one does modify them, one should also
+  call <i>modified</i> to mark the File as being modified.
+  When the body of <i>with self.writer()</i> is exited, if the File has
+  been marked as modified, its __save__ method is called.</li>
+<li><b>__save__</b> - Opens an output stream
+  and calls __write__, which a specialization must
+  implement.  This is a private method intended for the sole use of
+  the writer.</li>
+<li><b>reparent</b> - Changes the File's parent.  That is, the
+  File is moved to a different directory.</li>
+<li><b>delete</b> - Deletes the File.  The disk representation is
+  deleted and the File is removed from the parent's list of
+  children.  The instance is flagged as deleted, so that any 
+  subsequent attempt to access its content signals an error.</li>
+</ul>
+<p>
+Some of the actions signal an error unless the user has proper
+permissions.  In particular:</p>
+<ul>
+<li><b>__create__</b> - The user must have write permission for the
+  File and Directory.</li>
+<li><b>__load__</b> - The user must have read permission.</li>
+<li><b>__save__</b> - The user must have write permission.</li>
+<li><b>reparent</b> - The user must have write permission for
+ the File and for both the source and target Directories.</li>
+<li><b>delete</b> - The user must have write permission for the
+  File and Directory.</li>
+</ul>
+<p>
+To change the permissions of a File or Directory, the user must have
+admin permission.</p>
+
+<h3 id="1.2">Defining a specialization</h3>
+<p>
+When defining a specialization of File, it is the
+specializer's responsibility to manage the contents.  To assure that
+the object behaves as expected, one should adhere to the following discipline:</p>
+<ul>
+<li><p>Contents reside in private members, and the only access to the
+  contents or to any part of them is via the object's <b>access
+  methods</b> (like __getitem__) and <b>update methods</b> (like
+  __setitem__).</p></li>
+<li><p>Contents and parts of contents are either immutable, or they are
+  constructed from "virtual view" classes that dispatch to the access and
+  update methods of the File.</p></li>
+<li><p>Each access method definition begins with a call to require_load,
+  assuring that the content members have been set.</p></li>
+<li><p>Each update method definition is <b>protected</b> by being wrapped
+  in <i>with self.writer().</i>  The writer immediately calls
+  require_load, so one can count on the content members existing.
+  An update method is not obliged to modify the contents, but if it does,
+  it should call <i>modified</i>.</p></li>
+<li><p>The __read__ method is given an input stream, and it should
+  set the content members.  The first time it
+  is called, the input stream will be empty; it should accommodate
+  that case.  It should not count on the content members being
+  undefined: it is also used to re-initialize the File after a failed
+  save.</p></li>
+<li><p>The __init_contents__ method is called by __create__.  The default
+  implementation is a no-op, but specializations may override it to
+  initialize the content members.  It is an <i>update</i>
+  method, meaning that it should either be protected with a call
+  to <i>with self.writer()</i> or it should only call protected
+  update methods.  Since the writer calls
+  require_load, the __read__ method actually gets
+  called <i>before</i> __init_contents__ is called.</p></li>
+<li><p>The __write__ method is given an output stream as argument.  It
+  should write the contents in the form expected by __read__.</p></li>
+<li><p>One may specify that this File <b>requires</b> one or more
+    other Files.  Then any time a writer is created for this file, the
+    required files are automatically added to it.  (See section XX
+    below.)</li>
+</ul>
+
+<h3 id="1.3">Metadata</h3>
+<p>
+In addition to the usual contents, a File may contain <b>metadata.</b>
+For example, any specialization that sets __has_permissions__ to True
+will have a permissions metadata item.  Metadata
+items are a special form of content, and are treated accordingly.
+They reside in private members; accessors should call
+require_load; and updaters should be protected by a writer.</p>
+<p>
+A metadata item should be a specialization of Metadata, not of File.
+Among other things, a metadata item is not independently loadable and
+cannot be moved or deleted.  The File that the metadata item belongs
+to is called the <b>host.</b>  There is an implementation issue that is
+handled by the Metadata class: the <i>require_load</i>
+and <i>writer</i> methods do not directly call __load__ and __save__
+(which do not exist for Metadata), but rather
+dispatch to the corresponding methods of the
+host.</p>
+<p>
+A specialization of Metdata should have __read__ and __write__
+methods, like a File.
+When the host's contents are read or written, calls are also placed to the __read__ or
+__write__ method of all of its metadata items.</p>
+<p>
+<i>There are two constraints, which are due to my laziness.  The
+  __write__ method must <b>not</b> write the line "##EOM", which is
+  used as a separator between metadata sections.  And the last line
+  that is written <b>must</b> end in a newline.</i></p> 
+<p>
+To add metadata items,
+a specialization should set the class member <b>__metadata__</b> to be a
+tuple that extends the parent class's value.  Elements are pairs
+(member, class).  For example:</p>
+<pre class="source">
+class MyObject (Directory):
+    __metadata__ = Directory.__metadata__ + (('_foo', Foo),)
+</pre>
+
+<h3 id="1.4">Summary of members and methods of File</h3>
+<p>
+The following provides a summary of the members and methods of File.
+Some of the following have not yet been introduced, but will be
+introduced in later sections.</p>
+<p>
+Members:</p>
+<dl>
+<dt>__metadata__</dt>
+<dd>List of metadata member names.  (A class variable.)</dd>
+<dt>__has_permissions__</dt>
+<dd>Set to True to add permissions to the metadata.</dd>
+<dt>env</dt>
+<dd>The environment.</dd>
+<dt>indexed</dt>
+<dd>The list of typenames that are to be indexed.  Discussed in
+  section XX.</dd>
+</dl>
+<p>
+Instantiation:</p>
+<dl>
+<dt>create_root_env()</dt>
+<dd>Create the environment for the root File.  Discussed in section XX.</dd>
+<dt>create_env()</dt>
+<dd>Create the environment for a non-root File that hosts an index.
+  Discussed in section XX.</dd>
+</dl>
+<p>
+Creation:</p>
+<dl>
+<dt>__create__()</dt>
+<dd>Creates the disk representation.</dd>
+<dt>create()</dt>
+<dd>Create the disk representation for a root File.  Signals an error
+  if called for a File that is not root.</dd>
+</dl>
+<p>
+Reading:</p>
+<dl>
+<dt>require_load()</dt>
+<dd>Calls __load__, and assures that it is called only once.</dd>
+<dt>__load__()</dt>
+<dd>Load the contents from disk.  Opens an input stream and calls __read__.</dd>
+<dt>__read__(f)</dt>
+<dd>Read the contents from an input stream.  To be provided by the specialization.</dd>
+</dl>
+<p>
+Writing:</p>
+<dl>
+<dt>writer()</dt>
+<dd>Returns a Writer.  Should be called in a with-statement.  The File
+  will be saved when the body of the 'with' exits, provided that it is modified.</dd>
+<dt>modified()</dt>
+<dd>Marks the File as modified.</dd>
+<dt>__save__()</dt>
+<dd>Save the contents to disk.  Opens an output stream and calls __write__.</dd>
+<dt>__write__(f)</dt>
+<dd>Write the contents to an output stream.  To be provided by the specialization.</dd>
+</dl>
+<p>
+Hierarchy modification:</p>
+<dl>
+<dt>reparent(par,i)</dt>
+<dd>Par is the new parent.  The argument <i>i</i> is optional; it
+  indicates the position among the new parent's children where this
+  File is to be inserted.</dd>
+<dt>delete()</dt>
+<dd>Delete the File.</dd>
+</dl>
+
+<h3 id="1.5">The Directory class</h3>
+<p>
+A Directory behaves like a dict that maps names to child
+Files.  I have already mentioned that the method __getitem__ accesses
+an existing child, and new_child adds a new child to the Directory.</p>
+<p>
+Directory is a specialization of File, so one Directory may be
+a sub-Directory of another.  The absolute location of a File can be
+given as a <b>path,</b> which is a sequence of names.  The
+method <b>follow</b> takes a path as argument.  If the path contains
+only one name, it simply calls __getitem__ with that name.  Otherwise,
+it calls __getitem__ with the first name to get a subdirectory, and
+passes the remaining names to the subdirectory's follow method.</p>
+<p>
+We have already encountered the methods that modify the directory hierarchy:</p>
+<ul>
+<li>The parent directory's <b>new_child</b> method is used to create a file.</li>
+<li>The file's own <b>reparent</b> method is used to move a file to a
+  different location.</li>
+<li>The file's <b>delete</b> method is used to delete the file and all
+  its descendants.</li>
+</ul>
+<p>
+The set of children represents the Directory's primary contents.  The
+children are read by the __read__ method and written by the __write__
+method, and they are stored
+in the private member <b>_children.</b>  Hence, specializations
+do not need to define __read__ and __write__.</p>
+<p>
+Summary of members and methods of Directory:</p>
+<dl>
+<dt>signature</dt>
+<dd>A table that maps child names to typenames.</dd>
+<dt>childtype</dt>
+<dd>The default typename for children.</dd>
+<dt>__getitem__(name)</dt>
+<dd>Get the child with the given name.</dd>
+<dt>new_child(name,suffix,cls,i)</dt>
+<dd>Create a new child.  All parameters are optional keyword arguments.</dd>
+<dt>follow(path)</dt>
+<dd>Find a particular descendant given a sequence of names.</dd>
+</dl>
+
+<h3 id="1.6">Database and Environment</h3>
+<p>
+The module seal.cld.db.core contains two functions for opening a database.
+An existing database is opened by calling <b>open_database</b>, and a
+new database is created by calling <b>create_database.</b>  A database
+is really just a root File, that is, a File whose parent
+is None.  The main thing that sets a database apart from any other
+File is that it creates an Environment for itself and its
+descendants.  A root File also automatically includes a GroupsFile
+metadata item for use of the permissions system.</p>
+<p>
+The Environment is a dict-like object containing global information.
+It contains a pointer to the database, under the key <tt>'root',</tt>
+and it contains the tables that map
+between typenames and classes.
+If there is an index, it also contains a pointer to the index.
+(Environments are discussed in more detail <a href="toplevel.html#1">later</a>.)</p>
+<p>
+Files other than the root are allowed to create an index, by having a
+list of typenames in the class variable __indexed__.  A File with an index creates a
+fresh copy of its parent's environment, and
+sets <tt>'index_root'</tt> to itself.</p>
+<p>
+If a File is neither a root nor indexed, it simply uses its
+parent's environment unmodified.</p>
+<p>
+The motivation for having indices is as follows.
+Organizing Files into a hierarchy, rather than using the
+usual relational representation, has the advantage that
+entire subhierarchies can be moved or deleted as a unit.  It has the
+disadvantage that one requires a path, and not just a name, to
+find an object.  Indices make it possible to access Files
+by <b>identifier</b> instead of path, where an identifier is a pair
+(typename, name).</p>
+<p>
+A simple identifier suffices for Files that are indexed in the root
+directory.  When there are multiple indices, we must also include
+the index name in identifiers.  A
+<b>global identifier</b> is a triple (indexname, typename, name).</p>
+<p>
+When writing specializations of Directory, one may also write
+specializations of Environment.  To link the two,
+define the File method <b>create_env</b>.
+The default implementation instantiates and returns Environment,
+provided that the File is either the root or indexed.  Otherwise, it
+returns None, which indicates that the parent environment should be
+used.</p>
+<p>
+To delete a database that one has opened, call its <i>delete</i> method.
+A function <b>delete_database</b> is also available that takes just a filename.</p>
+
+<h2 id="2">Implementation issues</h2>
+
+<h3 id="2.1">Filename</h3>
+<p>
+A Directory is implemented as a disk directory containing a
+distinguished file called <i>_children,</i> which contains the actual
+contents.  The distinction between the disk directory and the
+file <i>_children</i> is hidden in the implementation.</p>
+<p>
+The distinction resides primarily in associating two different disk
+filenames with a Directory object.  The
+method <b>_filename</b> returns the absolute pathname of the
+disk representation for the sake of relocating or deleting the File.
+In the case of a Directory, it returns the filename of the disk
+directory.  The method <b>_contents_filename</b> returns the
+absolute pathname of the disk representation for the sake of loading
+and saving the File.  In the case of a Directory, it returns the
+pathname of the <i>_children</i> file.  In the case of a File that is
+not a Directory, _filename and _contents_filename are the same.</p>
+
+<h3 id="2.2">Relocatability of Files</h3>
+<p>
+Because a File may be moved, we would like to minimize the number of
+things that need to be updated if a File's location in the hierarchy
+changes.  There are three aspects to the issue: a File should be
+self-contained, a File should not cache context-dependent information,
+and external information that needs updating when the File moves or is
+deleted should be minimized.</p>
+<p>
+<b>Self-containedness.</b>
+All pieces of the File should be containined within the physical file
+that represents it.  To give an example: we wish to be able to
+identify a file's type by inspection, and one way of doing that would
+be to place type information in the parent's list of children.
+However, doing so would reduce self-containedness: the type
+information would reside outside the child file and would need to be
+updated if the child moved.  Instead, in the current implementation,
+the filename on disk combines the File's name and typename.</p>
+<p>
+This consideration also motivates the current implementation of
+metadata (including permissions), in which metadata is represented on
+disk as a section of the same file that contains the File contents.
+A less acceptable approach would be to store permission information in
+a sibling file.</p>
+<p>
+<b>No context-dependent cached information.</b>
+To give an example, it would be natural to cache a File's physical
+disk location, but that information would need to be
+updated if the File is moved.  In the current implementation, the
+pathname is always computed rather than cached.</p>
+<p>
+One unavoidable form of context caching is the <tt>env</tt> member,
+which contains global information.  The current approach is to insist
+that <tt>env</tt> be essentially immutable, and hence to restrict a
+File from being attached to a new parent whose value from <tt>env</tt>
+differs from the File's.</p>
+<p>
+<b>Minimizing location-dependent external records.</b>
+If the File has an indexed type, then
+information about the location of a file is stored in an index.
+That is hardly avoidable, and must be updated if the File is
+relocated.  In the current implementation, that is the main case of
+external information that must updated, apart from the obvious modifications to
+the new and old parents.</p>
+<p>
+There are a couple of additional dependencies that arise in CLD.</p>
+<ul>
+<li>The <code><i>user</i>.media</code> PropDict maps suffixed names to
+  text IDs.  If the text is deleted, the PropDict needs to be updated.</p></li>
+<li><p>A Lexicon contains lists of <b>references</b> to locations where tokens of a
+  given lemma occur.  If a TokenFile is deleted, references to it need
+  to be deleted as well.</p></li>
+</ul>
+<p>
+To manage updates to external records, there are three
+methods of File that can be used to notify resources of relevant events:</p>
+<ul>
+<li><p><b>Created.</b>
+  A file is created by the Directory's <b>new_child</b> method or by
+  its own <b>create</b> method (in the case of a root File).
+  A newly created file
+  receives a <i>created</i> call,
+  which creates an entry in the
+  index, if appropriate, and may be wrapped by specializations.</p></li>
+<li><p><b>Moved.</b>  A file is relocated by its own <b>reparent</b> method.  The
+  file and all its descendants receive a <i>moved</i> call, which
+  updates the index entries and may be wrapped by specializations.</p></li>
+<li><p><b>Deleted.</b>  A file is deleted by its own <b>delete</b> method.  The file
+  and all its descendants receive a <i>deleted</i> call,
+  which deletes the index entries and may be wrapped by specializations.</p></li>
+</ul>
+<p>
+When an entire directory is moved or deleted, the <i>reparent</i>
+or <i>delete</i> method walks the
+subhierarchy and notifies each descendant of the change.</p>
+
+<h3 id="2.3">File format</h3>
+<p>
+In the current implementation, metadata is stored in the same disk
+file as the File contents.  For this reason, all Files are opened as
+text files using UTF-8 character encoding.  Binary files such as audio
+and video are stored separately; they cannot directly provide the
+contents of a File.</p>
+<p>
+The input stream passed to __read__ is not a genuine stream, but
+rather a "pseudo-stream" (of type MetadataInputStream) that is merely
+an iterator over lines of
+text.  One MetadataInputStream is created for each section of the file
+metadata header.</p>
+
+<h3 id="2.4">Initialization</h3>
+<p>
+When a File is initialized, the Environment and Metadata items are
+instantiated.  To keep things from becoming an unmanageable snarl, the
+sequence is strictly as follows:</p>
+<ul>
+<li>File.__init__ is called first.  It is always responsible for
+  instantiating Environment and Metadata.  One should never create the
+  Environment first.</li>
+<li>Metadata.__init__ stores the host's <i>env</i> in its
+  own <i>env</i> member.  For that reason, the Environment must be
+  instantiated before instantiating the Metadata items.</li>
+<li>However, Metadata.__init__ should not assume that all environment
+  variables have been set.  Some depend on other metadata items.</li>
+</ul>
+<p>
+The exact sequence is as follows:</p>
+<ul>
+<li>Initialize members.
+    <ul>
+    <li>The arguments to File.__init__ are the parent directory, the name,
+      and typename.  If the File is the root file, all three must be None.</li>
+    <li>The members _parent, _name_, and _suffix are set from the arguments.  The
+      members _perm and _writer are set to None.  The members _loaded and
+      _modified are set to False.  The member _metaitems is set to an
+      empty list and _npermitems is set to 0.</li>
+    </ul>
+</li>
+<li>Create the _metaitems list.
+    <ul>
+    <li>If __has_permissions__ is non-null or the File is the root, a
+     Permissions item is put first on the list and _npermitems is advanced.</li>
+    <li>If the File is the root, a GroupsFile is added to the list and
+     _npermitems is advanced.</li>
+    <li>If <i>indexed</i> is non-null, an Index is added to the list.</li>
+    <li>Any items on __metadata__ are added to the list.</li>
+    </ul>
+</li>
+<li>Set up env.
+    <ul>
+    <li>The method create_env is called and the value is stored in <i>env.</i>
+      If the value is None, parent.env is used.</li>
+    <li>If the File is a the root, the env
+      keys 'root', 'log', and 'disk' are set; 'username' is set to
+      '_root_' unless it already has a value.</li>
+    <li>If <i>indexed</i> is non-null, 'index_root' is made to point back
+      to the File.</li>
+    </ul>
+<li>If there is no Permissions object on the _metaitems list, then
+  _perm is set to an InheritedPermissions instance.</li>
+<li>Each of the _metaitems is instantiated.</li>
+</ul>
+<p>
+One uses <b>open_database</b> to instantiate the root File.
+It takes the class of the root File and a filename as arguments.
+It sets the <i>env</i> variable 'filename' to the filename and updates
+<i>env</i> with any additional keyword arguments.
+If the disk representation does not already exist, one should
+use <b>create_database</b> instead of open_database.</p>
+<p>
+A specialization of Environment is instantiated within create_env, and
+keys are subsequently added to it.  The __init__ method should not
+expect all keys to be present.  The File initializer adds some
+keys, and open_database adds some more.</p>
+<p>
+When Environment is instantiated, the File already exists; it is
+called the <i>host.</i>  Environment.__init__ accesses the
+host's <i>types</i> variable and <i>default_types</i> variable to set
+up type tables.</p>
+<p>
+An import paradox arises in setting
+the default_types in seal.cld.db.env.  The <i>env</i> module is imported by <i>file,</i>
+which is imported by <i>dir.</i>  But the classes needed to set
+default_types reside in <i>file</i> and <i>dir.</i>  The solution is
+to set seal.cld.db.env.default_types in the __init__.py file.</p>
+
+<h3 id="2.5">Checking permissions</h3>
+<p>
+Read checks are performed when one does require_load() - specifically,
+in File.__load__, just before calling the
+__read__ methods of the metadata items and the File itself.  Write
+checks are performed when one does "with self.writer()" -
+specifically, in the Writer.lock_all method, which is called when the
+writer is entered, or when a File is added to an active Writer.  The
+write check is done just before locking the file, which is the first
+step in writing it.</p>
+<p>
+Permissions are stored in the File member <b>_perm.</b>
+A File may have independent Permissions, or it may have
+InheritedPermissions that always just defer to the parent.  The class
+variable __has_permissions__ determines whether it has independent
+permissions or not.  If it does have independent permissions, '_perm'
+is added at the beginning of the __metadata__ list (in __init__).</p>
+<p>
+<b>Permission-system items</b> are metadata items of class Permissions
+or GroupsFile.  They require special treatment.</p>
+<p>
+(1) Permission-system items require admin checks for writing.
+Those checks are placed in the <i>writer</i> method of PermItem (of
+which both Permissions and GroupsFile are specializations);
+the <i>writer</i> method is called by all methods that modify
+contents.</p>
+<p>
+One might expect the check to be placed in the <i>__write__</i>
+method, but that would be incorrect.  The Permissions metadata item
+gets written any time one writes its host, and to do that, one only needs
+write permission, not admin permission.</p>
+<p>
+(2) Anyone should be allowed to examine permissions, even if they
+do not have read access to the Files that host the permission-system
+items.  It is not enough to postpone the read check till after reading
+the permission-system items: one should not signal an error at all for
+reading permission-system items, only for attempting to read the File
+contents or other metadata files.</p>
+<p>
+To deal with that issue, permission-system items have a require_load
+method that does not simply dispatch to their host.</p>
+
+<h2 id="3">Details</h2>
+
+<h3 id="3.1">New child</h3>
+<p>
+The new_child method is the standard way to create a new file.  There
+is also a method called <b>need_child</b> that returns an existing
+child, if available, and otherwise dispatches to new_child.  (The
+child name is obligatory for need_child, but not for new_child.)</p>
+<p>
+The new_child method is called with some subset of the keyword
+arguments <tt>name, suffix,</tt> and
+<tt>cls.</tt>  Its behavior is influenced by two class
+variables: <b>signature</b> and <b>childtype</b>.  The signature
+maps child names to classes, and childtype provides a default class.
+Both are optional.</p>
+<p>
+There are four cases:</p>
+<ul>
+<li>Neither class nor suffix are provided.  If name is provided and
+  has an entry in signature, the corresponding class is used.
+  Otherwise, the childtype is used if available.  Otherwise, an error
+  is signalled.  The suffix is determined from the class
+  using <code>env['suffixes']</code>.  If not found, an error is
+  signalled.</li>
+<li>Suffix is provided but not class.  The
+  table <code>env['types']</code> is used to get the class.  If there
+  is no entry, an error is signalled.</li>
+<li>Class is provided but not suffix.  The table <code>env['suffixes']</code>
+    is used to get the suffix.  If there is no entry, an error is
+    signalled.</li>
+<li>Both class and suffix are provided.  A check is done to confirm
+  that <code>env['types']</code> maps the suffix to the given class,
+  otherwise an error is signalled.</li>
+</ul>
+<p>
+If the name is not provided, a call is placed to the allocate_name
+method of the index table.  If there is no index table, an error is
+signalled.</p>
+<p>
+New_child then does the following:</p>
+<ul>
+<li>A permissions check is done; the user must have write permission
+  for the directory.</li>
+<li>The class is instantiated to obtain the child.</li>
+<li>The parent's attach_child method is called.  New_child accepts
+  keyword argument <tt>i</tt>, which is passed on to attach_child.</li>
+<li>The child's <tt>created</tt> method is called.
+  If there is an index table, an entry is created for the child.
+  The child has no children at this point, so recursion is not an issue.</li>
+<li>The child's __create__ method is called, creating the disk-file.
+  If the child is a regular file, an empty disk-file is created.  If
+  the child is a directory, an empty directory is created, then the
+  metadata files are created.  Specializations may wrap __create__ to
+  create obligatory children by recursive calls to new_child.</li>
+</ul>
+
+<h3 id="3.2">Writer</h3>
+<p>
+The File method <i>writer</i> dispatches to the function <i>writer</i>
+of seal.cld.db.disk.  The function accepts any number of Files as
+arguments.  It tosses out any that are already protected, a File being
+protected if it has a value for <i>_writer.</i>  If any
+unprotected Files remain, a Writer instance is created and each
+unprotected File is added to it.  The Writer instance is returned, or
+a dummy writer, if there are no unprotected Files on the list.</p>
+<p>
+A Writer instance maintains a list of <i>files.</i>  Adding a file
+consists of the following steps.  It is possible to
+add additional Files to an existing Writer, so a check is first done
+to see if the File is protected; if so, no further action is taken.
+Otherwise, the File
+is appended to <i>files,</i> its <i>_writer</i> member is
+set to the Writer, and each of the Files that it requires is added to
+the Writer.  Finally, if the Writer is already active, any new
+unlocked Files are locked.</p>
+<p>
+A Writer should be created in the context of a <i>with</i>-statement.
+Accordingly, it expects a call to __enter__, and later a call to
+__exit__.  The file becomes <b>active</b> when __enter__ is called,
+and becomes inactive again when __exit__ is called.  When a Writer
+becomes active, all Files on the <i>files</i> list are locked.  (Any
+Files added while the Writer is active are locked when they are added.)</p>
+<p>
+Locking a File consists of the following steps.
+The Writer has a <i>locks</i> member that is None when the Writer is
+inactive, and a list when the Writer is active.  To lock a File, a
+check is first done that it is writable, then its require_load method
+is called, and finally a Lock object is created for it and placed on
+the <i>locks</i> list.  The Lock object locks the file on disk.
+While the Writer is active, each of the the locked
+files is said to be <b>under the control of the writer.</b></p>
+<p>
+On __exit__, each of the files is saved.  (Unless an error has
+occurred, in which case each of the files is reloaded.)
+The method __save__ opens a temporary file for writing,
+and passes the resulting output stream to __write__.  If writing
+completes without error, the current version of the file becomes a
+backup and the temporary file is moved into its place.
+After saving, each of the locks is released.</p>
+<p>
+If an error occurs at any point - whether the error arises in the
+write-permission check, or in the body of the <i>with</i> statement,
+or during __write__ - then all of the files are restored to their
+saved state by calling <i>_reload,</i> which calls the __read__ method
+to restore the content members.</p>
+<p>
+For some file classes, every time a file of the class is placed under
+the control of a writer, there is a related file that should be put
+under the control of the same writer.  For example, when editing a
+TokenFile, one also needs the associated Lexicon to be editable, so
+that one can intern new word forms.
+There is a File method <b>requires</b> that can be overridden to provide an
+iteration over the required files.  (The default implementation
+returns the empty list.)  When the File is added to the Writer,
+its <i>requires</i> method is called, and each File that is returned
+is also added to the Writer.</p>
+
+<h3 id="3.3">Reparenting</h3>
+<p>
+Reparenting consists of the following steps:</p>
+<ul>
+<li>Check that the user has write permission for both the old parent
+  and the new parent.</li>
+<li>Call the old parent's <tt>detach_child</tt> method to remove it
+  from the list of children.</li>
+<li>Move the child's file or directory on disk.</li>
+<li>Change the child's internal <tt>_parent</tt> member.</li>
+<li>Call the new parent's <tt>attach_child</tt> method to add it to
+  the list of children.  One may optionally specify the position with
+  keyword argument <tt>i</tt>.</li>
+<li>Call the child's <tt>moved</tt> method with old and new relpaths.
+  That updates the cached relpath and,
+  if the child is indexed, notifies the index of the old and new
+  relpaths.  It recurses to the child's descendants.</li>
+</ul>
+
+<h3 id="3.4">Deletion</h3>
+<p>
+The <tt>delete</tt> method does the following:</p>
+<ul>
+<li>Check that the user has write permission for the directory.</li>
+<li>Call the parent's <tt>detach_child</tt> method to remove the
+  child from its list of children.</li>
+<li>Call the child's <tt>deleted</tt> method.
+  If the object is indexed, this deletes it from the index.  It also
+  recurses to the child's descendants.</li>
+<li>Finally, delete the disk-file or -directory.  If it is a directory,
+  the deletion is recursive.  If it is a regular file, any file with
+  the same suffixed name plus an added suffix (such as a backup) is also deleted.</li>
+</ul>
+
+<h3 id="3.5">Reorder children</h3>
+<p>
+The Directory method reorder_children takes a list of child indices,
+and a target index.  The <i>target child</i> is the child at the
+target index, or end-of-list.  The children indicated by the indices are removed
+from the child list, then reinserted as a group, in the order given,
+just before the target child.</p>
+<p>
+This only involves the <tt>_children</tt> list; it does not call <tt>reparent.</tt></p>
+
+<h3 id="3.6">Reparent children</h3>
+<p>
+The Directory method reparent_children takes the same arguments: a
+list of child indices and a target index.  The target index identifies
+the target child, which must be a real child and not end-of-list.</p>
+<p>
+The target child's <b>attachment_target</b> method is called to determine
+the new parent.  The default implementation of attachment_target
+returns the child itself, but classes may override it.  (The method
+need_child is useful here.)  The new
+parent's attachment_target method must return the new parent itself;
+otherwise an error is signalled.</p>
+<p>
+To give a concrete example from CLD, a Text is initially created as a
+stub.  Conceptually, one text attaches to another, but to be precise,
+a complex Text contains a Toc, and the child Text attaches to the
+Toc.  Nonetheless, we may provide a Text as the target of reparent.
+The target Text's attachment_target method returns the Toc, creating
+it if necessary.</p>
+<p>
+The children indicated by the indices are processed in the order given.
+For each, <code>child.reparent(newparent)</code> is called.  If the
+child originally preceded the new parent, it is attached at the
+beginning of the new parent's children, and if it followed the new
+parent, it is attached at the end.  If multiple children are attached
+at beginning or end, they occur in the order their indices are
+listed.</p>
+
+<h3 id="3.7">Delete children</h3>
+<p>
+The Directory method delete_children is called with a list of
+indices.  The children at those indices are deleted by calling
+their <tt>delete</tt> method.</p>
+<p>
+A method <b>delete_child</b> is also provided as a convenience.  It
+takes a single index.</p>
+
+<h2 id="4">Example</h2>
+<p>
+A CLD corpus provides an example of a Database.  First, let us create
+a CLDManager:</p>
+<pre class="python">
+>>> from seal.cld.toplevel import CLDManager
+>>> mgr = CLDManager('/tmp/foo.cld')
+</pre>
+<p>
+A string argument is interpreted as the application filename, which
+for CLD is the corpus.  The corpus does not yet exist; we can create a
+corpus for testing using the 'create_test' command:</p>
+<pre class="python">
+>>> mgr('create_test')
+Create corpus '/tmp/foo.cld'
+...
+</pre>
+<p>
+A lot of output is generated as each file is created.
+Incidentally, <i>create_test</i> also creates a
+file called <i>media</i> in the same directory as the corpus (namely, <tt>/tmp</tt>).</p>
+<p>
+Now we can load the corpus:</p>
+<pre class="python">
+>>> corpus = mgr.corpus()
+>>> corpus
+&lt;Corpus /tmp/foo.cld&gt;
+</pre>
+<p>
+A Corpus object is a specialization of Database, which is a
+specialization of Directory.  It behaves like a dict in which the keys
+are names of children:</p>
+<pre class="python">
+>>> corpus['langs']
+&lt;LanguageList langs&gt;
+</pre>
+<p>
+Like a dict, its length is the number of keys, and converting it to a
+list returns a list of keys:</p>
+<pre class="python">
+>>> len(corpus)
+4
+>>> list(corpus)
+['langs', 'users', 'roms', 'glab']
+</pre>
+<p>
+In this particular case, all four children are subdirectories.  
+If one recurses far enough, one reaches a file:</p>
+<pre class="python">
+>>> orig = corpus['langs']['deu']['texts']['1']['toc']['2']['orig']
+>>> orig
+&lt;TokenFile orig&gt;
+</pre>
+<p>
+One can distinguish a file from a directory using the
+method <tt>is_directory()</tt>:</p>
+<pre class="python">
+>>> corpus.is_directory()
+True
+>>> orig.is_directory()
+False
+</pre>
+<p>
+Instead of repeatedly accessing members, one may use
+the <tt>follow()</tt> method, which takes a pathname:</p>
+<pre class="python">
+>>> corpus.follow('/langs/deu/texts/1/toc/2/orig')
+&lt;TokenFile orig&gt;
+</pre>
+<p>
+Files may also behave like dicts or lists, depending on their
+contents.  In this particular case, a TokenFile behaves like a list of
+TokenBlocks (essentially, tokenized sentences):</p>
+<pre class="python">
+>>> list(orig)
+[&lt;TokenBlock ('2', 0)>, &lt;TokenBlock ('2', 1)>]
+</pre>
+<p>
+One may also go up the hierarchy using the
+method <tt>parent()</tt>:</p>
+<pre class="python">
+>>> orig.parent()
+&lt;Text 2&gt;
+</pre>
+
+</body>
+</html>

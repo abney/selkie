@@ -1,0 +1,122 @@
+[glab] #T Untitled
+[glab] a
+a
+[glab] <c,o,o,l>
+<c, o, o, l>
+[glab] {c,o,o,l}
+{c, l, o}
+[glab] |<c, o, o, l>|
+4
+[glab] |{c, o, o, l}|
+3
+[glab] _x := <d, o, g>
+[glab] _x
+<d, o, g>
+[glab] _y
+ERROR: Unbound variable: _y
+[glab] _x = <c, a, t>
+False
+[glab] _x
+<d, o, g>
+[glab] {c, o, o, l} = {l, o, c, o}
+True
+[glab] <c, a, t> . <f, i, s, h>
+<c, a, t, f, i, s, h>
+[glab] {<p>, <t>} . {<a>, <i>}
+{<p, a>, <p, i>, <t, a>, <t, i>}
+[glab] {p, t} . {a, i}
+{<p, a>, <p, i>, <t, a>, <t, i>}
+[glab] t . a
+<t, a>
+[glab] {a, b, c} + {b, c, d}
+{a, b, c, d}
+[glab] {a, b, c} & {b, c, d}
+{b, c}
+[glab] a @ {a,b,c}
+True
+[glab] _e_
+<>
+[glab] |_e_|
+0
+[glab] <c, a, t> . _e_
+<c, a, t>
+[glab] _0_
+{}
+[glab] {a, b} + _0_
+{a, b}
+[glab] _L := /(a+b).c/
+[glab] _L
+/(a+b).c/
+[glab] <a,c> @ _L
+True
+[glab] <a,b> @ _L
+False
+[glab] lang(_L)
+[0] <b, c>
+[1] <a, c>
+[glab] _L2 := /_L . _L*/
+[glab] lang(_L2, 3)
+[0] <b, c>
+[1] <b, c, b, c>
+[2] <b, c, b, c, b, c>
+...
+[glab] _A := new_fsa()
+[glab] _A
+(An FSA containing 0 states)
+[glab] E(1, a, 2)
+[glab] E(2, b, 2)
+[glab] F(2)
+[glab] _A
+(An FSA containing 2 states)
+[glab] show(_A)
+FSA:
+ -> 1 a 2 (F)
+    2 b 2 (F)
+[glab] <a, b> @ L(_A)
+True
+[glab] lang(_A, 3)
+[0] <a>
+[1] <a, b>
+[2] <a, b, b>
+...
+[glab] a:b
+(a:b)
+[glab] _R := /a:a . a:b*/
+[glab] _R(<a,a,a>)
+{<a, b, b>}
+[glab] _R2 := /(a*.b):(c.d)*/
+[glab] _R2(<a, a, a, b, b>)
+{<c, d, c, d>}
+[glab] _T := new_fsa()
+[glab] E(1, a:a, 1)
+[glab] E(1, b:b, 1)
+[glab] E(1, a:_e_, 2)
+[glab] E(2, b:_e_, 3)
+[glab] F(3)
+[glab] rel(_T, 3)
+[0] (<a, b>:<>)
+[1] (<b, a, b>:<b>)
+[2] (<b, b, a, b>:<b, b>)
+...
+[glab] _T2 := _T % /(a:c + b:d)*/
+[glab] _T2(<a, a, b, a, b>)
+{<c, c, d>}
+[glab] _T3 := /_T . (_e_:c)/
+[glab] _T3(<a, a, b>)
+{<a, c>}
+[glab] "the big dog"
+<the, big, dog>
+[glab] 'dog'
+<d, o, g>
+[glab] _vi_reg := {'bark', 'jump'}
+[glab] _vt_reg := {'chase', 'like'}
+[glab] _vi_irr := {'sleep', 'dive'}
+[glab] _vt_irr := {'catch', 'see'}
+[glab] _vi := _vi_reg + _vi_irr
+[glab] _vt := _vt_reg + _vt_irr
+[glab] _VStem := /V:_e_ . (i:_vi + t:_vt)/
+[glab] good('Vt', 'catch')
+[glab] check(_VStem)
+:) good <V, t> -> <c, a, t, c, h>
+[glab] _VStem('Vt')
+{<c, a, t, c, h>, <c, h, a, s, e>, <l, i, k, e>, <s, e, e>}

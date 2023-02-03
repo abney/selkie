@@ -1,0 +1,60 @@
+\g=gothic-student
+<html>
+<head>
+<title>Salish</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="default.css"/>
+</head>
+<body>
+<table>
+<tr>
+<td valign="top">
+<table class="display">
+
+<tr><td><tt>A:</tt></td> <td>\gA:\0</td></tr>
+<tr><td><tt>E:</tt></td> <td>\gE:\0</td></tr>
+<tr><td><tt>O:</tt></td> <td>\gO:\0</td></tr>
+<tr><td><tt>U:</tt></td> <td>\gU:\0</td></tr>
+<tr><td><tt>A'</tt></td> <td>\gA'\0</td></tr>
+<tr><td><tt>I'</tt></td> <td>\gI'\0</td></tr>
+<tr><td><tt>U'</tt></td> <td>\gU'\0</td></tr>
+<tr><td><tt>A:'</tt></td> <td>\gA:'\0</td></tr>
+<tr><td><tt>I:'</tt></td> <td>\gI:'\0</td></tr>
+<tr><td><tt>U:'</tt></td> <td>\gU:'\0</td></tr>
+
+</table>
+</td>
+
+<td>&nbsp;&nbsp;&nbsp;</td>
+
+<td valign="top">
+<table class="display">
+
+<tr><td><tt>a:</tt></td> <td>\ga:\0</td></tr>
+<tr><td><tt>e:</tt></td> <td>\ge:\0</td></tr>
+<tr><td><tt>o:</tt></td> <td>\go:\0</td></tr>
+<tr><td><tt>u:</tt></td> <td>\gu:\0</td></tr>
+<tr><td><tt>a'</tt></td> <td>\ga'\0</td></tr>
+<tr><td><tt>i'</tt></td> <td>\gi'\0</td></tr>
+<tr><td><tt>u'</tt></td> <td>\gu'\0</td></tr>
+<tr><td><tt>a:'</tt></td> <td>\ga:'\0</td></tr>
+<tr><td><tt>i:'</tt></td> <td>\gi:'\0</td></tr>
+<tr><td><tt>u:'</tt></td> <td>\gu:'\0</td></tr>
+
+</table>
+</td>
+
+<td>&nbsp;&nbsp;&nbsp;</td>
+
+<td valign="top">
+<table class="display">
+
+<tr><td><tt>th</tt></td> <td>\gth\0</td></tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+</body>
+</html>

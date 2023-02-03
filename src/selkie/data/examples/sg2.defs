@@ -1,0 +1,4 @@
+
+every x R S: (forall x (if R S))
+some x R S: (exists x (and R S))
+nsome x R S: (not (exists x (and R S)))

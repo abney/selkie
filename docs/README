@@ -1,0 +1,551 @@
+
+The new structure: part - chapter - section.  The chapters are
+just for grouping within the documentation, but the parts correspond
+to packages and the sections correspond to modules.  Exception: the
+first part and all first sections are introductions; they only occur
+in documentation, not in the src tree.
+
+Selkie [index.rst]
+         1. Introduction to Selkie [intro.rst]
+
+   I. Core [core/index.rst]
+         2. Introduction to selkie.core [core/intro.rst]
+  
+        # 1. Introduction
+        core/intro.html                                        intro.rst
+                                                               core/intro.rst
+                                                               core/configuration.rst
+                                                               core/version.rst
+                                                               core/config.rst
+      # Python extensions
+  
+        # 2. General purpose + 5. Miscellaneous modules
+        core/misc.html
+  
+        # 3. Input/output
+        core/io.html
+  
+        # 4. Shell commands
+        core/sh.html
+  
+        # 6. Miscellaneous executables
+        core/scripts.html
+  
+      # Third-party software
+  
+        # 7. Software
+        core/software.html
+  
+      # Documentation and administration
+  
+        # 8. Ency
+        core/ency.html
+  
+        # 9. Documentation and testing
+        core/documentation.html
+  
+        # 10. Manifest
+        core/manifest.html
+  
+      # (Not listed in TOC)
+
+        core/script/panlex.tex
+        core/uc/corpus.tex
+        core/uc/ui.tex
+  
+  
+    # Vol II: Seal NLP
+    nlp/index.html
+  
+      # Corpus processing
+  
+        # Romanization
+        nlp/romanization.html
+        gothic-student.html
+        gothic-student.rhtm
+        gothic.html
+        gothic.rhtm
+        salish.html
+        salish.rhtm
+  
+        # XML files
+        nlp/xml.html
+  
+        # Words
+        nlp/words.html
+  
+      # Conversational agent
+      
+        # Finite-state automata
+        nlp/fsa.html
+  
+        # Trees
+        nlp/tree.html
+  
+        # Dependency conversion
+        nlp/dep.html
+  
+        # Attribute-value structures
+        nlp/features.html
+  
+        # Constituent grammars
+        nlp/grammar.html
+  
+        # Constituent parser
+        nlp/parser.html
+  
+        # Interpretation
+        nlp/interp.html
+  
+        # Automated reasoning
+        nlp/logic.html
+  
+        # Conversational agent
+        nlp/bot.html
+  
+      # Dependency parsing
+  
+        # Parser
+        nlp/dp/parser.html
+  
+        # Pseudo-projective parsing
+        nlp/dp/nnproj.html
+  
+        # Nivre parser
+        nlp/dp/nivre.html
+  
+        # MST parser
+        nlp/mst.html
+  
+      # Speech
+  
+        # Textgrid
+        nlp/textgrid.html
+  
+      # Machine learning
+  
+        # Probability
+        nlp/ml/math.html
+  
+        # Machine learner
+        nlp/ml/learner.html
+  
+        # Support vector machines
+        nlp/ml/libsvm.html
+  
+      # Datasets
+  
+        # Ethnologue language listing
+        nlp/data/langdb.html
+  
+        # Corpora and treebanks
+        nlp/data/corpora.html
+  
+        # Panlex
+        nlp/data/panlex.html
+  
+        # Other lexica and grammars
+        nlp/data/lexica.html
+  
+      # (Not listed in TOC)
+  
+        avs.html
+  
+    # Vol III: CLD
+    cld/index.html
+  
+      # Introduction
+  
+        # 1. Introduction
+        cld/intro.html
+  
+        # 2. Running CLD
+        cld/running.html
+
+	# 3. Modules
+        cld/modules.html
+
+      # The Server Framework
+      
+        # 4. The Manager
+        cld/app_toplevel.html
+
+        # 5. Configuration and logging
+        cld/resources.html
+
+        # 6. Requests and responses
+        cld/sealapp.html
+
+        # 7. The seal web server
+        cld/server.html
+	
+        # 8. WSGI adapter
+        cld/wsgi.html
+
+      # Persistent-object database
+
+        # 10. Files and directories
+        cld/database.html
+
+        # 11. Database toplevel
+        cld/toplevel.html
+
+        # 12. Generic regular files
+        cld/files.html
+
+        # 13. Substrate
+        cld/substrate.html
+
+      # The Content Framework
+
+        # 14. The SealApp framework
+        cld/framework.html
+
+        # 15. Request processing
+        cld/requests.html
+
+        # 16. Constructing a page
+        cld/responses.html
+
+        # 17. Interface elements
+        cld/elt.html
+
+      # CLD: The corpus
+
+        # 18. Application and corpus
+        cld/corpus.html
+
+        # 19. Export files
+        cld/export.html
+
+        # 20. Global resources
+        cld/corpus_resources.html
+
+        # 21. Languages
+        cld/language.html
+
+        # 22. Lexicon
+        cld/lexicon.html
+
+        # 23. Texts
+        cld/text.html
+
+        # 24. Tokenized text
+        cld/token.html
+
+        # 25. Recordings
+        cld/media.html
+	
+      # Extensions
+      
+        # 26. Language-learning support
+
+        # 27. GLab
+        cld/glab.html
+
+      # Appendix
+
+        # A1. The Python HTTP server
+        cld/python_servers.html
+
+      # (Not in TOC)
+
+        cld/app_intro.html
+        cld/igt.html
+        cld/invocation.html
+        cld/mvmov.xml
+        cld/organization.html
+        cld/page.html
+        cld/permissions.html
+        cld/pool.html
+        cld/rom.html
+        cld/server0.html
+        cld/server2.html
+        cld/todo.html
+        cld/words.html
+        cld/writer.html
+        js/PlainTextPanel.html
+        js/XScript.html
+        todo/tree_drawing.html
+  
+  
+    # Vol IV: Seal API Reference
+
+
+
+--------------------------------------------------------------------------------
+
+The oldest version was in LaTeX (~/git/seal/doc/dev.tex).
+Most of the tex files have been converted to HTML, but a few are still
+left as tex files among the HTML files.
+
+User's manual: no longer exists?
+
+The HTML version (~/git/seal/doc/html):
+
+  index.html                                                   index.rst
+
+    # Vol I: Seal Core
+    core/index.html                                            core/index.rst
+  
+      # Introduction
+  
+        # 1. Introduction
+        core/intro.html                                        intro.rst
+                                                               core/intro.rst
+                                                               core/configuration.rst
+                                                               core/version.rst
+                                                               core/config.rst
+      # Python extensions
+  
+        # 2. General purpose + 5. Miscellaneous modules
+        core/misc.html
+  
+        # 3. Input/output
+        core/io.html
+  
+        # 4. Shell commands
+        core/sh.html
+  
+        # 6. Miscellaneous executables
+        core/scripts.html
+  
+      # Third-party software
+  
+        # 7. Software
+        core/software.html
+  
+      # Documentation and administration
+  
+        # 8. Ency
+        core/ency.html
+  
+        # 9. Documentation and testing
+        core/documentation.html
+  
+        # 10. Manifest
+        core/manifest.html
+  
+      # (Not listed in TOC)
+
+        core/script/panlex.tex
+        core/uc/corpus.tex
+        core/uc/ui.tex
+  
+  
+    # Vol II: Seal NLP
+    nlp/index.html
+  
+      # Corpus processing
+  
+        # Romanization
+        nlp/romanization.html
+        gothic-student.html
+        gothic-student.rhtm
+        gothic.html
+        gothic.rhtm
+        salish.html
+        salish.rhtm
+  
+        # XML files
+        nlp/xml.html
+  
+        # Words
+        nlp/words.html
+  
+      # Conversational agent
+      
+        # Finite-state automata
+        nlp/fsa.html
+  
+        # Trees
+        nlp/tree.html
+  
+        # Dependency conversion
+        nlp/dep.html
+  
+        # Attribute-value structures
+        nlp/features.html
+  
+        # Constituent grammars
+        nlp/grammar.html
+  
+        # Constituent parser
+        nlp/parser.html
+  
+        # Interpretation
+        nlp/interp.html
+  
+        # Automated reasoning
+        nlp/logic.html
+  
+        # Conversational agent
+        nlp/bot.html
+  
+      # Dependency parsing
+  
+        # Parser
+        nlp/dp/parser.html
+  
+        # Pseudo-projective parsing
+        nlp/dp/nnproj.html
+  
+        # Nivre parser
+        nlp/dp/nivre.html
+  
+        # MST parser
+        nlp/mst.html
+  
+      # Speech
+  
+        # Textgrid
+        nlp/textgrid.html
+  
+      # Machine learning
+  
+        # Probability
+        nlp/ml/math.html
+  
+        # Machine learner
+        nlp/ml/learner.html
+  
+        # Support vector machines
+        nlp/ml/libsvm.html
+  
+      # Datasets
+  
+        # Ethnologue language listing
+        nlp/data/langdb.html
+  
+        # Corpora and treebanks
+        nlp/data/corpora.html
+  
+        # Panlex
+        nlp/data/panlex.html
+  
+        # Other lexica and grammars
+        nlp/data/lexica.html
+  
+      # (Not listed in TOC)
+  
+        avs.html
+  
+    # Vol III: CLD
+    cld/index.html
+  
+      # Introduction
+  
+        # 1. Introduction
+        cld/intro.html
+  
+        # 2. Running CLD
+        cld/running.html
+
+	# 3. Modules
+        cld/modules.html
+
+      # The Server Framework
+      
+        # 4. The Manager
+        cld/app_toplevel.html
+
+        # 5. Configuration and logging
+        cld/resources.html
+
+        # 6. Requests and responses
+        cld/sealapp.html
+
+        # 7. The seal web server
+        cld/server.html
+	
+        # 8. WSGI adapter
+        cld/wsgi.html
+
+      # Persistent-object database
+
+        # 10. Files and directories
+        cld/database.html
+
+        # 11. Database toplevel
+        cld/toplevel.html
+
+        # 12. Generic regular files
+        cld/files.html
+
+        # 13. Substrate
+        cld/substrate.html
+
+      # The Content Framework
+
+        # 14. The SealApp framework
+        cld/framework.html
+
+        # 15. Request processing
+        cld/requests.html
+
+        # 16. Constructing a page
+        cld/responses.html
+
+        # 17. Interface elements
+        cld/elt.html
+
+      # CLD: The corpus
+
+        # 18. Application and corpus
+        cld/corpus.html
+
+        # 19. Export files
+        cld/export.html
+
+        # 20. Global resources
+        cld/corpus_resources.html
+
+        # 21. Languages
+        cld/language.html
+
+        # 22. Lexicon
+        cld/lexicon.html
+
+        # 23. Texts
+        cld/text.html
+
+        # 24. Tokenized text
+        cld/token.html
+
+        # 25. Recordings
+        cld/media.html
+	
+      # Extensions
+      
+        # 26. Language-learning support
+
+        # 27. GLab
+        cld/glab.html
+
+      # Appendix
+
+        # A1. The Python HTTP server
+        cld/python_servers.html
+
+      # (Not in TOC)
+
+        cld/app_intro.html
+        cld/igt.html
+        cld/invocation.html
+        cld/mvmov.xml
+        cld/organization.html
+        cld/page.html
+        cld/permissions.html
+        cld/pool.html
+        cld/rom.html
+        cld/server0.html
+        cld/server2.html
+        cld/todo.html
+        cld/words.html
+        cld/writer.html
+        js/PlainTextPanel.html
+        js/XScript.html
+        todo/tree_drawing.html
+  
+  
+    # Vol IV: Seal API Reference

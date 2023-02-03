@@ -1,0 +1,72 @@
+<html>
+<head>
+<title>Core Seal Developer's Guide</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Introduction</h1>
+<p class="nav"><a href="index.html">Core Seal Documentation</a></p>
+<p>
+This manual describes the implementation and source-code organization
+of Seal, for those who might wish to modify it.</p>
+
+<h2>Use</h2>
+
+<h3>Environment</h3>
+<p>
+In this chapter, the source directory for Seal is referred to as <tt>$SEAL</tt>.
+It is created by unpacking a tar file or by cloning from the git repository,
+and is usually named <tt>seal</tt> or
+<tt>seal-<i>x.x.x</i></tt>.
+It has the following toplevel listing:
+<pre>
+Makefile      cx          doc          python
+configure     data        examples     scripts
+</pre>
+<p>
+The directory into which Seal is installed is referred to
+as <tt>$DEST</tt>.  By default it is the same as <tt>$SEAL</tt>, but
+it can specified by passing <tt>--prefix=<i>dir</i></tt>
+to the <tt>configure</tt> script.</p>
+<p>
+The examples assume the following environment variable settings:
+<ul>
+<li><tt>PATH</tt> includes <tt>$DEST/bin</tt></li>
+<li><tt>PYTHONPATH</tt> includes <tt>$DEST/python</tt></li>
+</ul>
+<p>
+The python examples assume that one has done:</p>
+<pre class="python">
+>>> import seal
+</pre>
+<p>
+A first test:</p>
+<pre class="python">
+>>> seal.hello()
+Hello.  This is Seal ...
+</pre>
+<p>
+The actual output will have the version number in place of ... .</p>
+
+<h3>Installation</h3>
+
+The "pure Python" subset of Seal requires no installation.  One only
+needs to assure that <tt>$SEAL/python</tt> is included on one's
+<tt>PYTHONPATH</tt>.</p>
+<p>
+For full functionality, go to the <tt>$SEAL</tt> directory and do:</p>
+<pre class="source">
+$ ./configure
+$ make
+</pre>
+<p>
+Installation in an external directory is not necessary, provided that
+<tt>$SEAL/python</tt> is included on <tt>PYTHONPATH</tt>.  If installation
+in an external directory is desired, one may specify it when calling
+<tt>configure</tt>:</p>
+<pre class="source">
+$ ./configure --prefix=/usr/local
+$ make
+$ make install
+</pre>

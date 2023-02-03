@@ -1,0 +1,710 @@
+<html>
+<head>
+<title>Vol III: CLD</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Vol III: CLD</h1>
+<p class="nav"><a href="../index.html"><i>The Seal Developer's Manual</i></a></p>
+
+<h3>Introduction</h3>
+<ul>
+  <li>1 <a href="intro.html">Introduction</a>
+    <ul>
+      <li><a href="intro.html#1">About CLD</a>
+      <li><a href="intro.html#2">Substrate</a>
+	<ul>
+	  <li><a href="intro.html#2.1">The Server Framework</a></li>
+	  <li><a href="intro.html#2.2">Persistent-Object Database</a></li>
+	  <li><a href="intro.html#2.3">The Content Framework</a></li>
+	</ul>
+      </li>
+      <li><a href="intro.html#3">Installation</a></li>
+      <li><a href="intro.html#4">Examples</a>
+        <ul>
+          <li><a href="intro.html#4.1">Echo</a></li>
+          <li><a href="intro.html#4.2">Ency</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+
+  <li>2 <a href="running.html">Running CLD</a>
+    <ul>
+    <li><a href="running.html#1">The CLD command-line executable</a>
+            <span class="module"><a href="../api/namespaceseal_1_1script_1_1cld.html">seal.script.cld</a></span>
+        <ul>
+        <li><a href="running.html#1.1">Quick start</a></li>
+        <li><a href="running.html#1.2">Usage</a></li>
+        <li><a href="running.html#1.3">Commands</a></li>
+        <li><a href="running.html#1.4">Invoking CLD from Python</a></li>
+        </ul>
+    </li>
+    <li><a href="running.html#2">Running as a web service</a>
+        <ul>
+        <li><a href="running.html#2.1">Creating a new corpus</a></li>
+        <li><a href="running.html#2.2">Local testing</a></li>
+        <li><a href="running.html#2.3">Creating a CGI script</a></li>
+        </ul>
+    </li>
+    <li><a href="running.html#3">Configuration</a>
+        <ul>
+        <li><a href="running.html#3.1">Configuration file</a></li>
+        <li><a href="running.html#3.2">Password and session files</a></li>
+        </ul>
+    </li>
+    </ul>
+  </li>
+
+  <li>3 <a href="modules.html">Modules</a></li>
+
+</ul>
+
+<h2>The Server Framework</h2>
+
+<ul>
+
+  <li>4 <a href="app_toplevel.html">The Manager</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1toplevel.html">seal.app.toplevel</a></span>
+    <ul>
+    <li><a href="app_toplevel.html#1">Running an application</a>
+        <ul>
+        <li><a href="app_toplevel.html#1.1">Overview</a></li>
+        <li><a href="app_toplevel.html#1.1">Execmode</a></li>
+        <li><a href="app_toplevel.html#1.2">Runtime configurations</a></li>
+        </ul>
+    </li>
+    <li><a href="app_toplevel.html#2">Invocation pipeline</a>
+        <ul>
+        <li><a href="app_toplevel.html#2.1">Creating the pipeline</a></li>
+        <li><a href="app_toplevel.html#2.2">Using the pipeline</a></li>
+        <li><a href="app_toplevel.html#2.3">Summary of classes</a></li>
+        </ul>
+    </li>
+    <li><a href="app_toplevel.html#3">Other Command classes</a>
+      <ul>
+	<li><a href="app_toplevel.html#3.1">Configuration-file management</a></li>
+	<li><a href="app_toplevel.html#3.2">CGI scripts</a></li>
+      </ul>
+    </li>
+    <li><a href="app_toplevel.html#4">Manager</a>
+        <ul>
+        <li><a href="app_toplevel.html#1.1">Introduction</a></li>
+        <li><a href="app_toplevel.html#1.2">Main function</a></li>
+        <li><a href="app_toplevel.html#1.3">Toplevel calls</a></li>
+        <li><a href="app_toplevel.html#1.4">Configuration-file management</a></li>
+        </ul>
+    </li>
+    <li><a href="app_toplevel.html#5">Implementation</a>
+        <ul>
+        <li><a href="app_toplevel.html#2.1">Main function</a></li>
+        <li><a href="app_toplevel.html#2.2">Calling the Manager as a function</a></li>
+        <li><a href="app_toplevel.html#2.3">Manager and Config</a></li>
+        <li><a href="app_toplevel.html#2.4">Command</a></li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>5 <a href="resources.html">Configuration and Logging</a>
+    <ul>
+    <li><a href="resources.html#1">Environment</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1config.html">seal.app.config</a></span>
+        <ul>
+        <li><a href="resources.html#1.1">Create config</a></li>
+        <li><a href="resources.html#1.2">Configuration keys</a></li>
+        </ul>
+    <li><a href="resources.html#2">Logging</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1log.html">seal.app.log</a></span>
+        <ul>
+        <li><a href="resources.html#2.1">Logger</a></li>
+        <li><a href="resources.html#2.2">Logging conditions</a></li>
+        </ul>
+    </ul>
+</li>
+
+<li>6 <a href="sealapp.html">Requests and Responses</a>
+    <ul>
+    <li><a href="sealapp.html#1">HTTP request information</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1env.html">seal.app.env</a></span>
+        <ul>
+        <li><a href="sealapp.html#1.1">HTTP requests</a></li>
+        <li><a href="sealapp.html#1.2">Digest environ</a></li>
+        </ul>
+    </li>
+    <li><a href="sealapp.html#2">Requests</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1request.html">seal.app.request</a></span>
+        <ul>
+        <li><a href="sealapp.html#2.2">The components of a Request</a></li>
+        <li><a href="sealapp.html#2.3">Pathnames</a></li>
+        <li><a href="sealapp.html#2.4">URLPathComponent</a></li>
+        <li><a href="sealapp.html#2.5">Forms</a></li>
+        <li><a href="sealapp.html#2.6">Calls</a></li>
+        <li><a href="sealapp.html#2.7">Miscellany</a></li>
+        </ul>
+    </li>
+    <li><a href="sealapp.html#3">Responses</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1response.html">seal.app.response</a></span>
+        <ul>
+        <li><a href="sealapp.html#3.1">Regular responses</a></li>
+        <li><a href="sealapp.html#3.2">Redirect responses</a></li>
+        <li><a href="sealapp.html#3.3">Code and suffix tables</a></li>
+        </ul>
+    </li>
+    <li><a href="sealapp.html#4">Authentication</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1auth.html">seal.app.auth</a></span>
+        <ul>
+        <li><a href="sealapp.html#4.1">Authenticator</a></li>
+        <li><a href="sealapp.html#4.2">The Auth script</a>
+            <span class="module"><a href="../api/namespaceseal_1_1script_1_1auth.html">seal.script.auth</a></span>
+        </li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>7 <a href="server.html">The Seal web server</a>
+    <ul>
+    <li><a href="app_toplevel.html#3">Server</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1server.html">seal.app.server</a></span>
+    </li>
+    <li><a href="app_toplevel.html#4">Client</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1client.html">seal.app.client</a></span>
+        <ul>
+        <li><a href="app_toplevel.html#4.1">The Client class</a></li>
+        <li><a href="app_toplevel.html#4.2">String format for requests</a></li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>8 <a href="wsgi.html">WSGI adapter</a>
+    <span class="module"><a href="../api/namespaceseal_1_1app_1_1wsgi.html">seal.app.wsgi</a></span>
+    <ul>
+    <li><a href="wsgi.html#1">The WSGI specification</a>
+        <ul>
+        <li><a href="wsgi.html#1.1">Overview</a></li>
+        <li><a href="wsgi.html#1.2">Definition</a></li>
+        <li><a href="wsgi.html#1.3">Running a WSGI application</a></li>
+        </ul>
+    </li>
+    <li><a href="wsgi.html#2">WsgiApp</a>
+        <ul>
+        <li><a href="wsgi.html#2.1">The WsgiApp __call__ method</a></li>
+        <li><a href="wsgi.html#2.2">Response methods</a></li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+</ul>
+
+<h2>Persistent-Object Database</h2>
+
+<ul>
+<li>10 <a href="database.html">Files and directories
+    <ul>
+    <li><a href="database.html#1">Persistent Objects</a>
+        <ul>
+        <li><a href="database.html#1.1">The File class</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1db_1_1file.html">seal.cld.db.file</a></span>
+        </li>
+        <li><a href="database.html#1.2">Defining a specialization</a></li>
+        <li><a href="database.html#1.3">Metadata</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1db_1_1meta.html">seal.cld.db.meta</a></span>
+        </li>
+        <li><a href="database.html#1.4">Summary of members and methods of File</a></li>
+        <li><a href="database.html#1.5">The Directory class</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1db_1_1dir.html">seal.cld.db.dir</a></span>
+        </li>
+        <li><a href="database.html#1.6">Database and Environment</a></li>
+        </ul>
+    </li>
+    <li><a href="database.html#2">Implementation issues</a>
+        <ul>
+        <li><a href="database.html#2.1">Filename</a></li>
+        <li><a href="database.html#2.2">Relocatability of Files</a></li>
+        <li><a href="database.html#2.3">File format</a></li>
+        <li><a href="database.html#2.4">Initialization</a></li>
+        <li><a href="database.html#2.5">Checking permissions</a></li>
+        </ul>
+    </li>
+    <li><a href="database.html#3">Details</a>
+        <ul>
+        <li><a href="database.html#3.1">New child</a></li>
+        <li><a href="database.html#3.2">Writer</a></li>
+        <li><a href="database.html#3.3">Reparenting</a></li>
+        <li><a href="database.html#3.4">Deletion</a></li>
+        <li><a href="database.html#3.5">Reorder children</a></li>
+        <li><a href="database.html#3.6">Reparent children</a></li>
+        <li><a href="database.html#3.7">Delete children</a></li>
+        </ul>
+    </li>
+    <li><a href="database.html#4">Example</a>
+    </ul>
+</li>
+
+<li>11 <a href="toplevel.html">Database toplevel</a>
+    <ul>
+    <li><a href="toplevel.html#1">Environment</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1db_1_1env.html">seal.cld.db.env</a></span>
+    </li>
+    <li><a href="toplevel.html#2">Indexation</a></li>
+    <li><a href="toplevel.html#3">Permissions</a>
+        <ul>
+        <li><a href="toplevel.html#3.1">Overview</a></li>
+        <li><a href="toplevel.html#3.2">Protected files</a></li>
+        <li><a href="toplevel.html#3.3">Controlling access</a></li>
+        <li><a href="toplevel.html#3.4">Determining permission</a></li>
+        <li><a href="toplevel.html#3.5">Setting permissions</a></li>
+        <li><a href="toplevel.html#3.6">Users and groups</a></li>
+        </ul>
+    </li>
+    <li><a href="toplevel.html#4">Database</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1db_1_1core.html">seal.cld.db.core</a></span>
+        <ul>
+        <li><a href="toplevel.html#4.1">Description</a></li>
+        <li><a href="toplevel.html#4.2">An example</a></li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>12 <a href="files.html">Generic regular files</a></li>
+
+<li>13 <a href="substrate.html">Substrate</a>
+    <span class="module"><a href="../api/namespaceseal_1_1cld_1_1db_1_1disk.html">seal.cld.db.disk</a></span>
+</li>
+</ul>
+
+<h2 id="Defining">The Content Framework</h2>
+<ul>
+<li>14 <a href="framework.html">The SealApp framework</a>
+    <span class="module"><a href="../api/namespaceseal_1_1app_1_1core.html">seal.app.core</a></span>
+    <ul>
+    <li><a href="framework.html#0">Writing a Seal
+    application</a><br/><span class="todo">rest of chapter out of date</span></li>
+    <li><a href="framework.html#1">Initialization</a></li>
+    <li><a href="framework.html#2">Running</a>
+        <ul>
+        <li><a href="framework.html#2.1">Internal and external servers</a></li>
+        <li><a href="framework.html#2.2">Running as application</a></li>
+        <li><a href="framework.html#2.3">Running as a CGI script</a></li>
+        <li><a href="framework.html#2.4">Running as a WSGI script</a></li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>15 <a href="requests.html">Request processing</a>
+    <span class="module"><a href="../api/namespaceseal_1_1app_1_1parse.html">seal.app.parse</a></span>
+    <ul>
+    <li><a href="requests.html#1">Descending through the web space</a>
+        <ul>
+        <li><a href="requests.html#1.1">Calling App</a></li>
+        <li><a href="requests.html#1.2">Postprocessing</a></li>
+        </ul>
+    </li>
+    <li><a href="requests.html#2">Web objects</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1item.html">seal.app.item</a></span>
+        <ul>
+        <li><a href="requests.html#2.1">The web object hierarchy</a></li>
+        <li><a href="requests.html#2.2">Item</a></li>
+        <li><a href="requests.html#2.3">Method __getitem__</a></li>
+        <li><a href="requests.html#2.4">Method to_page</a></li>
+        <li><a href="requests.html#2.5">Method to_response</a></li>
+        </ul>
+    </li>
+    <li><a href="requests.html#3">Script library</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1weblib.html">seal.app.weblib</a></span>
+    </li>
+    <li><a href="requests.html#4">Defining an HtmlDirectory</a></li>
+    </ul>
+</li>
+
+<li>16 <a href="responses.html">Constructing a Page</a>
+    <ul>
+    <li><a href="responses.html#1">Pages</a>
+        <ul>
+        <li><a href="responses.html#1.1">Specializations of Page</a></li>
+        <li><a href="responses.html#1.2">Page to Response</a></li>
+        </ul>
+    </li>
+    <li><a href="responses.html#2">HtmlPage</a>
+        <ul>
+        <li><a href="responses.html#2.1">Creating a web page</a></li>
+        <li><a href="responses.html#2.2">Methods</a></li>
+        <li><a href="responses.html#2.3">Contents</a></li>
+        </ul>
+    </li>
+    <li><a href="responses.html#3">Convenience module: html</a>
+        <span class="module"><a href="../api/namespaceseal_1_1app_1_1html.html">seal.app.html</a></span>
+    </li>
+    </ul>
+</li>
+
+<li>17 <a href="elt.html">Interface elements</a>
+    <span class="module"><a href="../api/namespaceseal_1_1app_1_1ui.html">seal.app.ui</a></span>
+    <ul>
+    <li><a href="elt.html#1">Element class</a></li>
+    <li><a href="elt.html#2">Spans</a>
+        <ul>
+        <li><a href="elt.html#2.1">Font changes and headings</a></li>
+        <li><a href="elt.html#2.2">Spacers</a></li>
+        </ul>
+    </li>
+    <li><a href="elt.html#3">Blocks</a>
+        <ul>
+        <li><a href="elt.html#3.1">Paragraphs</a></li>
+        <li><a href="elt.html#3.2">Pre</a></li>
+        <li><a href="elt.html#3.3">Lists</a></li>
+        <li><a href="elt.html#3.4">Stack</a></li>
+        <li><a href="elt.html#3.5">Table</a></li>
+        </ul>
+    </li>
+    <li><a href="elt.html#4">Navigation</a>
+        <ul>
+        <li><a href="elt.html#4.1">Link</a></li>
+        <li><a href="elt.html#4.2">Button</a></li>
+        <li><a href="elt.html#4.3">Path</a></li>
+        <li><a href="elt.html#4.4">Menubar</a></li>
+        </ul>
+    </li>
+    <li><a href="elt.html#5">Forms</a>
+        <ul>
+        <li><a href="elt.html#5.1">Form element</a></li>
+        <li><a href="elt.html#5.2">Check boxes</a></li>
+        <li><a href="elt.html#5.3">Dropdown</a></li>
+        <li><a href="elt.html#5.4">File upload</a></li>
+        <li><a href="elt.html#5.5">Hidden</a></li>
+        <li><a href="elt.html#5.6">Not editable</a></li>
+        <li><a href="elt.html#5.7">Radio buttons</a></li>
+        <li><a href="elt.html#5.8">Submit</a></li>
+        <li><a href="elt.html#5.9">Text box</a></li>
+        <li><a href="elt.html#5.10">Text area</a></li>
+        <li><a href="elt.html#5.11">Example</a></li>
+        </ul>
+    </li>
+    <li><a href="elt.html#6">Widgets</a></li>
+    </ul>
+</li>
+
+</ul>
+
+<h2>CLD</h2>
+
+<h3>The Corpus</h3>
+<ul>
+
+<li>18 <a href="corpus.html">Application and corpus</a>
+    <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1core.html">seal.cld.corpus.core</a></span>
+    <ul>
+    <li><a href="corpus.html#1">CLD app</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1core.html">seal.cld.core</a></span>
+        <ul>
+        <li><a href="corpus.html#1.1">Overview</a></li>
+        <li><a href="corpus.html#1.2">Manually instantiating the corpus</a></li>
+        </ul>
+    </li>
+    <li><a href="corpus.html#2">Corpus and environment</a>
+        <ul>
+        <li><a href="corpus.html#2.1">The Corpus class</a></li>
+        <li><a href="corpus.html#2.2">The Environment</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1env.html">seal.cld.corpus.env</a></span>
+        </li>
+        <li><a href="corpus.html#2.3">Example</a></li>
+        </ul>
+    </li>
+    <li><a href="corpus.html#3">User interface</a>
+        <ul>
+        <li><a href="corpus.html#3.1">Corpus UI</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1corpus.html">seal.cld.ui.corpus</a></span>
+        </li>
+        <li><a href="corpus.html#3.2">Metadata editor</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1file.html">seal.cld.ui.file</a></span>
+        </li>
+        </ul>
+    </li>
+    <li><a href="corpus.html#4">Corpus file format</a></li>
+    <li><a href="corpus.html#5">CLDManager</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1toplevel.html">seal.cld.toplevel</a></span>
+    </li>
+    </ul>
+</li>
+
+<li>19 <a href="export.html">Export files</a>
+    <ul>
+    <li><a href="export.html#1">Import/Export</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1export.html">seal.cld.corpus.export</a></span>
+        <ul>
+        <li><a href="export.html#1.1">Items and containers</a></li>
+        <li><a href="export.html#1.2">Implementation</a></li>
+        </ul>
+    </li>
+    <li><a href="export.html#2">Managing export files</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1export__file.html">seal.cld.corpus.export_file</a></span>
+        <ul>
+        <li><a href="export.html#4.1">Export file format</a></li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>20 <a href="corpus_resources.html">Global resources</a>
+    <ul>
+    <li><a href="corpus_resources.html#1">Users</a>
+        <ul>
+        <li><a href="corpus_resources.html#1.1">User object</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1user.html">seal.cld.corpus.user</a></span>
+        </li>
+        <li><a href="corpus_resources.html#1.2">User editor</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1users.html">seal.cld.ui.users</a></span>
+        </li>
+        </ul>
+    </li>
+    <li><a href="corpus_resources.html#2">Romanizations</a>
+        <ul>
+        <li><a href="corpus_resources.html#2.1">Romanization</a></li>
+        <li><a href="corpus_resources.html#2.2">Registry</a></li>
+        <li><a href="corpus_resources.html#2.3">Editor</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1rom.html">seal.cld.ui.rom</a></span>
+        </li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>21 <a href="language.html">Languages</a>
+    <ul>
+    <li><a href="language.html#1">Language list</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1language.html">seal.cld.corpus.language</a></span>
+        <ul>
+        <li><a href="language.html#1.1">LanguageList</a></li>
+        <li><a href="language.html#1.2">LanguageListEditor</a></li>
+        <li><a href="language.html#1.3">LanguageSelector</a></li>
+        </ul>
+    </li>
+    <li><a href="language.html#2">Language</a></li>
+    <li><a href="language.html#3">Editor</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1language.html">seal.cld.ui.language</a></span>
+    </li>
+    </ul>
+</li>
+
+<li>22 <a href="lexicon.html">Lexicon</a>
+    <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1lexicon.html">seal.cld.corpus.lexicon</a></span>
+    <ul>
+    <li><a href="lexicon.html#1">Lexical entry</a>
+        <ul>
+        <li><a href="lexicon.html#1.1">Description</a></li>
+        <li><a href="lexicon.html#1.2">Lexical fields</a></li>
+        </ul>
+    </li>
+    <li><a href="lexicon.html#2">Lexicon</a></li>
+    <li><a href="lexicon.html#3">Similarity</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1sim.html">seal.cld.corpus.sim</a></span>
+    </li>
+    <li><a href="lexicon.html#4">Editor</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1lexicon.html">seal.cld.ui.lexicon</a></span>
+    </li>
+    <li><a href="lexicon.html#5">Concordance</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1conc.html">seal.cld.ui.conc</a></span>
+    </li>
+    </ul>
+</li>
+    
+<li>23 <a href="text.html">Texts</a>
+    <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1text.html">seal.cld.corpus.text</a></span>
+    <ul>
+    <li><a href="text.html">General</a>
+        <ul>
+        <li><a href="text.html#Data Model">Data model</a></li>
+        <li><a href="text.html#Plaintext">Plaintext</a></li>
+        <li><a href="text.html#Indices">Indices</a></li>
+        <li><a href="text.html#Examples">Examples</a></li>
+        </ul>
+    </li>
+    <li><a href="text.html">Editor</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1text.html">seal.cld.ui.text</a></span>
+    </li>
+    <li><a href="text.html">Complex documents</a>
+        <ul>
+        <li><a href="text.html">Toc objects</a></li>
+        <li><a href="text.html">Editor</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1toc.html">seal.cld.ui.toc</a></span>
+        </li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+<li>24 <a href="token.html">Tokenized text</a>
+    <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1token.html">seal.cld.corpus.token</a></span>
+    <ul>
+    <li><a href="token.html#1">Tokenization</a>
+        <ul>
+        <li><a href="token.html#1.1">Definition</a></li>
+        <li><a href="token.html#1.2">Token</a></li>
+        </ul>
+    </li>
+    <li><a href="token.html#2">Token file</a>
+        <ul>
+        <li><a href="token.html#2.1">Sentences</a></li>
+        </ul>
+    </li>
+
+    <li><a href="token.html#Editor">Editor</a></li>
+    <li><a href="token.html">Page contents</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1page.html">seal.cld.ui.page</a></span>
+        <ul>
+        <li><a href="token.html#PageEditor">PageEditor</a></li>
+        <li><a href="token.html#PlainTextPanel">PlainTextPanel</a></li>
+        </ul>
+    </li>
+
+    <li><a href="token.html">Interlinear glossed text (IGT)</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1igt.html">seal.cld.ui.igt</a></span>
+    </li>
+    </ul>
+</li>
+
+<li>25 <a href="media.html">Recordings</a>
+    <ul>
+    <li><a href="media.html#1">External media directory</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1media.html">seal.cld.corpus.media</a></span>
+        <ul>
+        <li><a href="media.html#1.1">On disk</a></li>
+        <li><a href="media.html#1.2">MediaDirectory</a></li>
+        <li><a href="media.html#1.3">RawMediaFile</a></li>
+        </ul>
+    </li>
+    <li><a href="media.html#2">Media texts (recordings)</a>
+        <ul>
+        <li><a href="media.html#2.1">Media file</a></li>
+        <li><a href="media.html#2.2">User media index</a></li>
+        </ul>
+    </li>
+    <li><a href="media.html#3">Audio and Video</a>
+        <ul>
+        <li><a href="media.html#3.1">Media</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1media.html">seal.cld.ui.media</a></span>
+        <li><a href="media.html#3.2">Audio</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1audio.html">seal.cld.ui.audio</a></span>
+        </li>
+        <li><a href="media.html#3.3">Video</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1video.html">seal.cld.ui.video</a></span>
+        </li>
+        </ul>
+    <li><a href="media.html#4">Transcription</a>
+            <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1transcript.html">seal.cld.corpus.transcript</a></span>
+        <ul>
+        <li><a href="media.html#4.1">Transcription (data object)</a></li>
+        <li><a href="media.html#4.2">Transcriber (server-side UI)</a></li>
+        <li><a href="media.html#4.3">XScript.js (client-side UI)</a>
+            <span class="module"><a href="../js/XScript.html">XScript.js</a></span>
+        </li>
+        </ul>
+    </li>
+    </ul>
+</li>
+
+</ul>
+
+<h3>Extensions</h3>
+
+<ul>
+
+<li>26 Language-learning support
+    <ul>
+    <li>Course
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1ui_1_1course.html">seal.cld.ui.course</a></span>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1drill.html">seal.cld.corpus.drill</a></span>
+    </li>
+
+    <li>Drill
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1course.html">seal.cld.corpus.course</a></span>
+    </li>    
+    </ul>
+</li>
+
+<li>27 <a href="glab.html">GLab</a>
+    <span class="module"><a href="../api/namespaceseal_1_1cld_1_1glab.html">seal.cld.glab</a></span>
+    <ul>
+    <li><a href="glab.html">Language</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1glab_1_1lang.html">seal.cld.glab.lang</a></span>
+    </li>
+    <li><a href="glab.html">Functions</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1glab_1_1functions.html">seal.cld.glab.functions</a></span>
+    </li>
+    <li><a href="glab.html">Implementation</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1glab_1_1eval.html">seal.cld.glab.eval</a></span>
+    </li>
+    <li><a href="glab.html">Files</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1glab_1_1file.html">seal.cld.glab.file</a></span>
+    </li>
+    <li><a href="glab.html">UI</a>
+        <span class="module"><a href="../api/namespaceseal_1_1cld_1_1glab_1_1ui.html">seal.cld.glab.ui</a></span>
+    </li>
+    <li><a href="glab.html">GLab script</a>
+        <span class="module"><a href="../api/namespaceseal_1_1script_1_1glab.html">seal.script.glab</a></span>
+    </li>
+    </ul>
+</li>
+
+</ul>
+
+<h2>Appendix</h2>
+
+<ul>
+<li>A1 <a href="python_servers.html">The Python HTTP server</a>
+    <ul>
+    <li><a href="python_servers.html#1">Introduction</a></li>
+    <li><a href="python_servers.html#TCP server">The Python TCP server</a>
+        <ul>
+        <li><a href="python_servers.html#Sockets">Sockets</a></li>
+        <li><a href="python_servers.html#TCP server detail">TCP server</a></li>
+        <li><a href="python_servers.html#TCP test handler">TCP test handler</a></li>
+        <li><a href="python_servers.html#Start and stop">Start and stop</a></li>
+        </ul>
+    </li>
+    <li><a href="Hypertext Transfer Protocol">Hypertext Transfer Protocol</a>
+        <ul>
+        <li><a href="python_servers.html#Format of HTTP requests">Format of HTTP requests</a></li>
+        <li><a href="python_servers.html#GET requests">GET requests</a></li>
+        <li><a href="python_servers.html#POST requests">POST requests</a></li>
+        <li><a href="python_servers.html#Upload requests">Upload requests</a></li>
+        </ul>
+    </li>
+    <li><a href="python_servers.html#HTTP Server">HTTP Server</a>
+        <ul>
+        <li><a href="python_servers.html#HTTP server class">HTTPServer class</a></li>
+        <li><a href="python_servers.html#Data section">Processing the data section</a></li>
+        <li><a href="python_servers.html#Query string">Query string example</a></li>
+        <li><a href="python_servers.html#Form example">Form example</a></li>
+        <li><a href="python_servers.html#Upload example">Upload example</a></li>
+        </ul>
+    </li>
+    <li><a href="python_servers.html#Secure HTTP">Secure HTTP</a>
+        <ul>
+        <li><a href="python_servers.html#SSL server">SSL server</a></li>
+        <li><a href="python_servers.html#Secure HTTP Server">Secure HTTP Server</a></li>
+        </ul>
+    </li>
+    <li><a href="python_servers.html#WSGI Server">WSGI Server</a>
+        <ul>
+        <li><a href="python_servers.html#Environ">Environ</a></li>
+        <li><a href="python_servers.html#The response">The response</a></li>
+        <li><a href="python_servers.html#Running the server">Running the server</a></li>
+        <li><a href="python_servers.html#A simple example">A simple example</a></li>
+        </ul>
+    </li>
+    
+    <li><a href="server0.html">server0</a></li>
+    
+    </ul>
+</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+OK a dog barks
+OK this dog barks
+* this dogs bark
+OK these dogs bark
+OK the dog barks
+OK the dogs bark
+* these dogs barks
+* these dogs bark the cat
+OK these dogs chase the cat
+OK the red dog barks
+OK fido chases the cat
+OK he thinks about the dog
+OK she thinks that the dog chases the cat
+* she thinks the dog
+* she tells that the dog chases the cat
+OK she tells the dog that the cat barks
+OK the cat thinks
+OK the cat wants to bark
+OK fido is red
+OK the cat is happy about the toy
+OK we gave the dog a toy
+OK we gave a toy to the dog
+OK fido chases spot
+OK fido has chased spot
+OK fido is chasing spot
+OK fido will chase spot
+OK spot will be chased
+OK fido will be chasing spot
+OK fido will have been chasing spot
+OK spot will have been being chased
+* spot will be having been chased
+* fido having chased
+* fido will chasing spot
+OK what did you chase
+OK which cat did you chase
+* what did you chase spot
+OK what will you give to spot
+OK what has fido been giving to spot
+* what has been giving to
+OK who will you give a toy to
+OK what will you give spot
+OK to whom will you give a toy
+* what did you bark
+OK did you bark
+OK !np the dog that max chased
+OK !np the dog that chased max
+OK !np those red dogs that max chased
+OK !num zero
+OK !num one
+* !num a
+OK !num six
+OK !num ten
+* !num ten and one
+OK !num a hundred
+OK !num a hundred ninety nine
+OK !num a hundred and eleven
+* !num a hundred a
+OK !num two thousand nine hundred ninety nine
+* !num two thousand a hundred
+* !num two thousand and a hundred
+OK !num nine hundred ninety nine thousand and nine hundred ninety nine
+OK !num nine hundred million and six
+OK !num nine billion six hundred thirty six million forty two
+* !num nine million six hundred thirty billion
+OK !measp six inches
+OK !measp sixty one years
+OK !measp eight watts
+OK !np pierre vinken
+OK !adjp sixty one years old
+OK !np pierre vinken , sixty one years old ,
+OK pierre vinken , sixty one years old , will join the board

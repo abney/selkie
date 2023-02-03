@@ -1,0 +1,13 @@
+#!/bin/sh -e
+
+tgt=$1
+
+. ../CONFIG
+. ../VERSION
+
+cat >$tgt <<EOF
+DEST=$DEST
+VERSION=$VERSION
+REVISION=$REVISION
+PATCHLEVEL=$PATCHLEVEL
+EOF

@@ -1,0 +1,223 @@
+
+
+def process_file (fn):
+
+    offset = 0
+    bol = True
+
+    for line in fn:
+        line = line.strip()
+        if line:
+            for token tokenize_line(line):
+                printToken($token);
+    }
+}
+
+close($infh);
+close($txtfh);
+close($prsfh);
+
+
+sub tokenifyLine {
+    my ($line) = @_;
+    $line =~ s/\(([^() ]+) ([^() ]+)\)/\n+\t\1\t\2\n/g;
+    $line =~ s/\(([^() ]*)/\n[\t\1\n/g;
+    $line =~ s/\)/\n]\n/g;			      
+    $line =~ s/^(\s*\n)+//;
+    $line =~ s/(\s*\n\s*)+$//;
+    $line =~ s/\s*(\n\s*)+\n\s*/\n/g;
+    return split('\n', $line);
+}
+
+
+sub parseLabel {
+    my ($label) = @_;
+    my ($cat, $role, $id, $gapid);
+
+    $id = '';
+    $gapid = '';
+
+    if ($label =~ m/(.*)-([0-9]+)$/) {
+	$id = $2;
+	$label = $1;
+    }
+
+    if ($label =~ m/(.*)=([0-9]+)$/) {
+	$gapid = $2;
+	$label = $1;
+    }
+    
+    if ($label =~ m/^([^-]+)-(.*)/) {
+	$cat = $1;
+	$role = $2;
+    }
+    else {
+	$cat = $label;
+	$role = '';
+    }
+
+    return ($cat, $role, $id, $gapid);
+}
+
+
+sub parseEmptyWord {
+    my ($word) = @_;
+    my $cat = $word;
+    my $id = '';
+
+    if ($word =~ m/(.*)-([0-9]+)$/) {
+	$cat = $1;
+	$id = $2;
+    }
+
+    return ($cat, $id);
+}
+
+
+sub printToken {
+    my ($token) = @_;
+    my ($type, $label, $string) = split('\t', $token);
+    my ($cat, $role, $id, $gapid) = parseLabel($label);
+
+    if ($type eq '+') {
+
+        if ($cat eq '-NONE-') {
+	    if ($id ne '') { die("Empty node with external ID"); }
+	    ($cat, $id) = parseEmptyWord($string);
+	    print $prsfh ("+\t$cat\t\t$role\t\t$id\t$gapid\t$docid\t$offset\t$offset\n");
+        }
+
+        else {
+	    if ($bol) { $bol = ''; }
+	    else {
+		++$offset;
+		print $txtfh (' ');
+	    }
+	    $start = $offset;
+	    $offset += length($string);
+	    $end = $offset;
+	    print $txtfh ($string);
+	    print $prsfh ("+\t$cat\t$string\t$role\t\t$id\t$gapid\t$docid\t$start\t$end\n");
+	    if ($cat eq '.') {
+		++$offset;
+		print $txtfh ("\n");
+		$bol = 1;
+	    }
+	}
+    }
+    elsif ($type eq '[') {
+	print $prsfh ("[\t$cat\t\t$role\t\t$id\t$gapid\t$docid\t$offset\n");
+    }
+    elsif ($type eq ']') {
+	print $prsfh ("]\t\t\t\t\t\t\t$docid\t$offset\n");
+    }
+    else { die("This can't happen."); }
+}
+
+
+#-------------------------------------------------------------------------------
+
+"""
+The Penn Treebank.
+The treebank consists of 2312 files divided into 24 sections.
+There is a traditional division into train, test, dev
+train, dev test, and reserve test parts:
+  - dev train: sections 00-01
+  - dev test: section 24
+  - train: sections 02-21
+  - test: section 23
+  - reserve test: section 22
+There are corresponding methods of C{Ptb} that return
+L{PtbSlice} instances:
+
+    >>> len(Ptb.train().files())
+    1875
+    >>> len(Ptb.dev_train().files())
+    199
+    >>> len(Ptb.test().files())
+    100
+    >>> len(Ptb.dev_test().files())
+    55
+    >>> len(Ptb.reserve_test().files())
+    83
+    >>> sum([1875, 199, 100, 55, 83])
+    2312
+    
+The method L{trees()} returns an iterator over all the individual
+trees in the treebank or a slice of it:
+
+    >>> trees = Ptb.trees()
+    >>> t = trees.next()
+    >>> t.format()
+    (S
+      (NP:SBJ
+        (NP
+          (NNP Pierre)
+          (NNP Vinken))
+        (, ,)
+        ...
+    >>> Ptb.train().trees().next().format()
+    (S
+      (PP:LOC
+        (IN In)
+        (NP
+          (NP
+            (DT an)
+            (NNP Oct.)
+            (CD 19)
+            (NN review))
+            ...
+"""
+
+#--  Preamble  -----------------------------------------------------------------
+
+import os, seal
+from seal.config import Dest
+from seal.io import Fn
+from seal.tree import iter_tabular_trees
+
+corpus_dir = os.path.join(Dest, "data/treebank.corp")
+orig_corpus_dir = os.path.join(Dest, "data/treebank")
+orig_filename_list = None
+
+
+#--  Files  --------------------------------------------------------------------
+
+# Files come in pairs: one containing the parse-tree, and one containing the
+# unparsed text
+
+def abspath (fileid):
+    return corpus_dir + '/prs/' + str(fileid)
+
+def text_filename (fileid):
+    return corpus_dir + '/txt/' + str(fileid)
+
+def text_files (fileids=None, categories=None):
+    """
+    An iterator over the text files for files in the slice.
+    Text files contain one sentence per line, with space-separated tokens.
+    """
+    for fid in as_fileids(fileids, categories):
+        yield corpus_dir + "/txt/" + str(fid)
+
+def orig_files (fileids=None, categories=None):
+    """An iterator over the original filenames of files in the slice (in C{/cl/treebank})."""
+    for fid in as_fileids(fileids, categories):
+        yield orig_filename(fid)
+
+
+#--  Trees, nodes, words, sents  -----------------------------------------------
+
+def _more_fields (node, fields):
+    n = len(fields)
+
+    if n > 6 and fields[6]:
+        gapid = int(fields[6])
+
+        node.gapid = gapid
+
+        if node.role:
+            node.role = node.role + '-GAP'
+        else:
+            node.role = 'GAP'
+

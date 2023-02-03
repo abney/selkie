@@ -1,0 +1,383 @@
+
+\chapter{Corpus: {\tt seal.uc.corpus}}\label{chap3}
+
+This section documents the module {\tt seal.uc.corpus}.  The examples
+assume that one has done:
+\begin{python}
+>>> from seal.uc.corpus import *
+>>> from seal.io import ex
+\end{python}
+
+%>>> import os
+%>>> if os.path.exists('/tmp/corpus'): delete_corpus('/tmp/corpus')
+
+\section{Document preparation pipeline}
+
+The corpus is intended to support collection and preparation of
+documents, and not just the finished product.  Logically, one begins
+by searching for relevant documents, collecting bibliographic
+information into a document ``card catalog.''
+
+Some of the documents are downloaded.
+The original format depends on the source, but one format
+of interest consists of page images accompanied by plain text produced
+with OCR software.  These are paginated documents.
+
+Documents of particular interest are grammars, dictionaries, and texts
+with translations.  In such documents, individual pages often contain
+two or more languages.  We would like to extract bitexts where
+possible.  To train and evaluate bitext extraction, we annotate some
+pages manually.  This produces bitext-annotated pages.
+
+When we have identified monolingual texts---whether complete
+documents, individual pages, or merely snippets---we can do further
+processing that includes segmentation (dividing the text into
+sentences or comparable units), tokenization, and wordlist
+construction.  In some cases, texts, segmentations, tokenizations, or
+wordlists are alignable, defining parallel texts, parallel
+segmentations, etc.  These digested items constitute the
+{\df kernel}; they represent the ``finished product.''
+
+\section{Item store and corpus}
+
+The general file organization is by the type of processing that is
+being done.  We wish to make it as easy as possible to add new
+processing, providing new ``views'' on old documents.
+
+One creates a new empty corpus using \verb|create_corpus()|.  It takes
+the pathname of the corpus; it is an error if a file with that
+pathname already exists.  For example:
+\begin{python}
+>>> create_corpus('/tmp/corpus')
+\end{python}
+There is no return value.
+One can delete the corpus using {\tt delete{\underscore}corpus()}:
+\begin{python}
+>>> delete_corpus('/tmp/corpus')
+\end{python}
+
+One can also create a new corpus by copying an old one.  The new
+corpus has no connections to the old one.  In particular,
+modifications to the new corpus will not affect the old corpus or vice
+versa.
+\begin{python}
+>>> copy_corpus(ex.uc, '/tmp/corpus')
+\end{python}
+It is an error if the old corpus does not exist, or if the new
+filename does exist.
+
+One opens an existing corpus
+by instantiating the {\tt Corpus} class.  The
+constructor takes a single argument: the pathname of the corpus
+directory.  There is a sample corpus in {\tt ex.uc}.
+\begin{python}
+>>> corpus = Corpus('/tmp/corpus')
+\end{python}
+
+The corpus is essentially a {\tt Database} containing the following tables:
+\begin{itemize}
+\item {\tt users}: representing annotators
+\item {\tt langs}: the languages
+\item {\tt cards}: a card catalog of documents.  There is no implication
+that a document listed here appears anywhere else in the corpus.  The
+card catalog includes bibliographic records for many items of interest
+that have not (yet) been fetched.
+\item {\tt pages}: OCR output for scanned page images.
+\item {\tt kernel}: containing text items.
+\end{itemize}
+For example:
+\begin{python}
+>>> len(corpus['cards'])
+119
+\end{python}
+For convenience, the tables are also members of the {\tt Corpus}:
+\begin{python}
+>>> len(corpus.cards)
+119
+\end{python}
+One can also access items by ID.  The ID for a card is a bibliographic
+ID, or {\tt bibid}:
+\begin{python}
+>>> print(corpus.cards['111'])
+bibid        111
+name         
+author       R. F. Fortune
+title        Arapesh
+pub_date     1942
+pub_country  
+pubdom       
+source       Digital General Collection
+source_id    ACR7567.0019.001
+url          http://name.umdl.umich.edu/ACR7567.0019.001
+media        
+scan         Full Text
+ocr          
+script       Latin-based
+langs        
+content_lang ape
+gloss_lang   eng
+local_url    
+notes        
+\end{python}
+Languages have attributes {\tt langid} and {\tt name}:
+\begin{python}
+>>> print(corpus.langs['ape'])
+langid ape
+name   Arapesh
+\end{python}
+Users have attributes {\tt userid} and {\tt rights}.  (The attribute
+{\tt rights} is not currently used.)
+\begin{python}
+>>> print(corpus.users['abney'])
+userid abney
+rights 
+\end{python}
+
+One can use the {\tt ItemStore} search methods {\tt where()} and {\tt items()}.
+The method {\tt where()} looks up items that have a particular value
+for an indexed attribute.  For example, to get all pages belonging to
+a given bibliographic item:
+\begin{python}
+>>> len(corpus.pages.where('bibid', '111'))
+5
+\end{python}
+To determine which attributes are indexed, use \verb|indexed_fields()|:
+\begin{python}
+>>> corpus.pages.indexed_fields()
+('pageid', 'bibid')
+\end{python}
+More general than {\tt where()} is the method {\tt items()}.  It uses indices for
+efficiency, when they are available.
+\begin{python}
+>>> corpus.pages.items(bibid='111', number='104')
+[<Page 111 104>]
+\end{python}
+To get the list of attested values for an attribute, use {\tt values()}.
+\begin{python}
+>>> corpus.pages.values('number')[:5]
+['100', '101', '102', '103', '104']
+>>> len(corpus.pages.values('number'))
+10
+\end{python}
+
+
+\section{Connective IDs}
+
+Connections across items are created using various kinds of IDs.  Bibliographic
+IDs (bibids) connect items to their bibliographic entries, and relate
+items that are connected to the same bibliographic entry.
+For example, in the previous section we
+examined page 23 of document 111.  We can use the bibid to get the
+corresponding bibliographic record from {\tt cards}.
+\begin{python}
+>>> card = corpus.cards.item(bibid='111')
+>>> card['author']
+'R. F. Fortune'
+>>> card['title']
+'Arapesh'
+\end{python}
+
+Page IDs (pageids) uniquely identify pages.
+A {\df text ID} (textid) represents a set of text items that go
+together.  They often all represent the same
+page, but not necessarily: there is no need that an underlying page
+even exist.
+If two items have the same textid but different types, say plain text
+and segmented text, one
+can deduce that one was derived from the other.  If they have the same
+type but different languages, they are
+translations of one other.  If two segmented texts are translations of
+each other, they align segment by segment.
+
+There are two reasons for keeping textids distinct from pageids.
+First is the reason already mentioned: the underlying page may not
+actually exist in the corpus.  The second reason is that there may be
+two different textids for the same pageid,
+for example, if one has two incompatible segmentations.
+One cannot have multiple items of the same type, same textid, and same
+langid.
+
+User IDs connect items annotated by the same person.  Additional
+connective IDs may be introduced in the future.
+
+\section{Kernel}
+
+The kernel consists of items of class {\tt KernelItem}.  The basic
+item is a {\df plaintext}.  A document may contain multiple
+plaintexts, inasmuch as a document may contain multiple languages, but
+a text is required to be monolingual.  As we have already seen, a
+particular plaintext may represent only a portion of a document,
+identified by a {\tt pageid}.
+
+A {\df parallel text} is a set of texts that are mutual translations of one
+another.  An example is the Bible.  We treat this case separately from
+sharing a {\tt pageid}: we may have a page of the King James Bible and
+a corresponding page of the Luther Bible, but they will have different
+{\tt pageid}s.  Instead we use an {\df alignment ID} ({\tt alignid})
+along with an {\df offset} ({\tt alignoff}).
+
+An alignment is a particular division of an abstract work into
+translatable segments, or {\df beads}.  A segmented text may represent
+an alignment or a contiguous slice of an alignment.
+
+A {\df segmentation} is a list of sentences.  The underlying text is
+identified by the {\tt pageid}.  We do not permit multiple
+segmentations of the same text.  Two segmented texts with a shared
+{\tt pageid} are assumed to be alignable.
+
+A {\df tokenization}
+is a list of tokenized sentences, each of which is a list of tokens.
+The underlying text is again identified by the {\tt pageid}.
+
+A {\df wordlist} is a list of senses, each sense being represented as
+a list of words.  Two word lists may share an {\tt alignid}, in which
+case they can be aligned with each other.  Such an {\tt alignid} can
+be viewed as a list of meanings.
+
+In sum, a kernel item has the following properties:
+\begin{itemize}
+\item {\tt itemid}: a unique identifier for the item.
+\item {\tt type}: one of {\tt txt} (text), {\tt snt} (segmentation),
+   {\tt tok} (tokenization), {\tt lex} (wordlist).
+\item {\tt langid}: represents the language of the item; external key for
+  the {\tt langs} item store.
+\item {\tt bibid}: represents the bibliographic record for the item; it
+  is an external key for the {\tt cards} item store.
+\item {\tt alignid}: represents a translationally-equivalent set of items.
+  Items of type {\tt txt} that share a value for {\tt alignid}
+  are translations of one another.  Wordlists that share a value
+  for {\tt alignid} are sense-aligned translations of one other.
+  Items of type {\tt snt} that share a value for {\tt alignid} represent
+  sentence-level translations.  The attribute {\tt alignid} is not
+  used for items of type {\tt tok}.
+\end{itemize}
+
+We give some examples drawn from the sample corpus.  First, let us
+list the kernel items:
+\begin{python}
+>>> print(corpus.kernel)
+1 txt deu 1 117 bible
+2 snt deu 1 117 bible
+4 txt eng 2 118 bible  
+5 snt eng 2 118 bible
+6 tok eng 2 118 bible
+8 txt eng 3 119 bible  
+9 snt eng 3 119 bible
+11 lex deu 4 120 swadesh  
+12 lex eng 5 120 swadesh  
+13 txt ape 6 114 genesis  
+14 txt sat 7 115 genesis  
+15 txt eng 8 116 genesis  
+16 spn eng 2 118 bible
+\end{python}
+
+\paragraph{Text.}
+Item 4 is an example of a text:
+\begin{python}
+>>> txt = corpus.kernel['4']
+>>> print(txt)
+itemid 4
+type   txt
+langid eng
+textid 2
+bibid  118
+alignid bible
+\end{python}
+Note that document 118 is the King James Bible:
+\begin{python}
+>>> corpus.cards['118']['title']
+'The Holy Bible (King James Version)'
+\end{python}
+The contents of a text is a plain string:
+\begin{python}
+>>> txt.contents()[:25]
+'The First Book of Moses, '
+\end{python}
+
+\paragraph{Parallel text.}
+The set of texts with the same alignid constitute a parallel text.  (They are
+mutual translations.)  For example:
+\begin{python}
+>>> corpus.kernel.items(type='txt', alignid='bible')
+[<KernelItem 1 deu txt>, <KernelItem 4 eng txt>, <KernelItem 8 eng txt>]
+>>> [item['langid'] for item in _]
+['deu', 'eng', 'eng']
+\end{python}
+
+\paragraph{Segmentation.}
+The contents of a segmentation is a list of strings.
+\begin{python}
+>>> i5  = corpus.kernel['5']
+>>> segs = i5.contents()
+>>> segs[0]
+'In the beginning, God created the heaven and the earth.'
+>>> len(segs)
+6
+\end{python}
+The original text is identified by the {\tt pageid}, {\tt langid}, and
+{\tt docid}:
+\begin{python}
+>>> i5['textid']
+'2'
+>>> i5['langid']
+'eng'
+>>> i5['bibid']
+'118'
+>>> corpus.kernel.item(type='txt', textid='2', langid='eng')
+<KernelItem 4 eng txt>
+\end{python}
+Specifying type, textid, and langid always identifies a unique
+item.
+
+\paragraph{Spans.}
+One can additionally associate segments with spans in the original
+text.
+\begin{python}
+>>> spans = corpus.kernel['16'].contents()
+>>> len(spans)
+6
+>>> spans[0]
+(44, 99)
+\end{python}
+
+\paragraph{Aligned segments.}
+Segmentations that share the same {\tt textid} or the same
+{\tt alignid} constitute segment-aligned translations.  (They share
+the same {\tt textid} if they represent compatible analyses of the
+same page.  They share the same {\tt alignid} if they are
+extrinsically marked as being translations of each other.)
+\begin{python}
+>>> corpus.kernel.items(type='snt', alignid='bible')
+[<KernelItem 2 deu snt>, <KernelItem 5 eng snt>, <KernelItem 9 eng snt>]
+\end{python}
+
+\paragraph{Tokenization.}
+The contents of a tokenization is a list of lists.
+\begin{python}
+>>> i6 = corpus.kernel['6']
+>>> tok = i6.contents()
+>>> len(tok)
+6
+>>> tok[0][:5]
+[<In>, <the>, <beginning,>, <God>, <created>]
+\end{python}
+
+\paragraph{Wordlist.}
+The contents of a wordlist is a list of lists.
+\begin{python}
+>>> i11 = corpus.kernel['11']
+>>> wl = i11.contents()
+>>> len(wl)
+10
+>>> wl[0]
+['ich']
+>>> wl[1]
+['Du', 'Sie']
+\end{python}
+Wordlists that share a common {\tt textid} are aligned.
+\begin{python}
+>>> corpus.kernel.items(type='lex', alignid='swadesh')
+[<KernelItem 11 deu lex>, <KernelItem 12 eng lex>]
+\end{python}
+
+%>>> delete_corpus('/tmp/corpus')

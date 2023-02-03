@@ -1,0 +1,146 @@
+<html>
+<head>
+<title>20 Language</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>20 Language</h1>
+
+<h2 id="1">Language list</h2>
+
+<h3 id="1.1">LanguageList</h3></p>
+<p>
+The contents of <tt>corpus.langs</tt> is a <tt>LanguageList</tt>,
+which is a <tt>Collection</tt> of <tt>Language</tt> instances
+named by ISO 639-3 language codes.
+<pre class="python">
+>>> langs = corpus.langs
+>>> sorted(langs)
+['eng', 'otw']
+>>> eng = langs['eng']
+>>> eng
+&lt;Language langs/eng>
+</pre>
+<p>
+One creates a new language using the <tt>Collection</tt> method
+<tt>new_child()</tt>:
+<pre class="python">
+>>> otw = langs.new_child('otw')
+</pre>
+The change is immediately saved to disk.  If we reload the corpus, it
+is present:
+<pre class="python">
+>>> corpus = load_corpus('/tmp/corpus.cld')
+>>> langs = corpus.langs
+>>> sorted(langs)
+['eng', 'otw']
+>>> eng = langs['eng']
+>>> otw = langs['otw']
+</pre>
+
+<h3 id="1.2">LanguageListEditor</h3>
+<p>
+The object at <tt>/langs</tt> is a <tt>LanguageListEditor</tt>.
+Its <tt>contents</tt> is a <tt>LanguageList</tt>.
+It provides the following pages:</p>
+<dl>
+
+<dt>/, view</dt> <dd>Displays the list of languages.  Each link directs to
+  <tt>./lang.<i>code</i></tt>/</tt>.  If the user has write permission,
+  there is also a "$+$" link, which directs to <tt>./add/</tt>,
+  and a "Search" button, which links to <tt>./lgsel/</tt>.  </dd>
+
+<dt>lang.<i>code</i></dt> <dd>If the <i>code</i> is in the
+ <tt>LanguageList</tt>, return a <tt>LanguageEditor</tt> editing the
+ language <tt>contents[<i>code</tt>]</i>.  Otherwise, return a
+ page to confirm that one wishes to add the language.
+ The confirmation page prints out information about the language, so
+ that one can verify which language it is, and provides two buttons:
+ the "Confirm" button links to <tt>confirmed.<i>code</tt></i> and the
+ "Cancel" button takes one back to <tt>view</tt>.</dd>
+
+<dt>confirmed.<i>code</i></dt> <dd>If the <i>code</i> is valid,
+ create a new language and redirect to <tt>./lang.<i>code.</tt></i>
+ Otherwise return a "Not a Language" page with a "Return" link
+ to <tt>./</tt>.</dd>
+
+<dt>add, lgsel</dt> <dd>Takes one to a <tt>LanguageSelector</tt>.
+</dl>
+
+<h3 id="1.3">LanguageSelector</h3>
+<p>
+The object at <tt>/langs/add</tt> or <tt>/langs/lgsel</tt> is a
+<tt>LanguageSelector</tt>, with member <tt>langlist</tt> of type
+<tt>LanguageList</tt>.  It provides the following pages:</p>
+
+<dl>
+
+<dt>/, view</dt> <dd>A page providing two search boxes: one by language
+code and one by name or name part.  The language code box posts to
+<tt>bycode</tt>, and the name box posts to <tt>search_results</tt>.</dd>
+
+<dt>bycode</dt> <dd>If the submit reason is "Cancel," redirects to <tt>../</tt>.
+Otherwise, returns the same page as <tt>selected.<i>code</tt></i>.</dd>
+
+<dt>selected.<i>code</i></dt> <dd>Displays the database information about
+the language with the given <i>code</i> and provides two buttons: "Confirm"
+and "Cancel."  "Confirm" links to <tt>commit.<i>code,</tt></i> and "Cancel"
+links to <tt>./</tt>.  However, if the <i>code</i> is invalid, it
+returns a "Not a Language" error page with a "Back" link to <tt>./</tt>.</dd>
+
+<dt>commit.<i>code</dt></i><dd> If the <i>code</i> is valid, redirects to
+  <tt>../confirmed.<i>code</tt></i>.  Otherwise returns the "Not a
+  Language" page.</p></dd>
+
+</dl>
+
+<h2 id="2">Language</h2>
+<p>
+A <tt>Language</tt> is a <tt>Structure</tt> with the following
+signature:
+<table class="display">
+<tr><td><tt>texts</tt></td> <td><tt>Toc</tt></td> <td>a <tt>Toc</tt> instance.</td></tr>
+<tr><td><tt>info</tt></td> <td><tt>Dict</tt></td> <td>general properties.</td></tr>
+<tr><td><tt>lexicon</tt></td> <td><tt>Lexicon</tt></td> <td>the lexicon for this language.</td></tr>
+<tr><td><tt>course</tt></td> <td><tt>Course</tt></td> <td></td></tr>
+</table>
+<p>
+The <tt>info</tt> member contains general information
+about the language.  It is initially empty.
+The only keys that are currently used are
+<tt>'orthographies'</tt> and <tt>'default_orthography'</tt>.
+The value for the former is a comma-separated list of romanization names,
+and the value of the latter is a single romanization name.</p>
+<p>
+<tt>Language</tt> provides methods <tt>orthographies()</tt> and
+<tt>default_orthography()</tt>.  They consult the <tt>info</tt> dict, but
+supply a default if the dict is empty.  The default orthography is
+called <tt>'default'</tt>.
+<pre class="python">
+>>> list(eng.info)
+[]
+>>> eng.default_orthography()
+'default'
+>>> eng.orthographies()
+['default']
+</pre>
+<p>
+<dl>
+<dt>dbentry()</dt>
+<dd><p>Returns the
+entry from the language database in <tt>seal.data.langdb</tt>.
+The database is loaded from the following files:</p>
+<ul>
+<li><tt>data/iso/639-3</tt>: main file, name index,
+  macrolanguages, retirements.</li>
+<li><tt>data/iso/639-5.txt</tt>: language groups.</li>
+<li><tt>data/seal/*.rom</tt>: romanizations.</li>
+</ul></p>
+</p>
+</dl>
+
+<h2 id="3">Editor</h2>
+
+</body>
+</html>

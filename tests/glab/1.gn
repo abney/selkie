@@ -1,0 +1,7 @@
+S -> NP[_n] VP[_n]
+NP[sg] -> Name
+NP[_n] -> Det[_n] N1[_n]
+N1[_n] -> Adj N1[_n]
+N1[_n] -> N[_n]
+VP[_n] -> V[_n]
+VP[_n] -> V[_n] NP[_]

@@ -1,0 +1,1 @@
+12 + foo(bar=42.0, baz="hi there")

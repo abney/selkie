@@ -1,0 +1,38 @@
+
+The examples assume the following environment variable settings:
+\begin{itemize}
+\item {\tt PATH} includes {\tt \$DEST/bin}
+\item {\tt PYTHONPATH} includes {\tt \$DEST/python}
+\end{itemize}
+The python examples assume that one has done:
+\begin{python}
+>>> import seal
+\end{python}
+A first test:
+\begin{python}
+>>> seal.hello()
+Hello.  This is Seal ...
+\end{python}
+The actual output will have the version number in place of {\tt XX.YY.ZZ}.
+
+\subsection{Installation}
+
+The ``pure Python'' subset of Seal requires no installation.  One only
+needs to assure that {\tt \$SEAL/python} is included on one's
+{\tt PYTHONPATH}.
+
+For full functionality, go to the {\tt \$SEAL} directory and do:
+\begin{myverb}
+$ ./configure
+$ make
+\end{myverb}
+Installation in an external directory is not necessary, provided that
+{\tt \$SEAL/python} is included on {\tt PYTHONPATH}.  If installation
+in an external directory is desired, one may specify it when calling
+{\tt configure}:
+\begin{myverb}
+$ ./configure --prefix=/usr/local
+$ make
+$ make install
+\end{myverb}
+%$

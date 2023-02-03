@@ -1,0 +1,85 @@
+<html>
+<head>
+<title>Javascript</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Javascript</h1>
+
+<h2>Javascript</h2>
+
+<h3>Tree drawing</h3>
+
+<img src="js_fig1.png">
+
+A tree does not record its absolute position, but its position
+relative to its parent.  The rigid information we have is:
+\begin{itemize}
+\item {\tt w}: width of bounding box
+\item {\tt offset}: left edge of bounding box relative to parent
+\item \verb|labOffset|: left edge of label relative to left edge
+  of bounding box
+\item \verb|labW|: width of label
+\end{itemize}
+From that we can compute:
+\begin{itemize}
+\item {\tt x = px + offset}
+\end{itemize}
+We do not set {\tt x} permanently, because we may need to move the
+tree repeatedly, and each move would require a walk over all the nodes
+of the tree.  Instead, we set {\tt x} temporarily, in the context of a
+particular recursive descent of the tree.  When {\tt x} is set, we can
+compute:
+\begin{itemize}
+\item {\tt r = x + w}
+\item \verb|labX = x + labOffset|
+\item \verb|labR = labX + labW|
+\item \verb|labCtr = labX + labW/2|
+\end{itemize}
+
+When we first create a tree, the {\tt offset} is set to 0.  The {\tt offset}
+is set to something meaningful when the tree becomes a child in a
+larger tree.
+
+To assemble a tree from a given {\tt label} and a list of {\tt children},
+we must set the {\tt offset} of each child, and we must compute \verb|labOffset|
+and {\tt w} for the new (parent) tree.  Assume that {\tt spacer} is
+also given: this is the minimum space we want between a pair of
+adjacent labels.
+
+The first child's offset is 0.  Iterate through the remaining
+children, and position them.  Then {\tt w} is {\tt r} of the last
+child.  The desired center position is {\tt w}/2, so:
+\begin{verbatim}
+labOffset = w/2 - labW/2
+\end{verbatim}
+
+To position a {\tt child}, let {\tt prev} be the preceding child.  We
+do a recursive walk of the right edge of {\tt prev} and the left edge
+of {\tt child}.  At each step in the walk, we are given the current
+descendant of {\tt prev} ({\tt pnode}),
+the current descendant of {\tt child} ({\tt cnode}),
+and the current estimate of {\tt offset}.
+Both {\tt pnode} and {\tt cnode} have their {\tt x} values temporarily
+set.  (The setting of {\tt cnode.x} assumes that {\tt offset} is correct.)
+
+The minimum $x$ position for {\tt cnode}'s label is
+\begin{verbatim}
+minleft = pnode.labR + spacer
+\end{verbatim}
+If \verb|cnode.labL| is less than {\tt minleft}, then add the
+difference to {\tt offset} and also to {\tt cnode.x}.  Then recurse.
+
+When the recursion bottoms out, we will have the needed {\tt offset}
+for {\tt child}.
+
+After positioning all children, recall that we will need {\tt r} for
+the last child.  That can be computed by setting its {\tt x} value to
+its {\tt offset}.  The last child's parent is the node we are creating,
+so we can safely define {\tt px} = 0.
+
+
+
+</body>
+</html>

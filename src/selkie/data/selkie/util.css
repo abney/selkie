@@ -1,0 +1,20 @@
+
+/*------------------------------------------------------------------------------
+/*  util.css
+/*----------------------------------------------------------------------------*/
+
+.littleButton {
+    font-size: x-small;
+    padding-left: 2px;
+    padding-right: 2px;
+    border: 1px solid #d0d0d0;
+    margin-left: 2px;
+    cursor: pointer;
+}
+.littleButton:hover {
+    color: white;
+    background-color: #d0d0d0;
+}
+.littleButton:active {
+    background-color: blue;
+}

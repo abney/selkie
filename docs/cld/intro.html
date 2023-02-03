@@ -1,0 +1,252 @@
+<html>
+<head>
+<title>Ch 1: Introduction</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 1: Introduction</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="1">About CLD</h3>
+<p>
+CLD is software for computational language description, which is to
+say, the viewing and editing of corpora consisting of
+integrated recordings, texts, and lexicons.  The data resides in a CLD
+file, whose contents may be as small as a single text or wordlist, or
+as large as a collection of corpora.</p>
+<p>
+CLD runs either as a desktop application or as a web server.
+This is accomplished by implementing the desktop application as a
+private local web server that uses a web browser as user interface.</p>
+<p>
+CLD builds on three main substrate components: a server framework, a
+persistent-object database, and a content framework.</p>
+<ul>
+  <li>
+    <p>
+      The <b>Server Framework</b> provides a web server that
+      can be called either stand-alone, to
+      provide a web service, or as the engine of a desktop application that
+      uses a web browser as user interface.
+      In the server framework, the application is a
+      function that takes a Request (which is a digested version of an HTTP
+      request), reads or updates files on disk, 
+      and returns a Response (which can be rendered as an HTTP response).</p>
+    </p>
+    <p>
+      The nature of the HTTP protocol imposes some strong constraints on the
+      application function.  The protocol is stateless apart from what is written to
+      disk, and it centers around processing individual requests.  
+      When it receives a request from a client (that is, a web browser), the
+      web server launches a request handler in a separate thread.  Multiple
+      requests may be processed simultaneously; thus all processing must be
+      thread-safe.
+    </p>
+  </li>
+  <li>
+    <p>
+      The <b>Persistent-Object Database</b> provides a database that
+      is represented by Python objects whose contents are backed by
+      local files.  It is designed for multiple users; it includes a
+      permission system and is thread-safe.
+    </p>
+  </li>
+  <li>
+    <p>
+      The <b>Content Framework</b> provides an application that is
+      built on web directories and web pages, represented as Python
+      objects.
+    </p>
+  </li>
+</ul>
+
+<h2 id="2">Substrate</h2>
+
+<h3 id="2.1">The Server Framework</h3>
+<p>
+The Server Framework consists of the web server and surrounding
+classes.  The key components are the following:</p>
+<ul>
+  <li><p><b>Manager</b> (seal.app.toplevel).  Provides command-line processing.
+    It can be used to
+    run the server in desktop mode or web mode, or to call the
+    application from within a CGI or WSGI script.  It also provides
+    functionality for managing config files and databases.</p></li>
+
+  <li>Configuration and logging
+    <ul>
+      <li><p><b>Environment dict.</b>  This is a standard Python dict
+  	that contains configuration parameters
+  	for all components, including the application function, the Server,
+  	the Logger, and the Authenticator.</p></li>
+  
+      <li><p><b>ConfigFile</b> (seal.app.config).  This stores
+  	environment dict information on disk.</p></li>
+  
+      <li><p><b>Logger</b> (seal.app.log).  Allows logging information
+        to be written to console or file, to be selected conditionally,
+        and to do thread-safe interleaving of log messages.</p></li>
+    </ul>
+  </li>
+
+  <li>Requests and responses
+    <ul>
+      <li><p><b>Request</b> (seal.app.request).  The input to an
+  	application function; it represents a digested HTTP request.
+  	It also provides global resources to the
+  	application function.</p></li>
+  
+      <li><p><b>Response</b> (seal.app.response).  Returned by the
+  	application function.  Is rendered by the server (or by a WSGI
+  	adapter) to produce an HTTP response.</p></li>
+  
+      <li><p><b>Authenticator</b> (seal.app.auth).  In some cases,
+  	authentication is handled 
+  	by a third-party web server, and the application may trust the user
+  	information in the Request to be authentic.  In other cases, the
+  	application itself must handle authentication, in which case
+  	the Authenticator sets session information in a Cookie.  That
+  	information is passed back to the browser when the Response is
+  	rendered as an HTTP response.  The Authenticator also provides the
+  	application with an interface for login requests.</p></li>
+    </ul>
+  </li>
+
+  <li>Server
+    <ul>
+      <li><p><b>Server</b> (seal.app.server).  The web server itself.
+	  An easy-to-use version of the python web server.</p></li>
+
+      <li><p><b>Client</b> (seal.app.client).  Can be used to call the
+	  server from software, in lieu of using a web browser.
+	  Creates an HTTP request and
+	  sends it to a server.  Receives an HTTP response and packages it
+	  up as an HTTPResponse object.</p></li>
+    </ul>
+  </li>
+
+  <li><p><b>WsgiAapp</b> (seal.app.wsgi).  An adapter that allows an
+    application function to be run within a WSGI or CGI script.
+    It receives an HTTP request, converts
+    it to a Request object, passes the Request to the application
+    function, receives a Response,
+    and translates the Response to an HTTP response, which it returns to
+    the server in accordance with the WSGI protocol.</p></li>
+</ul>
+
+<h3 id="2.2">Persistent-Object Database</h3>
+<p>
+The database provides a hierarchical structure represented by
+persistent objects in Python.</p>
+
+<h3 id="2.3">The Content Framework</h3>
+<p>
+The Content Framework provides support for implementing an
+application that runs within the Server Framework.
+In this framework, the pathname portion of a request addresses <b>web directories,</b>
+with the final component addressing a <b>web page.</b>  Web
+directories are instantiated as the pathname is processed; the
+complete hierarchy is not instantiated.  Subdirectories and pages
+correspond to methods of the web directory; different web directories
+correspond to different subclasses.</p>
+<p>
+State is not stored in the application function but rather on disk,
+within the database.  As a general matter, the web and disk
+hierarchies are independent of
+one another: the disk hierarchy represents the structure of the data,
+whereas the web hierarchy represents the structure of workflows that
+apply to the data.  There may well be correspondences, but there may
+well also be differences between the two hierarchies.</p>
+<p>
+The main components of the Content Framework are:</p>
+    <ul>
+    <li><p>A <b>web directory</b> that can be used to process the pathname
+      and post/query parameters of a request.</p></li>
+
+    <li><p><b>Page</b> objects for ease of constructing HTML pages.</p></li>
+
+    <li><p>A <b>SealApp</b> class that can be subclassed to define an
+    application function.  The subclass itself is the application function: its
+    __init__ method is called on a Request, and the resulting instance
+    behaves like a Response.  The subclass can provide: (1)&nbsp;a
+    method for creating the web-directory at the root of the pathname hierarchy, (2)&nbsp;a
+    method for opening the database file.</p></li>
+    </ul>
+</li>
+</ul>
+
+<h2 id="3">Installation</h2>
+<p>
+  To install the current version of CLD, install Seal:
+</p>
+<pre class="source">
+$ python -m pip install selkie
+</pre>
+<p>
+  The following creates a test corpus named <tt>foo.cld:</tt>
+</p>
+<pre class="source">
+$ python -m seal.script.cld foo.cld create_test
+</pre>
+<p>
+  One can then examine or edit it by doing:
+</p>
+<pre class="source">
+$ python -m seal.script.cld foo.cld run
+</pre>
+
+<h2 id="4">Examples</h2>
+
+<h3 id="4.1">Echo</h3>
+<p>
+
+
+<h3 id="4.2">Ency</h3>
+<p>
+Ency provides a simple example.  The class EncyApp specializes
+SealApp:</p>
+<pre class="source">
+>>> from seal.script.encyd import EncyApp
+>>> ency = EncyApp('wsgi')
+</pre>
+<p>
+An app maps a request to a response, so in principle we need to create
+a request that we can pass to the app.  But an app automatically
+converts strings to requests, allowing us to be lazy:</p>
+<pre class="source">
+>>> rsp = ency('/seal/index.html')
+>>> rsp
+&lt;Response 200 text/html;utf-8 553 bytes&gt;
+</pre>
+<p>
+A Response can be printed to see what gets sent back to the browser:</p>
+<pre class="source">
+>>> print(rsp)
+&lt;html>
+&lt;head>
+&lt;title>Seal Documentation&lt;/title>
+&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+...
+&lt;/body>
+&lt;/html>
+</pre>
+<p>
+If a request leads to a web directory rather than a web page, the app
+calls the directory's <tt>to_page</tt> method, if it exists.  In the case of
+an ency directory, it returns a redirect:</p>
+<pre class="source">
+>>> ency('/seal')
+&lt;Response 303 /index&gt;
+</pre>
+<p>
+For testing purposes, one may get the
+web directory itself by using the app's follow() method
+instead of __call__():</p>
+<pre class="source">
+>>> ency.follow('/seal')
+&lt;Directory seal&gt;
+</pre>
+
+</body>
+</html>

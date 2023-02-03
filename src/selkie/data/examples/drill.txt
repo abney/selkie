@@ -1,0 +1,242 @@
+
+# using cl:salish_romanization
+
+#-------------------------------------------------------------------------------
+# 1. source: http://www.salishworld.com/Charkoosta%20Language/SalishChar-Koosta_06-12-14.htm
+#
+
+#LESSON
+#BLOCK
+
+tumist	he bought
+c*n tumist	I bought
+kw tumist	you bought
+
+es tumisti	he is buying
+c*nes tumisti	I am buying
+kwes tumisti	you are buying
+
+qs tumisti t mlmelc*stn	he will buy a toy
+c*iqs tumisti t cq'el*p	I will buy a fir tree
+kwqs tumisti t c*l*q'iq'a	you will buy candy
+
+#BLOCK
+
+k'wl'sncut	he cooked
+c*n k'wl'sncut	I cooked
+kw k'wl'sncut	you cooked
+
+es k'wl'sncuti	he is cooking
+c*nes k'wl'sncuti	I am cooking
+kwes k'wl'sncuti	you are cooking
+
+qs k'wl'sncuti	he will cook
+c*iqs k'wl'sncuti	I will cook
+kwqs k'wl'sncuti	you will cook
+
+#BLOCK
+
+sust	he drank
+c*n sust	I drank
+kw sust	you drank
+
+es susti	he is drinking
+c*nes susti	I am drinking
+kwes susti	you are drinking
+
+qs susti	he will drink
+c*iqs susti	I will drink
+kwqs susti	you will drink
+
+#BLOCK
+
+q'woq'wawist	he sledded
+c*n q'woq'wawist	I sledded
+kw q'woq'wasist	you sledded
+
+es q'woq'wawisti	he is sledding
+c*nes q'woq'wawisti	I am sledding
+kwes q'woq'wawisti	you are sledding
+
+qs q'woq'wawisti	he will sled
+c*iqs q'woq'wawisti	I will sled
+kwqs q'woq'wawisti	you will sled
+
+
+#-------------------------------------------------------------------------------
+# 2. source: http://www.salishworld.com/Charkoosta%20Language/SalishChar-Koosta_06-12-21.htm
+#
+# in 3rd person, an -s is added.  words ending in -n change to -i
+# in 1st person, prefix in- is added
+# in 2nd person, prefix an- is added
+# ql* indicates future possession
+# l**m indicates past possession
+
+#LESSON
+#BLOCK
+
+mlmelc*stis	it is his toy
+inmlmelc*stn	it is my toy
+anmlmelc*stn	it is your toy
+
+ql* mlmelc*stis	it will be his toy
+iql* mlmelc*stn	it will be my toy
+aql* mlmelc*stn	it will be your toy
+
+l**m mlmelc*stis	it was his toy
+l**m inmlmelc*stn	it was my toy
+l**m anmlmelc*stn	it was your toy
+
+#BLOCK
+
+skwiskwsts	it is his chicken
+iskwiskws	it is my chicken
+askwiskws	it is your chicken
+
+q skwiskwsts	it will be his chicken
+iq skwiskws	it will be my chicken
+aq skwiskws	it will be your chicken
+
+l**m skwiskwsts	it was his chicken
+l**m iskwiskws	it was my chicken
+l**m askwiskws	it was your chicken
+
+#BLOCK
+
+lkepusts	it is his coat
+
+es q'woq'wawisti l*u iskwiskws	my chicken is sledding
+c*nes susti t nt'iskw	i am drinking pop
+c*nes lkepu	i am wearing a coat
+c*nes k'wl'sncuti t skwiskws	i am cooking chicken
+
+#BLOCK
+
+snq'ol**s*is	it is his sock
+isnq'ol**s*n	it is my sock
+asnq'ol**s*n	it is your sock
+q snq'ol**s*is	it will be his sock
+iq snq'ol**s*n	it will be my sock
+aq snq'ol**s*n	it will be your sock
+
+l**m snq'ol**s*is	it was his sock
+l**m isnq'ol**s*n	it was my sock
+l**m asnq'ol**s*n	it was your sock
+c*nes nq'ol**s*n	I am wearing socks
+c*iqs tumisti t snq'ol**s*n	I will buy socks
+
+#BLOCK
+
+slaxts	he is his friend
+islaxt	he is my friend
+aslaxt	he is your friend
+
+l**m slaxts	he was his friend
+l**m islaxt	he was my friend
+l**m aslaxt	he was your friend
+
+q slaxts	he will be his friend
+iq slaxt	he will be my friend
+aq slaxt	he will be your friend
+
+es nq'ol**s*n l*u islaxt	my friend is wearing socks
+es k'wl'sncuti l*u aslaxt	your friend is cooking
+es q'woq'wawisti l*u slaxts	his friend is sledding
+
+#BLOCK
+
+lamnasts	it is his syrup
+inlamna	it is my syrup
+anlamna	it is your syrup
+ql* lamnasts	it will be his syrup
+iql* lamna	it will be my syrup
+aql* lamna	it will be your syrup
+
+l**m lamnasts	it was his syrup
+l**m inlamna	it was my syrup
+l**m anlamna	it was your syrup
+es susti t inlamna l*u skwiskwsts	his chicken is drinking my syrup
+
+#BLOCK
+
+smk'wtseysts	it is his snowflake
+ismk'wtseys	it is my snowflake
+asmk'wtseys	it is your snowflake
+q smk'wtseysts	it will be his snowflake
+iq smk'wtseys	it will be my snowflake
+aq smk'wtseys	it will be your snowflake
+
+l**m smk'wtseysts	it was his snowflake
+l**m ismk'wtseys	it was my snowflake
+l**m asmk'wtseys	it was your snowflake
+
+
+#-------------------------------------------------------------------------------
+# http://www.salishworld.com/Charkoosta%20Language/SalishChar-Koosta_06-12-28.htm
+#
+#
+# -l*xw  suffix meaning 'house'
+# -s     suffix meaning 'face'
+
+#LESSON
+#BLOCK
+
+q'woq'wawistn	sled
+citxw	house
+
+i kwil citxw	it is a red house
+i kwill*xw	the house is red
+i c*kwilc'ej ci citxw	that house is all red
+
+i kwils	she has a red face
+i c*n kwils	I have a red face
+i kw kwils	you have a red face
+
+i qwin l*u mlmelc*stis	his toy is green
+i qwin l*u inmlmelc*stn	my toy is green
+i qwin l*u anmlmelc*stn	your toy is green
+
+#BLOCK
+
+kwtunt citxw	the house is big
+kwtnel*xw	it is a big house
+kwtunt	it is big
+
+l**axt q'woq'wawistn	it's a fast sled
+l**axt p'ip'uys*n	it's a fast car
+l**axt ci sl*qwa	that rabbit is fast
+
+i o'ol'	it is slick
+i no'ol'qs	the road is slick
+i o'ol'lexw	the ground is slippery
+
+#BLOCK
+
+i l**axt u es tumisti	he is buying fast
+i l**axt u c*nes k'wl'sncuti	I am cooking fast
+i l**axt u es q'woq'wawisti l*u skwiskws es nq'ol**s*n	the chicken wearing socks is sledding fast
+
+i l**aq'	it is hot
+i l**aq' skwiskws	the chicken is hot
+i nl**aq'l*c'ej	it is hot inside
+i l**aq' c*'c*'olsqej	it is hot outside
+i l**aq' n'e kwes k'wl'sncuti	it is hot when you are cooking
+
+i s*ept	it is slow
+i c*n s*ept	I am slow
+i kw s*ept	you are slow
+i s*ept l*u iskwiskws	my chicken is slow
+i s*ept l*u asnq'woq'wawistn	your sled is slow
+
+#BLOCK
+
+l*kwkwnumej citxw	the house is small
+l*kwkwmel*xw	it is a small house
+l*kwkwnumej	it is small
+
+uss*nel*xw	it is a long house
+qwinl*xw	it is a green house
+
+nuss*naqs	it is a long road
+nl*kwkwmaqs	it is a small road
+ntxwaqs	it is a straight road

@@ -1,0 +1,68 @@
+#T Untitled
+a
+<c,o,o,l>
+{c,o,o,l}
+|<c, o, o, l>|
+|{c, o, o, l}|
+_x := <d, o, g>
+_x
+_y
+_x = <c, a, t>
+_x
+{c, o, o, l} = {l, o, c, o}
+<c, a, t> . <f, i, s, h>
+{<p>, <t>} . {<a>, <i>}
+{p, t} . {a, i}
+t . a
+{a, b, c} + {b, c, d}
+{a, b, c} & {b, c, d}
+a @ {a,b,c}
+_e_
+|_e_|
+<c, a, t> . _e_
+_0_
+{a, b} + _0_
+_L := /(a+b).c/
+_L
+<a,c> @ _L
+<a,b> @ _L
+lang(_L)
+_L2 := /_L . _L*/
+lang(_L2, 3)
+_A := new_fsa()
+_A
+E(1, a, 2)
+E(2, b, 2)
+F(2)
+_A
+show(_A)
+<a, b> @ L(_A)
+lang(_A, 3)
+a:b
+_R := /a:a . a:b*/
+_R(<a,a,a>)
+_R2 := /(a*.b):(c.d)*/
+_R2(<a, a, a, b, b>)
+_T := new_fsa()
+E(1, a:a, 1)
+E(1, b:b, 1)
+E(1, a:_e_, 2)
+E(2, b:_e_, 3)
+F(3)
+rel(_T, 3)
+_T2 := _T % /(a:c + b:d)*/
+_T2(<a, a, b, a, b>)
+_T3 := /_T . (_e_:c)/
+_T3(<a, a, b>)
+"the big dog"
+'dog'
+_vi_reg := {'bark', 'jump'}
+_vt_reg := {'chase', 'like'}
+_vi_irr := {'sleep', 'dive'}
+_vt_irr := {'catch', 'see'}
+_vi := _vi_reg + _vi_irr
+_vt := _vt_reg + _vt_irr
+_VStem := /V:_e_ . (i:_vi + t:_vt)/
+good('Vt', 'catch')
+check(_VStem)
+_VStem('Vt')

@@ -1,0 +1,46 @@
+[glab] _g := new_grammar()
+[glab] include(1)
+[glab] include(2)
+[glab] include(3)
+[glab] show(_g)
+Start: S
+
+Rules:
+    [0] S -> NP[_n] VP[_n]
+    [1] NP[sg] -> Name
+    [2] NP[_n] -> Det[_n] N1[_n]
+    [3] N1[_n] -> Adj N1[_n]
+    [4] N1[_n] -> N[_n]
+    [5] VP[_n] -> V[_n]
+    [6] VP[_n] -> V[_n] NP[_]
+
+Lexicon:
+    Fido Name
+    a Det[sg]
+    bark V[pl]
+    barks V[sg]
+    big Adj
+    cat N[sg]
+    cats N[pl]
+    chase V[pl]
+    chases V[sg]
+    dog N[sg]
+    dogs N[pl]
+    the Det[*]
+[glab] parse("the dog chases the cats")
+
+0   (S
+1      (NP[sg]
+2         (Det[*] the)
+3         (N1[sg]
+4            (N[sg] dog)))
+5      (VP[sg]
+6         (V[sg] chases)
+7         (NP[pl]
+8            (Det[*] the)
+9            (N1[pl]
+10              (N[pl] cats)))))
+
+[glab] results()
+:) good <Fido, chases, the, cat>
+:)  bad <Fido, chase, the, cat>

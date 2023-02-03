@@ -1,0 +1,449 @@
+<html>
+<head>
+<title>Ch 10: Database toplevel</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 10: Database toplevel</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="1">Environment</h2>
+<p>
+There is an Environment object that contains global (or
+at least contextual) information.  It was introduced <a href="database.html#1.5">previously</a>.
+The environment is created when the
+root File is instantiated.  It is stored in the
+file's <tt>env</tt> member and passed down from parent to child.</p>
+<p>
+Some of the environmental information is associated with keys, as in a
+dict, and other information is accessed by special-purpose methods.
+Basically, information that is essentially configurational, and
+available without access to the Database file, is stored in the dict,
+and information that must access files inside the Database is
+implemented as a method.</p>
+<p>
+Files other than the root are permitted to have their own environment.  For
+example, a multilingual corpus may contain monolingual subcorpora with
+language-global (but not corpus-global) information in their
+environments.</p>
+<p>
+To write a specialization that has its own environment, one simply
+defines the method <i>create_env</i> to return the new environment.
+The choice can also be conditional - if <i>create_env</i> returns
+None, the parent environment will be used.  The default implementation
+of <i>create_env</i> returns a new environment if the file is root or
+if it has a value for <i>indexed.</i></p>
+<p>
+The Environment initializer takes the host file as sole argument.  If
+the host file has a parent, the Environment will copy the parent's env
+by passing it to its own <i>update</i> method.</p>
+Subsequent changes to the parent environment do not affect the child
+environment; nor do changes to the child environment affect the parent.</p>
+<p>
+The basic file classes rely on the following environmental dict
+entries and methods:</p>
+<ul>
+<li><code>env['root']</code> - the root directory.</li>
+<li><code>env['index_root']</code> - the directory that contains the
+  Index.  Only files within this directory can be indexed.</li>
+<li><code>env['filename']</code> - the pathname of the database as a whole.  It
+  forms a prefix for the absolute pathnames of all objects in the
+  database.  The Environment initializer makes sure that it is an
+  absolute pathname.</li>
+<li><code>env['username']</code> - a string.</li>
+<li><code>env['disk']</code> - a Disk object that manages low-level
+  interactions with the disk.  The Environment initializer keyword
+  argument <tt>'log'</tt> is passed to Disk when instantiating the disk.</li>
+<li><code>env['types']</code> - a dict, maps suffixes to classes.</li>
+<li><code>env['suffixes']</code> - a dict, maps classes to suffixes.</li>
+<li><code>env.groups()</code> - a GroupsFile, used by Permissions.</li>
+<li><code>env.index()</code> - an Index that tracks the locations of indexable
+  objects.</li>
+</ul>
+<p>
+The <b>scope</b> of an environment <i>e</i> is the set of files whose <tt>env</tt>
+equals <i>e</i>.  With the exception of <tt>'index'</tt>, none of the
+keys listed above should be overridden; they should all be genuinely
+global.  New keys may be added, however, without restriction.</p>
+<p>
+<b>Implementation Issue.</b>
+The classes that make up the default-types table are not available
+when the seal.cld.db.env module is loaded.  They are actually set in
+seal.cld.db.__init__.</p>
+
+<h2 id="2">Indexation</h2>
+<p>
+The environment contains an <b>index</b> (of class <a href="../api/seal/cld/db/file.html#Index">Index</a>) that tracks the
+location of files of certain types.  Directories within the hierarchy
+are allowed to copy the environment and provide a new index,
+so there may be different
+indices for different portions of the hierarchy.  For example, a
+corpus may consist of subcorpora, and each subcorpus may have its own
+index.  For simplicity, however, there is only one index at any
+given location in the hierarchy.</p>
+<p>
+A directory that provides an index is known as an <b>index root.</b>
+An index root is an instance of <a href="api/seal/cld/db/dir.html#EnvRoot">EnvRoot</a> with a non-empty value for <tt>indexed.</tt>
+A directory <i>d</i> that is an index root has the following properties.</p>
+<ul>
+<li>By virtue of instantiating EnvRoot, <i>d</i> has its own Environment
+  instance.  If <i>d</i> is the root of the database, the Environment is
+  created fresh, and if <i>d</i> has a parent, the Environment is initially
+  a copy of the parent environment.</li>
+<li>In either case, <code><i>d</i>.env['envroot']</code> equals <i>d</i>.</li>
+<li>Since <i>d</i><tt>.indexed</tt> is non-empty,
+  EnvRoot.__init__ method creates a metadata
+  file <tt>_index</tt> of type Index.</li>
+<li>The Environment.__init__ method sets <code><i>d</i>.env['index_root']</code>
+  equal to <i>d</i>.</li>
+</ul>
+<p>
+An indexed file calls <code>env.index()</code> to get the index.
+The Environment method <tt>index</tt> returns the <tt>_index</tt>
+metadata file of the index root.  There is also an Environment method
+<tt>indexed_types</tt> that returns
+the <tt>indexed</tt> member of the index root.</p>
+<p>
+An Index maps file suffixes to <b>tables</b> that keep track of
+all files that have the given suffix.  The name of an indexed object must be
+unique within its table, but names are not necessarily unique across
+tables.</p>
+<p>
+Because tables are named by suffixes, it is possible to
+index an object, or to check that it is already properly indexed, knowing
+only its typed name, without loading its contents.</p>
+<p>
+To index an object, one requires the relpath, which includes the
+object's name and suffix.  The suffix is used to select
+a table from the index, then an entry
+is created in the table, mapping the name to the relpath.
+(If an entry for the name already exists in the table, an
+error is signalled.)
+Subsequently, one can directly access the object by typed name,
+to determine the pathname.</p>
+<p>
+It is 
+permissible for an object to lack a name at the time of
+indexing, provided that it does have a suffix.  In that case, a name is
+obtained by calling the table's <tt>allocate_name</tt> method.
+The table keeps track of the largest numeric name in the table, and
+returns the next higher number as name.</p>
+<p>
+If the object is moved (see <a href="#reparenting">Reparenting</a>) or
+deleted, the table is notified.  Instead of walking the tree rooted at
+the affected object, a pass is made through the index.  Any entry whose
+path begins with the path of the affected object corresponds to one of
+its descendants, and is modified or deleted, as appropriate.</p>
+<p>
+To be precise, the following methods update the relevant table:</p>
+<ul>
+<li><b>new_child</b> of Directory creates a new entry.</li>
+<li><b>reparent</b> of File changes all relpaths that are
+  extensions of the affected file's relpath.</li>
+<li><b>delete</b> of File deletes all entries where the relpath
+  extends the deleted file's relpath.</li>
+</ul>
+
+<h2 id="3">Permissions</h2>
+
+<h3 id="3.1">Overview</h3>
+<p>
+Permissions are granted to users to perform actions.
+There is no fundamental distinction between users and groups: a group
+is simply a user that has members.  Granting permission to a group
+grants permissions to all members of the group.  The actions
+are <b>'read'</b>, <b>'write',</b> and <b>'admin'.</b>  (Changing
+permissions is currently the only thing that falls under admin.)</p>
+<p>
+When changing permissions, one does not specify the action directly.
+Rather one assigns users to <b>roles.</b>  The roles
+are <b>'owners'</b>, <b>'editors',</b> and <b>'shared'.</b>  An owner
+has read, write, and admin permission; an editor has read and write
+permission; and a user on the shared list has read permission.</p>
+<p>
+Finally, an item may inherit permissions from its parent.  If the
+file's value for <i>__has_permissions__</i> is False, then the file
+only has the permissions that it inherits from its parent, but if <i>__has_permissions__</i> is True, then
+one may independently
+specify whether ownership, editorship, and sharing are inherited or
+not.  By default, <i>__has_permissions_</i> is True for Directories and
+False for non-Directory files.</p>
+<p>
+The method <tt>authorized_users()</tt> integrates both local and
+inherited permissions.  The return value consists of three sets:
+owners, editors, and shared.</p>
+<pre class="source">
+>>> perms.authorized_users()
+authusers= [{'abney'}, set(), set()]
+</pre>
+<p>
+The methods <tt>add()</tt> and <tt>remove()</tt> are used to change
+permissions.  When applied to a File that lacks its own permissions,
+they actually change the parent's permissions.</p>
+<pre class="source">
+>>> perms.add('foo', 'editors')
+>>> perms.authorized_users()
+[{'abney'}, {'foo'}, set()]
+>>> trans.permissions().authorized_users()
+[{'abney'}, {'foo'}, set()]
+>>> perms.remove('foo', 'editors')
+>>> perms.authorized_users()
+[{'abney'}, set(), set()]
+>>> trans.permissions().authorized_users()
+[{'abney'}, set(), set()]
+</pre>
+<p>
+There are two special users.  The user <tt>'_root_'</tt> has
+permission to do anything; one cannot deny permissions
+to <tt>_root_</tt>.  The user <tt>'everyone'</tt> is a group that
+everyone belongs to.  Permissions granted to <tt>'everyone'</tt> do in
+fact apply to everyone.</p>
+
+<h3 id="3.2">Protected files</h3>
+<p>
+A <b>permissions file</b> regulates access to a <b>protected file</b>.
+The permissions file is an instance of class Permissions.  The
+permissions file is actually technically not a file but rather a
+metadata item, and the protected file is its host.  The Permissions
+object is stored in the member <i>_perm</i> of the host file.
+The permission file protects its host file, and
+all descendants of the host file that do not have their own permissions.</p>
+<p>
+The method <i>check_permission</i> conducts a permissions check.
+It is called by the <i>require_load</i> method
+and the <i>writer</i> function.</p>
+<p>
+The File method <i>permissions</i> returns the Permissions object.
+If <i>__has_permissions__</i> is false, it returns an InheritedPermissions
+object, which passes all requests to the parent's Permissions object.</p>
+<p>
+<b>Implementation issue.</b>
+There is a bootstrapping issue in loading the Permissions metadata
+item.
+To know whether we may load the host file, we first need to check the
+Permissions object, but we cannot do that until we have loaded the
+host file!  The solution was <a href="database.html#2.5">discussed previously</a>.</p>
+
+<h3 id="3.3">Controlling access</h3>
+<p>
+There are two aspects to controlling access: what actions the corpus
+permits without signalling an error,
+and what actions the user interface makes available.  Violations of
+corpus-level permissions result in a rather ugly and uninformative
+"Permission denied'" page.  It is better for the user interface to
+test permissions and avoid providing links to unauthorized
+resources.</p>
+<p>
+To check permissions, one needs a user name.  It is obtained from
+<code>env['username']</code>.</p>
+<p>
+The Permissions object provides two basic methods:</p>
+<dl>
+<dt><tt>permitted(<i>a,u</i>)</tt></dt> <dd>Returns a
+boolean value indicating whether the user <i>u</i> is allowed to perform the
+action <i>a</i>.  The user is optional; if
+omitted, <code>env['username']</code> is assumed.</dd>
+<dt><tt>check(<i>a,u</i>)</tt></dt> <dd>Calls <tt>permitted()</tt> to determine whether the
+action is allowed, and if not, raises a <tt>PermissionDenied</tt>
+exception.  Within the user interface, this causes a permission-denied
+page to be displayed.</dd>
+</dl>
+<p>
+The possible actions are: <tt>'read'</tt>, <tt>'write'</tt>, <tt>'admin'</tt>.  The
+following file methods check permissions:</p>
+<dl>
+<dt><tt>require_load()</tt></dt> <dd>Calls <tt>check_permission('read')</tt>,
+ which (for a File or Directory) signals an error if the user does not
+ have <b>read</b> permission.</dd>
+
+<dt><tt>require_writer()</tt></dt> <dd>Calls <tt>check_permission('write')</tt>,
+  which (for a File or Directory) signals an error if the
+  user does not have <b>write</b>
+  permission.</dd>
+</dl>
+<p>
+A call <code>check_permission('write')</code> executed on a Permissions
+file or on a GroupFile gets translated into a check
+for <tt>'admin'</tt> permission.  Specifically, a Permissions object
+does a write check by checking the <tt>'admin'</tt> permissions listed
+within itself, and a GroupFile handles a write check by
+checking <tt>'admin'</tt> permissions in the database root.</p>
+
+<h3 id="3.4">Determining permission</h3>
+<p>
+The user <tt>'_root_'</tt> automatically has permission to do anything.
+For any other user, permission is determined as follows.</p>
+<p>
+There are three <b>roles:</b> owners, editors, and shared.
+Which roles are relevant, or <b>enabled</b>, is determined by the action.
+Specifically, only owners are enabled to perform an <tt>'admin'</tt> action,
+owners and editors are enabled to <tt>'write'</tt>, and
+all three roles are enabled to <tt>'read'</tt>.</p>
+<p>
+When defining the permissions for a file or directory, one defines a
+list of users or groups for each role, thereby granting those users
+and groups permission to perform
+the actions for which the role is enabled.  In addition, one chooses
+whether additional role members should be inherited from the parent or
+not.</p>
+<p>
+Procedurally, the permissibility of user <i>u</i> taking action <i>a</i> is controlled by
+two internal data structures within the <tt>Permissions</tt> instance:
+the <b>local permissions list</b> and the <b>inheritance mask</b>.
+Both are indexed by role.</p>
+<p>
+The local permissions list consists of three sets of users, <i>S<sub>0</sub>, S<sub>1</sub>, S<sub>2</sub></i>,
+one for each role.  Let <i>U</i> be the set of ancestors of the user, including the
+user him/herself.  If <i>U</i> &#8745; <i>S<sub>r</sub></i> is nonempty for an enabled role <i>r</i>,
+permission is immediately granted.</p>
+<p>
+Otherwise, the inheritance mask is consulted.  The mask contains a
+boolean value <i>b<sub>r</sub></i> for each role <i>r</i>.  If <i>b<sub>r</sub></i> is <tt>False</tt> then
+role <i>r</i> is disabled; otherwise its status remains
+unchanged.  In other words, the number of enabled roles can never
+increase as one goes up the hierarchy.  After using the current mask
+to update enablement status, one replaces the permissions with the
+parent's permissions, and the process repeats.  Whenever there is no parent,
+or no enabled roles remaining, permission is denied.</p>
+<p>
+The method <tt>authorized_users</tt> returns a list of three sets: all
+authorized owners, editors, and shared.</p>
+
+<h3 id="3.5">Setting permissions</h3>
+<p>
+There are four methods that change the contents of Permissions:</p>
+<dl>
+<dt><tt>set(o,e,s,i)</tt></dt>
+<dd>This entirely replaces any previous contents.  The first three
+  arguments should be iterables over names; they will be converted to
+  sets and stored in the local permissions for owners, editors, and
+  shared, respectively.  The argument <i>i</i> should be a list of
+  roles, drawn
+  from <tt>'owners'</tt>, <tt>'editors'</tt>, <tt>'shared'</tt>.  The
+  new inheritance mask will have True for each in the list and False
+  for any that are omitted.</dd>
+
+<dt><tt>add(name,r)</tt></dt>
+<dd>Adds <i>name</i> to the role <i>r</i> in the local
+  permissions.</dd>
+
+<dt><tt>remove(name,r)</tt></dt>
+<dd>Removes <i>name</i> from the role <i>r</i> in the local
+  permissions.</dd>
+
+<dt><tt>set_inheritable(r,v)</tt></dt>
+<dd>Sets the inheritability of role <i>r</i> to value <i>v</i>.  The
+  value is optional; it defaults to True.</dd>
+</dl>
+
+<h3 id="3.6">Users and groups</h3>
+<p>
+No essential distinction is made between users and groups: groups are
+just users that are ancestors of other users.</p>
+<p>
+The groups file is accessible as <code>env['groups']</code>.  The
+key methods for reading it are:</p>
+<dl>
+<dt><tt>users()</tt></dt>
+<dd>Iterates over all user names, including those that have no
+  parents.  Does not include Everyone.</dd>
+
+<dt><tt>parents(u)</tt></dt>
+<dd>Returns a list.  Returns the empty list for any username that has
+  not been previously encountered.</dd>
+
+<dt><tt>all_groups(u)</tt></dt>
+<dd>Returns a set.  The set always contains <i>u</i> itself and
+  Everyone.  If <i>u</i> has not been previously encountered, the set
+  contains nothing else.</dd>
+</dl>
+<p>
+The methods for modifying the file are:</p>
+<dl>
+<dt><tt>set_parents(u,ps)</tt></dt>
+<dd>Stores <i>ps</i> as the parents of user <i>u</i>.</dd>
+
+<dt><tt>delete_user(u)</tt></dt>
+<dd>Deletes the parent list for <i>u</i>.  It does not scan through
+  looking for users that have <i>u</i> as parent, so references
+  to <i>u</i> as parent may survive.</dd>
+</dl>
+
+<h2 id="4">Database</h2>
+
+<h3 id="4.1">Description</h3>
+<p>
+A database is represented simply by a root directory.
+It is created using a Manager, as <a href="app_toplevel.html#1">discussed previously</a>.
+<p>
+There is a <b>types table</b> that maps typenames to classes.  It is
+actually defined in the Environment.  But to avoid the necessity of
+defining a new specialization of Environment to supplement the types,
+the Environment also incorporates any entries in the host directory's
+variable <tt>types.</tt></p>
+<p>
+The reverse mapping, from class to typename, is constructed by the
+Environment initializer.</p>
+<p>
+The default types, with their typenames, are: Integer (int), String
+(str), Strings (strs), Table (tab), PropDict (pd), and Directory
+(dir).</p>
+
+<h3 id="4.2">An example</h3>
+<p>
+Here is an example of defining a database.</p>
+<!--[python
+>>> from seal.core.sh import rmrf
+>>> rmrf('/tmp/my.db')
+]-->
+<pre class="python">
+>>> from seal.cld.db.core import open_database, create_database
+>>> from seal.cld.db.file import Integer, Strings, Table
+>>> from seal.cld.db.dir import Structure
+>>> class Things (Structure):
+...     signature = {'foo': Integer,
+...                  'bar': Strings,
+...                  'table': Table}
+...
+>>> class MyDatabase (Structure):
+...     signature = {'strings': Strings,
+...                  'things': Things}
+...     types = {'thg': Things}
+...
+</pre>
+<p>
+The <i>types</i> declaration is necessary to permit us to use Things
+in the database.  Each specialization of File that is used must be
+associated with a unique typename.  "Used" means used internally - the
+root directory is excepted.</p>
+<p>
+To create the disk representation:</p>
+<pre class="python">
+>>> db = create_database(MyDatabase, '/tmp/my.db')
+disk MakeDirs /tmp/my.db
+...
+</pre>
+<p>
+We may set and access a value:</p>
+<pre class="python">
+>>> db.things.foo.set(42)
+locks Lock /tmp/my.db/things.thg/foo.int
+disk Modify /tmp/my.db/things.thg/foo.int
+locks Release /tmp/my.db/things.thg/foo.int
+>>> db.things.foo.value()
+42
+</pre>
+<p>
+We may confirm that it is persistent by re-opening the database:</p>
+<pre class="python">
+>>> db = open_database(MyDatabase, '/tmp/my.db')
+>>> db.things.foo.value()
+42
+</pre>
+<!--[python
+>>> rmrf('/tmp/my.db')
+]-->
+
+</body>
+</html>

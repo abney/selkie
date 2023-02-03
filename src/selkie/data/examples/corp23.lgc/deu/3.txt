@@ -1,0 +1,10 @@
+:
+  w :
+    1.4958
+    |eines Tages
+    1.9394
+    |begegnete der Schuster
+    2.7833
+    |einen Bettler
+    3.3269
+  G |one day the cobbler met a beggar

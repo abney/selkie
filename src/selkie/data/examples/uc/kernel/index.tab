@@ -1,0 +1,13 @@
+1	txt	deu	1	117	bible
+2	snt	deu	1	117	bible
+4	txt	eng	2	118	bible
+5	snt	eng	2	118	bible
+6	tok	eng	2	118	bible
+8	txt	eng	3	119	bible
+9	snt	eng	3	119	bible
+11	lex	deu	4	120	swadesh
+12	lex	eng	5	120	swadesh
+13	txt	ape	6	114	genesis
+14	txt	sat	7	115	genesis
+15	txt	eng	8	116	genesis
+16	spn	eng	2	118	bible

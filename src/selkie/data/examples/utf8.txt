@@ -1,0 +1,18 @@
+Latin A: A
+Latin M: M
+a acute: á
+engma: ŋ
+barred lambda: ƛ
+belted ell: ɬ
+ayin: ˁ
+pi: π
+Cyrillic a: а
+Cyrillic zhe: ж
+Armenian cheh: Ճ
+aleph: א
+Tibetan ta: ཏ
+Coptic 3 bar: Ⲷ
+Japanese no: の
+Chinese 2: 二
+Old Italic C: 𐌂
+Gothic A: 𐌰

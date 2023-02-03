@@ -1,0 +1,108 @@
+[glab] trace(stack)
+[glab] E(1, a:a, 2)
+[glab] E(2, a:b, 2)
+[glab] E(2, b:_e_, 3)
+[glab] F(3)
+[glab] _t1 := _fsa_
+[glab] show(_t1)
+FST:
+ -> 1 a a 2
+    2 a b 2
+    2 b _e_ 3 (F)
+[glab] rel(_t1)
+[0] (<a, b>:<a>)
+[1] (<a, a, b>:<a, b>)
+[2] (<a, a, a, b>:<a, b, b>)
+[3] (<a, a, a, a, b>:<a, b, b, b>)
+[4] (<a, a, a, a, a, b>:<a, b, b, b, b>)
+[5] (<a, a, a, a, a, a, b>:<a, b, b, b, b, b>)
+[6] (<a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b>)
+[7] (<a, a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b, b>)
+[8] (<a, a, a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b, b, b>)
+[9] (<a, a, a, a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b, b, b, b>)
+...
+[glab] new(_fsa_)
+[glab] E(1, a:b, 1)
+[glab] E(1, b:a, 1)
+[glab] F(1)
+[glab] _t4a := _fsa_
+[glab] show(_t4a)
+FST:
+ -> 1 a b 1 (F)
+ -> 1 b a 1 (F)
+[glab] rel(_t4a)
+[0] (<>:<>)
+[1] (<b>:<a>)
+[2] (<b, b>:<a, a>)
+[3] (<b, b, b>:<a, a, a>)
+[4] (<b, b, b, b>:<a, a, a, a>)
+[5] (<b, b, b, b, b>:<a, a, a, a, a>)
+[6] (<b, b, b, b, b, b>:<a, a, a, a, a, a>)
+[7] (<b, b, b, b, b, b, b>:<a, a, a, a, a, a, a>)
+[8] (<b, b, b, b, b, b, b, b>:<a, a, a, a, a, a, a, a>)
+[9] (<b, b, b, b, b, b, b, b, b>:<a, a, a, a, a, a, a, a, a>)
+...
+[glab] _t := _t1 % _t4a
+[glab] show(_t)
+FST:
+ -> 0 a b 1
+    1 a a 1
+    1 b _e_ 2 (F)
+[glab] rel(_t)
+[0] (<a, b>:<b>)
+[1] (<a, a, b>:<b, a>)
+[2] (<a, a, a, b>:<b, a, a>)
+[3] (<a, a, a, a, b>:<b, a, a, a>)
+[4] (<a, a, a, a, a, b>:<b, a, a, a, a>)
+[5] (<a, a, a, a, a, a, b>:<b, a, a, a, a, a>)
+[6] (<a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a>)
+[7] (<a, a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a, a>)
+[8] (<a, a, a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a, a, a>)
+[9] (<a, a, a, a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a, a, a, a>)
+...
+[glab] _t1 := /a:a . a:b* . b:_e_/
+[glab] rel(_t1)
+[0] (<a, b>:<a>)
+[1] (<a, a, b>:<a, b>)
+[2] (<a, a, a, b>:<a, b, b>)
+[3] (<a, a, a, a, b>:<a, b, b, b>)
+[4] (<a, a, a, a, a, b>:<a, b, b, b, b>)
+[5] (<a, a, a, a, a, a, b>:<a, b, b, b, b, b>)
+[6] (<a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b>)
+[7] (<a, a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b, b>)
+[8] (<a, a, a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b, b, b>)
+[9] (<a, a, a, a, a, a, a, a, a, a, b>:<a, b, b, b, b, b, b, b, b, b>)
+...
+[glab] _t4a := /(a:b + b:a)*/
+[glab] rel(_t4a)
+[0] (<>:<>)
+[1] (<b>:<a>)
+[2] (<b, b>:<a, a>)
+[3] (<b, b, b>:<a, a, a>)
+[4] (<b, b, b, b>:<a, a, a, a>)
+[5] (<b, b, b, b, b>:<a, a, a, a, a>)
+[6] (<b, b, b, b, b, b>:<a, a, a, a, a, a>)
+[7] (<b, b, b, b, b, b, b>:<a, a, a, a, a, a, a>)
+[8] (<b, b, b, b, b, b, b, b>:<a, a, a, a, a, a, a, a>)
+[9] (<b, b, b, b, b, b, b, b, b>:<a, a, a, a, a, a, a, a, a>)
+...
+[glab] _t := _t1 % _t4a
+[glab] show(_t)
+FST:
+ -> 0 a b 1
+    1 a a 2
+    1 b _e_ 3 (F)
+    2 a a 2
+    2 b _e_ 4 (F)
+[glab] rel(_t)
+[0] (<a, b>:<b>)
+[1] (<a, a, b>:<b, a>)
+[2] (<a, a, a, b>:<b, a, a>)
+[3] (<a, a, a, a, b>:<b, a, a, a>)
+[4] (<a, a, a, a, a, b>:<b, a, a, a, a>)
+[5] (<a, a, a, a, a, a, b>:<b, a, a, a, a, a>)
+[6] (<a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a>)
+[7] (<a, a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a, a>)
+[8] (<a, a, a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a, a, a>)
+[9] (<a, a, a, a, a, a, a, a, a, a, b>:<b, a, a, a, a, a, a, a, a, a>)
+...

@@ -1,0 +1,88 @@
+[glab] trace(stack)
+[glab] #
+[glab] _Determiner := /(Det.sg):(t.h.e + t.h.i.s)/
+[glab] #
+[glab] _RegVStem := /(V.i):(b.a.r.k) + (V.t):(c.h.a.s.e)/
+[glab] _IrrVStem := /(V.t):(c.a.t.c.h) + (V.i):(s.l.e.e.p)/
+[glab] _VStem := /_RegVStem + _IrrVStem/
+[glab] rel(_VStem)
+[0] (<V, i>:<s, l, e, e, p>)
+[1] (<V, t>:<c, a, t, c, h>)
+[2] (<V, t>:<c, h, a, s, e>)
+[3] (<V, i>:<b, a, r, k>)
+[glab] #
+[glab] _Verb_pres := /_VStem . (sg:Z + pl:_e_)/
+[glab] rel(_Verb_pres)
+[0] (<V, i, pl>:<s, l, e, e, p>)
+[1] (<V, i, sg>:<s, l, e, e, p, Z>)
+[2] (<V, t, pl>:<c, a, t, c, h>)
+[3] (<V, t, sg>:<c, a, t, c, h, Z>)
+[4] (<V, t, pl>:<c, h, a, s, e>)
+[5] (<V, t, sg>:<c, h, a, s, e, Z>)
+[6] (<V, i, pl>:<b, a, r, k>)
+[7] (<V, i, sg>:<b, a, r, k, Z>)
+[glab] #
+[glab] _Verb_regpast := /_RegVStem . past:(e.d)/
+[glab] rel(_Verb_regpast)
+[0] (<V, t, past>:<c, h, a, s, e, e, d>)
+[1] (<V, i, past>:<b, a, r, k, e, d>)
+[glab] #
+[glab] _IrrPastTransform := /(c.a.t.c.h):(c.a.u.g.h.t) + (s.l.e.e.p):(s.l.e.p.t)/
+[glab] _IrrPastStem := _IrrVStem % _IrrPastTransform
+[glab] show(_IrrPastStem)
+FST:
+ -> 0 V _e_ 1
+ -> 0 V _e_ 2
+    1 i _e_ 10
+    2 t _e_ 3
+    3 _e_ c 4
+    4 _e_ a 5
+    5 _e_ u 6
+    6 _e_ g 7
+    7 _e_ h 8
+    8 _e_ t 9 (F)
+    10 _e_ s 11
+    11 _e_ l 12
+    12 _e_ e 13
+    13 _e_ p 14
+    14 _e_ t 15 (F)
+[glab] _Verb_irrpast := /_IrrPastStem . past:_e_/
+[glab] show(_Verb_irrpast)
+/<Var _IrrPastStem>.past:<Var _e_>/
+[glab] rel(_Verb_irrpast)
+[0] (<V, t, past>:<c, a, u, g, h, t>)
+[1] (<V, i, past>:<s, l, e, p, t>)
+[glab] #
+[glab] _Verb_regen := /_RegVStem . en:(e.d)/
+[glab] _Verb_irren := /_IrrPastStem . en:_e_/
+[glab] rel(_Verb_irren)
+[0] (<V, t, en>:<c, a, u, g, h, t>)
+[1] (<V, i, en>:<s, l, e, p, t>)
+[glab] #
+[glab] _Verb_base := /_VStem . base:_e_/
+[glab] #
+[glab] _Verb := /_Verb_pres + _Verb_regpast + _Verb_irrpast + _Verb_regen + _Verb_irren + _Verb_base/
+[glab] rel(_Verb)
+[0] (<V, i, base>:<s, l, e, e, p>)
+[1] (<V, t, base>:<c, a, t, c, h>)
+[2] (<V, t, base>:<c, h, a, s, e>)
+[3] (<V, i, base>:<b, a, r, k>)
+[4] (<V, t, en>:<c, a, u, g, h, t>)
+[5] (<V, i, en>:<s, l, e, p, t>)
+[6] (<V, t, en>:<c, h, a, s, e, e, d>)
+[7] (<V, i, en>:<b, a, r, k, e, d>)
+[8] (<V, t, past>:<c, a, u, g, h, t>)
+[9] (<V, i, past>:<s, l, e, p, t>)
+...
+[glab] _Verb(<V,i,sg>)
+{<b, a, r, k, Z>, <s, l, e, e, p, Z>}
+[glab] _Verb(<V,t,sg>)
+{<c, a, t, c, h, Z>, <c, h, a, s, e, Z>}
+[glab] _Verb(<V,t,past>)
+{<c, a, u, g, h, t>, <c, h, a, s, e, e, d>}
+[glab] _Verb(<V,i,sg>)
+{<b, a, r, k, Z>, <s, l, e, e, p, Z>}
+[glab] _Verb(<V,i,en>)
+{<b, a, r, k, e, d>, <s, l, e, p, t>}
+[glab] _Verb(<V,t,ing>)
+{}

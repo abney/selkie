@@ -1,0 +1,189 @@
+<html>
+<head>
+<title>Constructing a Page</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="api/default.css"/>
+</head>
+<body>
+<h1>Constructing a Page</h1>
+<p>
+As described in <a href="app_intro.html#2.4">the overview</a>,
+calling the App produces a Page, which is converted to a Response.
+.  The Page is combined with some
+contextual information to create a Response
+instance, which is returned.</p>
+
+<h2 id="1">Pages</h2>
+
+<h3 id="1.1">Specializations of Page</h3>
+<p>
+The following are specializations of Page.</p>
+<p>
+<b>HtmlPage.</b>  The commonest kind of Page.  It is discussed in
+detail below.</p>
+<p>
+<b>RawFile.</b>  The constructor takes a filename.  The MIME
+type of the file is determined from the filename suffix, or it may be
+explicitly specified by providing keyword argument <tt>type.</tt>
+If there is no suffix, it defaults to <tt>'txt'.</tt></p>
+<p>
+<b>Data.</b>  Unlike RawFile, this is not data that is associated with
+a file.  When constructed, it represents an empty byte sequence.  One
+adds data by calling <code>write(bs)</code>, where <i>bs</i> is a byte
+array.</p>
+<p>
+<b>Text.</b>  Like Data, except that one may write strings to it.  One
+may also pass a string to the constructor to set the contents.</p>
+<p>
+<b>Redirect.</b>  The constructor takes a URI.</p>
+<p>
+<b>HttpException.</b>  The constructor takes a message.  Subclasses
+are: PermissionDenied, PageNotFound, HttpUserError, and HttpSystemError.</p>
+
+<h3 id="1.2">Page to Response</h3>
+<p>
+A Response instance packages up a Page along with cookie information
+taken from the Context.  It has methods that make it suitable for use
+within a WSGI application.  See <a href="wsgi_app.html#">Translating responses</a>.</p>
+<p>
+The following members of Page are relevant for producing WSGI output:</p>
+<dl>
+<dt><tt>response_code</tt></dt> <dd>An HTTP status code.  The default
+value is 200.</dd>
+<dt><tt>content_type</tt></dt> <dd>A filename suffix.</dd>
+<dt><tt>__iter__()</tt></dt>
+<dd>An iteration containing a mixture of strings and byte-strings.</dd>
+
+<dt><tt>uri</tt></dt> <dd>This member is present only if the
+<tt>response_code</tt> is 303 (a redirect).
+It contains the location to redirect to.</dd>
+</dl>
+<p>
+The available specializations of Page are as follows.</p>
+<dl>
+<dt>HtmlPage</dt> <dd>A regular HTML page.  This class is not directly
+instantiatable; it must be subclassed.  Content type: <tt>html.</tt></dd>
+<dt>RawFile</dt> <dd>Initialized with parent and filename.  Content
+type is taken from the filename suffix, or <tt>txt</tt> if there is no suffix.</dd>
+<dt>Data</dt> <dd>Initialized with parent and content-type.  Contents
+are set by calling its <tt>write</tt> method, which accepts bytes.</dd>
+<dt>Text</dt> <dd>Typically used for an Ajax response; no parent.
+Initializer takes contents and content-type.
+Contents are set by calling the <tt>write</tt> method, which accepts
+strings.  The <tt>add</tt> method is a synonym for <tt>write.</tt></dd>
+<dt>Redirect</dt> <dd>Initializer takes URI as argument, no parent.
+Caution: do not use <tt>''</tt> as the target of a redirect; browsers
+interpret it as <tt>'/'.</tt>  Instead, use <tt>'.'</tt>
+Response code: 303.</dd>
+<dt>HttpException</dt> <dd>Response code
+400, content type <tt>txt.</tt>  Superclass for the following.</dd>
+<dt>PageNotFound</dt> <dd>Response code 404.</dd>
+<dt>HttpUserError</dt> <dd>Illegal request, reponse code 400.</dd>
+<dt>HttpSystemError</dt> <dd>Response code 500.</dd>
+</dl>
+
+<h2 id="2">HtmlPage</h2>
+
+<h3 id="2.1">Creating a web page</h3>
+<p>
+One creates a web page by instantiating HtmlPage.
+The HtmlPage constructor has one
+obligatory argument, <i>parent,</i> which is usually an
+HtmlDirectory, though we use None in the following example to keep things simple.
+A commonly-used optional parameter is <tt>title:</tt>
+<pre class="source">
+>>> page = HtmlPage(None, title='Test Page')
+</pre>
+<p>
+One then adds UI elements to the page.  Creating an element with the
+page as parent automatically adds it to the page:</p>
+<pre class="source">
+>>> par = P(page)
+</pre>
+<p>
+Strings can be added using the function <tt>String:</tt>
+<pre class="source">
+>>> String(par, 'This is a ')
+'This is a '
+>>> B(par, 'test')
+&lt;BasicElement b&gt;
+>>> String(par, '.')
+'.'
+</pre>
+<p>
+Printing the page shows the contents that will be sent to the client:</p>
+<pre class="source">
+>>> print(page, end='')
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Test Page&lt;/title&gt;
+&lt;link rel="stylesheet" type="text/css" href="/.lib/default.css" /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;p&gt;This is a &lt;b&gt;test&lt;/b&gt;.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<h3 id="2.2">Methods</h3>
+<p>
+There are two lowlevel methods for adding material to an
+HtmlPage: <tt>add,</tt> for adding elements, and <tt>write(),</tt>
+for writing raw HTML.  Usually one does not
+call these methods directly.  Rather, one adds a new element as in the
+previous example: simply by
+creating an element and passing it the page, or an element already on
+the page, as its parent.</p>
+<p>
+Other methods are provided for adding information to the page that is
+rendered in the head or foot.  Several of these methods access script or
+stylesheet files; all such files reside in the Seal subdirectory <tt>data/seal.</tt>
+<dl>
+<dt><tt>add_stylesheet(<i>n</i>)</tt></dt> <dd>Add a stylesheet by name.  The
+stylesheet file is <i>n</i><tt>.css.</tt></dd>
+<dt><tt>add_style(<i>n</i>)</tt></dt> <dd>Embed the contents of a stylesheet as a
+&lt;style&gt; element.  The source file is <i>n</i><tt>.css.</tt></dd>
+<dt><tt>add_body_attribute(<i>k,</i> <i>v</i>)</tt></dt> <tt>Add
+<code><i>k</i>=<i>v</i></code> to the <tt>body</tt> element.</dd>
+<dt><tt>focus(<i>id</i>)</tt></dt> <dd>Add a focus call in a &lt;script&gt; element in
+the foot.  The argument <i>id</i> is the HTML ID of the element to be focussed.  This will be the first thing in the script.</dd>
+<dt><tt>add_import(<i>n</i>)</tt></dt> <dd>Embed the contents of the file
+<i>n</i><tt>.js</tt> in the &lt;script&gt; element in the foot.</dd>
+<dt><tt>add_script(<i>s</i>)</tt></dt> <dd>The argument <i>s</i> is a Script element.
+Its member <i>s</i><tt>.script</tt> contains a list of strings; embed them
+in the &lt;script&gt; element in the foot.  Script elements are
+added in the order they are encountered on the page, but they follow
+all imports.</dd>
+<dt><tt>add_widget(<i>w</i>)</tt></dt> <dd>Registers a widget <i>w</i> in the
+<tt>__pages__</tt> dict, creating it if necessary.</dd>
+</dl>
+
+<h3 id="2.3">Contents</h3>
+<p>
+Adding an item to an HtmlPage simply adds it to the page's contents.
+When rendering the page,
+the function <tt>iterhtml</tt> is called on each item in the contents
+to convert it into strings or bytes.  In particular:</p>
+<ul>
+<li>Objects of type Element, list, or tuple are
+  iterated over, and <tt>iterhtml</tt> is called recursively on each
+  item they contain.</li>
+
+<li>Bytes and bytearrays are passed through as is.</li>
+<li>Strings belonging to the subclasses HTML or Pathname
+ are passed through as is.  Regular strings are
+ first passed through the function <tt>escape,</tt> which replaces
+ <tt>'&lt;'</tt>, <tt>'&gt;'</tt>, <tt>'&amp;'</tt>, and <tt>'&quot;'</tt> with their HTML entities,
+  and replaces all non-ASCII characters with <tt>&amp;#...;</tt> entities.
+  The return value from <tt>escape</tt> is of type HTML.</li>
+
+<li>Spacer instances are replaced with the value of their
+ <tt>html</tt> members (which are strings of class HTML).</li>
+
+<li>None is ignored.</li>
+</ul>
+
+<h2 id="3">Convenience module: html</h2>
+
+</body>
+</html>

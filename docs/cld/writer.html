@@ -1,0 +1,157 @@
+<html>
+<head>
+<title>Writer</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Writer</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+<p>
+Persistent items (that is, Files) are read-only.  Writing is handled
+by a specialization of the <tt>Writer</tt> class, which mediates
+modifications of the in-memory structure and the saving of changes to
+disk in a robust way.  Saving is initially done to a temporary file.
+If any errors occur during saving, the temporary file is discarded and
+the item is reloaded from the original file.  If saving completes
+successfully, the original file becomes a back-up and the temporary
+file becomes the new version.</p>
+
+<h3 id="BackingSave">BackingSave</h3>
+<p>
+The class <tt>BackingSave</tt> allows one to write a file in a way that
+is robust to errors.
+It directs all writes to a temporary file.  If the temporary file is
+written and closed without error, then the target file is renamed with
+the suffix <tt>.bak</tt> (replacing any existing <tt>.bak</tt> version), and
+the temporary file is renamed to the target.  However, if an error
+occurs during writing, the original file is left unchanged.</p>
+<p>
+An example of use:</p>
+<pre class="source">
+with BackingSave('myfile') as f:
+    f.write('Test 1 2 3\n')
+</pre>
+
+<h3 id="Writer">Writer</h3>
+<p>
+A <tt>Writer</tt> is used as a host for side-effecting operations.
+The object wrapped by a writer is accessible as the member <tt>file</tt>.
+The file should have a <tt>writer()</tt> method that creates an instance
+of the appropriate specialization of <tt>Writer</tt>.  The writer should
+always be created within a <tt>with</tt> clause.  For example:</p>
+<pre class="source">
+with mydict.writer() as w:
+    w['foo'] = 42
+    w['bar'] = 'hi'
+</pre>
+<p>
+Here <tt>mydict</tt> is assumed to be of class <tt>Dict</tt>, and its <tt>writer()</tt>
+method returns a <tt>DictWriter</tt>, which provides the
+implementation of <tt>__setitem__()</tt>.  Multiple calls may be placed
+to side-effecting methods within the body of the <tt>with</tt>.  At the
+end, a single save is done.</p>
+<p>
+The base <tt>Writer</tt> class provides the <tt>__enter__()</tt> and
+<tt>__exit__()</tt> methods.  The initializer of <tt>Writer</tt> sets the writer's <tt>file</tt>
+member to the associated file object.  The <tt>__enter__()</tt>
+method initializes <tt>modified</tt> to <tt>False</tt> and sets the
+<tt>file</tt>'s <tt>_writer</tt> member.  But it first
+checks to make sure that the
+the file is not already being written by a different writer instance,
+signalling an error if so.</p>
+<p>
+On <tt>__exit__()</tt>, the file is written to disk, provided that <tt>modified</tt>
+is <tt>True</tt>.  The actual writing is done by the writer's <tt>close()</tt>
+method, which should be provided by specializations of <tt>Writer</tt>.
+If <tt>__exit__()</tt> is called because of an exception, <tt>close()</tt>
+is not called; rather, the file's contents are reloaded, discarding
+all changes.</p>
+
+<h3 id="FileWriter">FileWriter</h3>
+<p>
+The only difference between a <tt>FileWriter</tt> and a <tt>Writer</tt> is
+that a <tt>FileWriter</tt> checks whether the user has write permission.
+The check is done during <tt>__enter__()</tt>.</p>
+
+<h3 id="Specialization">Defining a specialization of Writer</h3>
+<p>
+Writer assumes that its file provides the following.  (The assumptions
+will be satisfied if the file is an instance of File.)</p>
+<ul>
+<li>Member <tt>_writer</tt>.  It is set by the writer's
+  <tt>__enter__()</tt> method and unset on <tt>__exit__()</tt>.  It is
+  used to make sure that only one writer is writing to the file at a time.</li>
+<li>Method <tt>writer()</tt>, which returns an instance of your specialization.
+For example, the <tt>Dict</tt> class has the following definition
+for <tt>writer()</tt>:
+<pre class="source">
+def writer (self): return DictWriter(self)
+</pre>
+</li>
+<li>Method <tt>reload()</tt>, which is called if an error occurs when writing.</li>
+</ul>
+<p>
+Specializations of <tt>Writer</tt> are responsible for actual changes to
+the file.  Here is the definition of <tt>DictWriter</tt>:</p>
+<pre class="source">
+class DictWriter (FileWriter):
+
+    def __setitem__ (self, key, value):
+        self.modified = True
+        d = self.file.contents()
+        d[key] = value
+
+    def close (self):
+        file = self.file
+        with BackingSave(file.filename()) as f:
+            for (k,v) in file.contents().items():
+                f.write(k)
+                f.write('\t')
+                f.write(v)
+                f.write('\n')
+</pre>
+<p>
+The following are particular points to note:</p>
+<ul>
+<li>Methods that may make changes should set <tt>modified</tt> to <tt>True</tt>
+if they do make a change.  It is sometimes convenient to have methods
+that only conditionally make changes; the <tt>modified</tt> flag is used
+to indicate whether saving is necessary or not.  If you fail to set
+<tt>modified</tt>, the changes will not get saved.</li>
+<li>The object being modified is accessible in the member <tt>file</tt>.</li>
+<li>The <tt>close()</tt> method does the actual writing.  It is called
+when the <tt>with</tt> clause is exited, but only if <tt>modified</tt> is set.</li>
+<li><tt>BackingSave</tt> is typically used to do the actual save
+  operation.</li>
+</ul>
+
+<h3 id="Slaves">Slaves</h3>
+<p>
+In some cases, to edit an item <i>x</i> we will need to simultaneously edit
+another item <i>y</i>.  There are currently two examples: to edit a <tt>TokenFile</tt>,
+one needs to have a lexicon writer (for interning tokens), and to edit
+a <tt>Transcription</tt>, one needs to edit the clips file and token file
+that it contains.  The secondary writers are called <i>slaves.</i>
+Entering the primary writer causes an <tt>__enter__()</tt> call to be
+sent to the slaves, and exiting causes an <tt>__exit__()</tt> call to be
+sent to the slaves.  (The master is exited first; this allows the
+master to set up conditions for the slaves.)</p>
+<p>
+The method <tt>slave()</tt> attaches one writer as slave to another.
+For example, here is the <tt>__init__()</tt> method of the
+transcription writer:</p>
+<pre class="source">
+def __init__ (self, file):
+    StructureWriter.__init__(self, file)
+    self.clips_writer = file.clips.writer()
+    self.slave(self.clips_writer)
+    self.transcript_writer = file.transcript.writer()
+    self.slave(self.transcript_writer)
+</pre>
+<p>
+One should not explicitly close the slaves; their <tt>close()</tt>
+methods will be called on exit.</p>
+
+</body>
+</html>

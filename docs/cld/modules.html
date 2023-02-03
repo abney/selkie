@@ -1,0 +1,58 @@
+<html>
+<head>
+<title>Ch 3: Modules</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 3: Modules</h1>
+<ul>
+<li><a href="../api/index.html">API</a></li>
+</ul>
+<p>
+The order in which modules are discussed in this document corresponds approximately to
+the dependencies among them.  The complete list of modules and their
+dependencies is as follows.  Only dependencies within the same module
+are shown; each module is dependent on the preceding module.</p>
+<ul>
+<li>seal.cld.db
+    <ul>
+    <li><a href="../api/namespaceseal_1_1cld_1_1db_1_1disk.html">disk</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1db_1_1base.html">base</a> (disk)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1db_1_1permissions.html">permissions</a> (disk, base)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1db_1_1file.html">file</a> (disk, base, permissions)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1db_1_1dir.html">dir</a> (disk, permissions, file)</li>
+    </ul>
+</li>
+<li>seal.cld.corpus
+    <ul>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1media.html">media</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1user.html">user</a> (media)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1env.html">env</a> (media, user)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1rom.html">rom</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1sim.html">sim</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1lexicon.html">lexicon</a> (sim)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1token.html">token</a> (rom,lexicon)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1transcript.html">transcript</a> (token)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1text.html">text</a> (media, token, transcript)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1page.html">page</a> (token, text)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1drill.html">drill</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1course.html">course</a> (lexicon)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1language.html">language</a> (lexicon,text)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1export.html">export</a> (rom, lexicon, token, language)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1corpus_1_1core.html">core</a> (media, user, env, rom, lexicon, token, transcript, text, language, export)</li>
+    </ul>
+</li>
+<li>seal.cld.glab
+    <ul>
+    <li><a href="../api/namespaceseal_1_1cld_1_1glab_1_1lang.html">lang</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1glab_1_1file.html">file</a> ()</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1glab_1_1functions.html">functions</a> (lang)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1glab_1_1eval.html">eval</a> (lang, functions)</li>
+    <li><a href="../api/namespaceseal_1_1cld_1_1glab_1_1ui.html">ui</a> (file, eval)</li>
+    </ul>
+</li>
+</ul>
+
+</body>
+</html>

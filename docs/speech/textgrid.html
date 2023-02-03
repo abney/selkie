@@ -1,0 +1,120 @@
+<html>
+<head>
+<title>Textgrid</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="spa.css"/>
+</head>
+<body>
+<h1>Textgrid</h1></p>
+
+<h2 id="1">Interface</h2>
+
+<h3 id="1.1">TextGrid</h3>
+<p>
+The class <tt>TextGrid</tt> represents a Praat text grid.  It has
+members:</p>
+<dl>
+<dt>xmin</dt> <dd>The start time of the span covered by the grid.</dd>
+<dt>xmax</dt> <dd>The end time.</dd>
+<dt>tiers</dt> <dd>A list of <tt>Tier</tt> instances.</dd>
+</dl>
+<p>
+In addition, a <tt>TextGrid</tt> provides the following methods:</p>
+<dl>
+<dt>TextGrid(<i>f</i>)</dt> <dd>The argument <i>f</i> is optional.  If provided, it
+is a pathname that is passed to <tt>load()</tt>.</dd>
+<dt>load(<i>f</i>)</dt> <dd>Load the contents from filename <i>f</i>.</dd>
+<dt>save(<i>f</i>)</dt> <dd>Save it to a file with filename <i>f</i>.</dd>
+<dt>len(<i>g</i>)</dt> <dd>The number of tiers.</dd>
+<dt><i>g</i>[<i>i</i>]</dt> <dd>Returns the <i>i</i>-th tier.</dd>
+<dt><i>g</i>[<i>i,j</i>]</dt> <dd>Returns the <i>j</i>-th element of the <i>i</i>-th tier.</dd>
+<dt>del <i>g</i>[<i>i</i>]</dt> <dd>Delete the <i>i</i>-the tier.</dd>
+<dt>add_tier(<i>t,n</i>)</dt> <dd>Add a new tier of type <i>t</i> with
+name <i>n</i>.  The type should be either <tt>'IntervalTier'</tt> or <tt>'TextTier'</tt>.</dd>
+<dt>clone()</dt> <dd>Creates a new copy of the text grid.  The tiers are
+      <i>not\/</i> copied.  One should be sure to clone any of the tiers
+      that one wishes to modify, e.g.:
+<pre class="source">
+>>> grid[2] = grid[2].clone()
+</pre>
+</dd>
+</dl>
+
+<h3 id="1.2">Tier</h3>
+<p>
+A <tt>Tier</tt> is created by calling the <tt>TextGrid</tt> method <tt>add{\underscore</tt>tier()}.</p>
+<dl>
+<dt>type</dt> <dd>Either <tt>'IntervalTier'</tt> or <tt>'TextTier'</tt>.</dd>
+<dt>dtype</dt> <dd>The actualy type of the elements, which is either
+ <tt>Interval</tt> or <tt>Point</tt>.</dd>
+<dt>name</dt> <dd>The name.</dd>
+<dt>xmin</dt> <dd>Inherited from the <tt>TextGrid</tt>.</dd>
+<dt>xmax</dt> <dd>Inherited from the <tt>TextGrid</tt>.</dd>
+<dt>contents</dt> <dd>A list of elements, which are either <tt>Intervals</tt>
+or <tt>Points</tt>.</dd>
+<dt>symtab</dt> <dd>If the tier has been converted to an array, this will
+contain the symbol table used.  It maps strings to ints.</dd>
+</dl>
+<p>
+A <tt>Tier</tt> also provides the following methods:</p>
+<dl>
+<dt>len(<i>t</i>)</dt> <dd>The number of elements in the tier.</dd>
+<dt><i>t</i>[<i>i</i>]</dt> <dd>The <i>i</i>-th element.</dd>
+<dt>x()</dt> <dd>The last time point covered by an element in the
+contents.  A freshly-created tier is empty, and the value is xmin.  As
+elements are added to the tier, the value is the xmax of the most
+recently added element.</dd>
+<dt>add(...)</dt> <dd>Add an element to the tier.  The arguments
+... are passed to the element constructor.</dd>
+<dt>array()</dt> <dd>Returns a time series, that is, a two-column matrix in
+which the first column is a time point and the second column contains
+symbol codes.  The symbol table used to convert strings to symbol codes
+is stored in member <tt>symtab</tt>.  There is one row for each element
+in the tier.  The time points are obtained by calling <tt>center()</tt>
+on each element, and the symbol codes are obtained by calling <tt>symbol()</tt>.</dd>
+<dt>clone()</dt> <dd>Creates an identical but independent copy of the
+tier.  All elements are also copied.</dd>
+</dl></p>
+
+<h3 id="1.3">Interval</h3>
+<p>
+An <tt>Interval</tt> has the members:</p>
+<dl>
+<dt>tier</dt> <dd>The tier that it belongs to.</dd>
+<dt>xmin</dt> <dd>Its start time.</dd>
+<dt>xmax</dt> <dd>Its end time.</dd>
+<dt>text</dt> <dd>A string.</dd>
+</dl>
+<p>
+The following methods are provided:</p>
+<dl>
+<dt>string()</dt> <dd>Returns the text.</dd>
+<dt>center()</dt> <dd>Returns the mean of <tt>xmin</tt> and <tt>xmax</tt>.</dd>
+<dt>symbol(<i>T</i>)</dt> <dd>Returns the result of interning the text in the
+symbol table <i>T</i>.</dd>
+</dl>
+<p>
+In general, one only creates an <tt>Interval</tt> by calling the <tt>add()</tt>
+method of a <tt>Tier</tt>.  One should provide the keyword arguments <tt>text</tt>
+and <tt>xmax</tt>.</p>
+
+<h3 id="1.4">Point</h3>
+<p>
+A <tt>Point</tt> has the following members:</p>
+<dl>
+<dt>tier</dt> <dd>The tier that it belongs to.</dd>
+<dt>number</dt> <dd>The time (a float).</dd>
+<dt>mark</dt> <dd>A string.</dd>
+<dt>string()</dt> <dd>Returns the mark.</dd>
+<dt>center()</dt> <dd>Returns the time.</dd>
+<dt>symbol(<i>T</i>)</dt> <dd>Interns the mark in the symbol table <i>T</i> and
+returns the resulting code.</dd></dd>
+</dl>
+<p>
+In general, one only creates a <tt>Point</tt> by calling the <tt>add()</tt>
+method of a <tt>Tier</tt>.  One should provide the keyword arguments
+<tt>number</tt> and <tt>mark</tt>.</p>
+<p>
+
+</body>
+</html>

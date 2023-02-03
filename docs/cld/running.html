@@ -1,0 +1,417 @@
+<html>
+<head>
+<title>Ch 2: Running CLD</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Ch 2: Running CLD</h1>
+<p class="nav"><a href="index.html"><i>CLD Developer's Guide</i></a></p>
+
+<h2 id="1">The CLD command-line executable</h2>
+
+<h3 id="1.1">Quick start</h3>
+<p>
+The CLD command-line executable gives access to toplevel
+functionality.  
+CLD can be invoked either as a desktop application or as a web application.
+To create an example corpus and run the desktop
+application, put $SEAL/bin on your PATH and do the following:</p>
+<pre class="python">
+$ cld example.d create_test
+$ cld example.d run
+</pre>
+<p>
+(The "run" is actually optional; it is assumed as the default action.)</p>
+<p>
+The web application version is described in the <a href="#2">next section</a>.
+There are a couple of differences between the desktop application and the
+web application.  When running on the desktop, one automatically
+has full permissions; the internal password authentication system is
+not used.  One also has access to the corpus manager, which allows one
+to switch between corpora and create new corpora.  The web
+version only accesses a single fixed corpus.</p>
+<p>
+That being said, the differences have to do with configuration rather
+than code.  The desktop application actually just runs the web
+application within a Python web server that it runs internally,
+effectively using a browser as its user interface.</p>
+
+<h3 id="1.2">Usage</h3>
+<p>
+For the sake of an integrated description, I give a
+full command listing here, though much of the material will only make sense
+after reading the rest of this volume.</p>
+<p>
+The executable is a shell script located in $SEAL/bin.
+The following provides usage templates for each of the commands:</p>
+<pre class="source">
+$ cld SPEC
+$ cld SPEC auth ls|set|check|delete [USER]
+$ cld SPEC call PATH [CKW*]
+$ cld SPEC config
+$ cld SPEC create|-c
+$ cld SPEC create_cgi CGIFN [CKW*]
+$ cld SPEC create_test
+$ cld SPEC delete|del|-d [LANG] [ITEM*]
+$ cld SPEC export|-e EFN [LANG] [ITEM*]
+$ cld SPEC extract [DIR] [CKW*]
+$ cld SPEC get ITEM [CKW*]
+$ cld SPEC glab COM [USER*] [CKW*]
+$ cld SPEC group [GRP] [COM] [USER*] [CKW*]
+$ cld SPEC import|-i EFN
+$ cld SPEC info [PATH]
+$ cld SPEC list|-l [ITEM*]
+$ cld SPEC ls [PATH]
+$ cld SPEC perm [PATH] [add|remove USER ROLE]
+$ cld SPEC rm [ITEM] [CKW*]
+$ cld SPEC run [CKW*]
+$ cld SPEC set [KV*]
+$ cld SPEC tree [KW*]
+$ cld SPEC unset [KEY*]
+$ cld SPEC user [USER [add|remove GRP]] [CKW*]
+</pre>
+<p>
+<b>SPEC and CKW.</b>
+The usage is "object-oriented" in the sense that the SPEC is a
+specification for an application file, configuration, or export file,
+and the command is treated conceptually as a method of that file.
+In the general case, SPEC is a list of configuration keyword-value
+pairs (CKW).  With some commands, additional keyword-value pairs may
+be added at the end of the command line, as indicated by "[CKW*]".</p>
+<p>
+A keyword-value pair is a single word of form KEY=VALUE, containing a
+literal '=' character.
+The list of configuration keywords is given in the section
+<a href="resources.html#1.3">Configuration keys</a> in Chapter 5.
+In addition, some shorthands are permitted for convenience.</p>
+<ul>
+<li>If the first word in SPEC does not contain an '=', the keyword
+  'application_file' is supplied.  In other words, one may simply give
+  the filename of the CLD corpus, configuration file, or export file
+  as SPEC.</li>
+<li>'-u' is a shorthand for 'desktop_user=<i>X</i>', where the next word in
+  line is used to supply the value of <i>X.</i></li>
+<li>'-p' is a shorthand for 'server_port=<i>X</i>'.</li>
+<li>'-M' is a shorthand for 'media_dir=<i>X</i>'.</li>
+<li>'-A' is a shorthand for 'auth_dir=<i>X</i>'.</li>
+<li>'-w' is a shorthand for 'execmode=webserver log_file=- logging=all loopback_testing_on=True'.</li>
+</ul>
+
+<h3 id="1.3">Commands</h3>
+<p>
+The individual commands are as follows.</p>
+<dl>
+<dt>(no command)</dt> <dd>Same as <tt>run</tt></dd>
+
+<dt>auth ls|set|check|delete [USER]</dt>
+<dd>
+USER is actually optional only for ls; it is obligatory for all other subcommands.
+<ul>
+<li>ls - list the users, or confirm that the given USER is present</li>
+<li>set - set the password for USER</li>
+<li>check - check the password for USER</li>
+<li>delete - delete the entry for USER</li>
+</ul>
+</dd>
+
+<dt>call PATH [KV*]</dt>
+<dd>
+    Instantiate the app and run it.  First, it launches
+    an internal Python web server that calls back to the app to
+    handle requests.  Then it packages <tt>PATH [KV*]</tt> as an HTTP
+    request and sends it to the server.  Note that, in this case only,
+    a given key may appear multiple times, provided that the key
+    begins with <tt>*</tt>.
+</dd>
+
+<dt>config</dt>
+<dd>Print out the corpus configuration file.</dd>
+
+<dt>create</dt>
+<dd>Create the named corpus directory.</dd>
+
+<dt>create_cgi CGIFN [KW*]</dt>
+<dd>Create a CGI file that uses the named corpus.  CGIFN is the
+  filename to create.</dd>
+
+<dt>create_test</dt>
+<dd>
+    Creates a test corpus.  Prepopulates it from seal/examples/corp1.ef.
+    Also creates a media directory.  If not otherwise specified, the
+    media directory will be called <tt>'media'</tt> in the current directory.
+</dd>
+
+<dt>delete [LANG] [ITEM*]</dt>
+<dd>Delete the indicated items.  See Chap 18, <a href="export.html">Export files</a>.</dd>
+
+<dt>export EFN [LANG] [ITEM*]</dt>
+<dd>Export the indicated items to the file <tt>EFN</tt>.  The value
+  '-' may be used for stdout.  
+  LANG is a subcorpus identifier, which may be a language code,
+  'roms', or 'glab'.
+  ITEM is a designator for a specific item in the corpus,
+  such as <tt>oji/1.</tt>  If LANG is provided, 'oji' may be omitted.
+  If no items are named, the entire corpus is exported.
+  See Chap 18, <a href="export.html">Export files</a>.
+</dd>
+
+<dt>glab ls [USER*]</dt>
+<dd>List the notebooks belonging to each of the named USERs.  If no
+  USER is provided, list the users.  Equivalent to <code>cld CFN ls glab</code>
+  or <code>cld CFN ls glab/USER</code>.
+</dd>
+
+<dt>glab add USER*</dt>
+<dd>Add libraries for each of the given USERs.</dd>
+
+<dt>glab rm USER*</dt>
+<dd>Delete the libraries of each of the given USERs.  Use with
+  caution!  Cannot be undone.</dd>
+
+<dt>import EFN</dt>
+<dd>Import from <tt>EFN</tt>.
+  See Chap 18, <a href="export.html">Export files</a>.</dd>
+
+<dt>info [PATH]</dt>
+<dd>Print out name, file type, and permissions for the given PATH.
+  The PATH omits filename suffixes; e.g. <tt>'langs/oji/texts'</tt>.
+  Any leading slash is ignored.  If PATH is omitted, use the root.
+</dd>
+
+<dt>list [ITEM*]</dt>
+<dd>List the named items.  If none are specified, list the entire corpus.</dd>
+
+<dt>ls [PATH]</dt>
+<dd>List the children of a given directory.  PATH is interpreted as
+  for 'info'.</dd>
+
+<dt>perm [PATH] [add|remove USER ROLE]</dt>
+<dd>Show or modify permissions.  PATH is interpreted as for 'info'.
+  <tt>'add'</tt> causes the USER to be added to the ROLE for this
+  file, and <tt>'remove'</tt> causes the USER to be removed from the
+  ROLE.  If neither <tt>'add'</tt> nor <tt>'remove'</tt> are
+  specified, the permissions are displayed.
+  The legal values for ROLE are 'owners', 'editors', or 'shared'.
+</dd>
+
+<dt>run [KW*]</dt>
+<dd>Run the CLD application.  This is the default, if no command is
+  provided.  See: <a href="#2">Running CLD as
+  an application</a> and <a href="#3">Running as a web service</a>.</dd>
+
+<dt>set [KV*]</dt>
+<dd>Set values of configuration keys.
+ KV represents a keyword-value pair of
+ form <i>key</i><tt>=</tt><i>value</i>.  A given key
+ is permitted to appear multiple times, provided that it starts with '*'.
+</dd>
+
+<dt>tree [KW*]</dt>
+<dd>Print out the contents of the corpus in tree format.
+  KW is a keyword argument of form <i>key</i><tt>=</tt><i>value</i>
+  that controls printing.</dd>
+
+<dt>unset [KEY*]</dt>
+<dd>Unset values of configuration keys.
+  KEY is just a keyword, without an indication of a value.</dd>
+
+<dt>user [USER [add|remove GRP]] [CKW*]</dt>
+<dd>USER and GRP are both user names, but GRP is treated as a group
+  (a user with members).</dd>
+
+</dl>
+
+
+<h3 id="1.4">Invoking CLD from Python</h3>
+<p>
+The <tt>cld</tt> executable simply executes the module
+seal.script.cld, and that in turn does:</p>
+<pre class="source">
+$ import sys
+$ from seal.cld.toplevel import CLDManager
+$ mgr = CLDManager()
+$ mgr.main(sys.argv)
+</pre>
+<p>
+One can execute commands directly from Python by instantiating the
+CLDManager, passing it the corpus filename, and calling it as a
+function instead of using <i>main.</i>  For example:</p>
+<pre class="source">
+$ mgr = CLDManager('/tmp/foo.cld')
+$ mgr('create_test')
+</pre>
+<p>
+See <a href="corpus.html#5">CLDManager</a> in Chapter 17 for more
+information.</p>
+
+
+<!--
+<h2 id="1">Prereqs</h2>
+
+<h3 id="1.1">Installing Seal</h3>
+<p>
+Seal requires Python 3.6 or later.  Update Python if necessary.</p>
+<p>
+As much as possible, Seal runs without installation.  Currently, only
+libsvm needs to be built, and only if one is using those bits of Seal.</p>
+<p>
+Some parts of Seal are sensitive to environment variables.  Specifically:</p>
+<pre class="source">
+set DEST ~/cl
+set SEAL ~/git/seal
+set PYTHON ~/anaconda/bin/python
+set THIRDPARTY libsvm census iso uni-tags conll-x
+set DOWNLOAD_CACHE ~/seal_cache
+set PATHNAME_PTB ~/cl/data/LDC99T42
+</pre>
+-->
+
+<h2 id="2">Running as a web service</h2>
+
+<h3 id="2.1">Local testing</h3>
+<p>
+It is recommended to create a directory just for the CLD corpus and
+supporting materials, outside of the Apache document
+directory.</p>
+<pre class="source">
+$ mkdir cld
+$ cd cld
+</pre>
+<p>
+Create an empty corpus:</p>
+<pre class="source">
+$ cld corpus.cld create
+</pre>
+<p>
+One can do local testing first, before deploying.  Run in webserver
+mode rather than desktop mode:</p>
+<pre class="source">
+$ cld corpus.cld -w
+</pre>
+<p>
+This will start an internal Python webserver and open a browser window
+pointing at localhost:8000.  You should get a Login page.</p>
+<p>
+One cannot log in without defining users.  For the sake of
+illustration, let us create a user named leo.
+Stop CLD (use ctrl-C), and do:</p>
+<pre class="source">
+$ cld corpus.cld auth set leo
+</pre>
+<p>
+This creates an account for leo and prompts you for a password.
+Notice that the password and sessions file reside in a directory
+called 'auth' that is a sibling to the corpus directory.  That
+location is a configuration setting, which you may change if you
+desire.  To see the current configuration settings:</p>
+<pre class="source">
+$ cld corpus.cld config
+</pre>
+<p>
+Now that we have created a user, let us restart the web server (cld corpus.cld -w)
+and log in using user name 'leo' and the password you chose.</p>
+<p>
+When you do so, you get a new page, and it should indicate, in the upper right
+corner, that 'leo' is logged in.  But it says the corpus is not
+readable.  When a corpus is created, no permissions are automatically
+granted.</p>
+<p>
+Stop the web server again, and make leo be an owner of the corpus:</p>
+<pre class="source">
+$ cld corpus.cld perm / add leo owners
+</pre>
+<p>
+The slash indicates the root directory; leo is being added to the list
+of owners.  Permissions are inherited, so leo will be owner of any
+additional subdirectories that we create, unless we explicitly remove
+leo from the owners list of some subdirectory.</p>
+<p>
+Now restart the web server.  Unless you clear your browser history, or wait long enough
+for the session to time out, leo will still be logged in, and you 
+will now get a list of corpus contents.</p>
+
+<h3 id="2.2">Creating a CGI script</h3>
+<p>
+One can create a CGI test script that just displays environment
+variables.  The contents of the script:</p>
+<pre class="source">
+#!/Users/abney/anaconda3/bin/python
+
+import site
+site.addsitedir('/Users/abney/git/seal/python')
+
+from seal.app.toplevel import test_app, Manager
+Manager(app=test_app).cgi()
+</pre>
+<p>
+To run CLD, the CGI script should look something like the following.
+(The pathnames may need to be different in your environment.)</p>
+<pre class="source">
+#!/usr/local/bin/python
+
+import site
+site.addsitedir('/usr/local/seal/python')
+
+from seal.cld.toplevel import CLDManager
+mgr = CLDManager('/usr/local/cld/corpus.cld',
+                 auth_dir='/usr/local/cld/auth',
+                 log_file='/usr/local/cld/log',
+                 logging='all')
+mgr.cgi()
+</pre>
+<p>
+For debugging, examine the log file.  Its pathname is given in the CGI
+script.</p>
+
+
+<h2 id="3">Configuration</h2>
+
+<h3 id="3.1">Configuration file</h3>
+<p>
+The configuration file may be stored in a file, or it may be provided
+on the command line, or as created as a dict in Python.  It is passed
+to the <a href="../seal/app.html#App">App</a> constructor.</p>
+<p>
+A complete list of configuration variables is provided in the
+section <a href="config.html#3">Configuration keys</a>.
+One may also wish to refer to the list
+of <a href="context.html#2.2">Logging conditions</a>.</p>
+
+<h3 id="3.2">Password and session files</h3>
+<p>
+To enable password protection, one requires a password file and
+sessions file.  These are plain-text files named <tt>users.txt</tt>
+and <tt>sessions.txt</tt> in the server_dir.  They should be readable
+by httpd, but not world-readable.  <b>They should absolutely not be
+under htdocs.</b></p>
+<p>
+The password file contains one line for each user.  The fields are the
+user name, the salt, and the password hash value.  The sessions file
+also contains one line for each user; its fields are user name, token,
+expiration, and client address.</p>
+<p>
+The <tt>auth</tt> script can be used to manage them.  Here are
+examples of the commands:</p>
+<pre class="source">
+$ auth ls
+$ auth set <i>user</i>
+$ auth check <i>user</i>
+$ auth delete <i>user</i>
+</pre>
+<p>
+All of the commands print out the locations of the
+password file and the sessions file.</p>
+<ul>
+<li>The <tt>ls</tt> command simply lists the user names</li>
+<li>The <tt>set</tt> command prompts for a (new) password, and sets
+  the password for the user.  It also deletes any active session that
+  the user may have.</li>
+<li>The <tt>check</tt> command prompts for a password and indicates
+  whether or not it is correct.</li>
+<li>The <tt>delete</tt> command deletes a user from both the password
+  and sessions files.</li>
+</ul>
+
+</body>
+</html>

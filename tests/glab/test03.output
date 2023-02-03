@@ -1,0 +1,171 @@
+[glab] _e_ := hi
+ERROR: _e_ is a constant
+[glab] trace(stack)
+[glab] a:b
+(a:b)
+[glab] E(1, a, 2)
+[glab] E(2, a:b, 2)
+[glab] E(2, b:_e_, 3)
+[glab] F(3)
+[glab] show(_fsa_)
+FST:
+ -> 1 a a 2
+    2 a b 2
+    2 b _e_ 3 (F)
+[glab] apply(<a,a,a,b>)
+{<a, b, b>}
+[glab] apply(<a,b>)
+{<a>}
+[glab] apply(_e_)
+{}
+[glab] new(_fsa_)
+[glab] E(1, the:el, 2)
+[glab] E(1, a:uno, 2)
+[glab] E(2, big:_e_, 3)
+[glab] E(2, nice:_e_, 4)
+[glab] E(2, _e_:_e_, 5)
+[glab] E(3, dog:perro, 6)
+[glab] E(3, cat:gato, 6)
+[glab] E(4, dog:perro, 7)
+[glab] E(4, cat:gato, 7)
+[glab] E(5, dog:perro, 8)
+[glab] E(5, cat:gato, 8)
+[glab] E(6, _e_:grande, 9)
+[glab] E(7, _e_:lindo, 9)
+[glab] E(8, _e_:_e_, 9)
+[glab] F(9)
+[glab] trace(fsa)
+[glab] apply(<the, big, dog>)
+input= <the, big, dog>
+[0] state 1
+    edge 1 the:el 2
+[1] state 2
+    edge 2 big:None 3
+    edge 2 None:None 5
+[1] state 5
+[2] state 3
+    edge 3 dog:perro 6
+[3] state 6
+    edge 6 None:grande 9
+[3] state 9 (F)
+    accept
+{<el, perro, grande>}
+[glab] untrace(fsa)
+[glab] new(_fsa_)
+[glab] E(1, b:a, 2)
+[glab] E(1, _else_, 2)
+[glab] E(2, a, 3)
+[glab] E(2, _else_:a, 3)
+[glab] E(2, b, 4)
+[glab] E(3, _else_:b, 4)
+[glab] F(4)
+[glab] show(_fsa_)
+FST:
+ -> 1 b a 2
+ -> 1 True True 2
+    2 a a 3
+    2 True a 3
+    2 b b 4 (F)
+    3 True b 4 (F)
+[glab] new(_fsa_)
+[glab] E(1, cat:k, 3)
+[glab] E(3, _e_:ae, 4)
+[glab] E(4, _e_:t, 2)
+[glab] E(1, chase:t, 5)
+[glab] E(5, _e_:sh, 6)
+[glab] E(6, _e_:e, 7)
+[glab] E(7, _e_:s, 2)
+[glab] E(1, dog:d, 8)
+[glab] E(8, _e_:aw, 9)
+[glab] E(9, _e_:g, 2)
+[glab] E(1, bark:b, 10)
+[glab] E(10, _e_:ah, 11)
+[glab] E(11, _e_:r, 12)
+[glab] E(12, _e_:k, 2)
+[glab] E(1, it:ih, 13)
+[glab] E(13, _e_:t, 2)
+[glab] E(1, s:Z, 2)
+[glab] E(1, the:edh, 14)
+[glab] E(14, _e_:uh, 2)
+[glab] E(1, zip:z, 15)
+[glab] E(15, _e_:ih, 16)
+[glab] E(16, _e_:p, 2)
+[glab] E(2, _e_, 1)
+[glab] F(2)
+[glab] _lex := _fsa_
+[glab] ex(<the, dog, s>)
+[glab] ex(<cat, s>)
+[glab] ex(<chase, s>)
+[glab] ex(<it, zip, s>)
+[glab] _corpus_ := apply()
+[glab] _corpus_
+[0] <edh, uh, d, aw, g, Z>
+[1] <k, ae, t, Z>
+[2] <t, sh, e, s, Z>
+[3] <ih, t, z, ih, p, Z>
+[glab] new(_fsa_)
+[glab] E(1, t, 2)
+[glab] E(1, k, 2)
+[glab] E(1, p, 2)
+[glab] E(1, _else_, 1)
+[glab] E(2, t, 2)
+[glab] E(2, k, 2)
+[glab] E(2, p, 2)
+[glab] E(2, Z:s, 1)
+[glab] E(2, _else_, 1)
+[glab] F(1)
+[glab] F(2)
+[glab] _Z_to_s := _fsa_
+[glab] _corpus_ := apply()
+[glab] _corpus_
+[0] <edh, uh, d, aw, g, Z>
+[1] <k, ae, t, s>
+[2] <t, sh, e, s, Z>
+[3] <ih, t, z, ih, p, s>
+[glab] new(_fsa_)
+[glab] E(1, s, 2)
+[glab] E(1, sh, 2)
+[glab] E(1, z, 2)
+[glab] E(1, _else_, 1)
+[glab] E(2, s, 2)
+[glab] E(2, sh, 2)
+[glab] E(2, z, 2)
+[glab] E(2, Z:_e_, 3)
+[glab] E(2, _else_, 1)
+[glab] E(3, _e_:uh, 4)
+[glab] E(4, _e_:z, 2)
+[glab] F(1)
+[glab] F(2)
+[glab] _insert_e := _fsa_
+[glab] apply()
+[0] <edh, uh, d, aw, g, Z>
+[1] <k, ae, t, s>
+[2] <t, sh, e, s, uh, z>
+[3] <ih, t, z, ih, p, s>
+[glab] /a+b/
+/a+b/
+[glab] show(fsa(/a+b/))
+FSA:
+ -> 0 _e_ 2
+ -> 0 _e_ 4
+    2 a 3
+    3 _e_ 1 (F)
+    4 b 5
+    5 _e_ 1 (F)
+[glab] lang(/a+b/)
+[0] <b>
+[1] <a>
+[glab] lang(/a*/)
+[0] <>
+[1] <a>
+[2] <a, a>
+[3] <a, a, a>
+[4] <a, a, a, a>
+[5] <a, a, a, a, a>
+[6] <a, a, a, a, a, a>
+[7] <a, a, a, a, a, a, a>
+[8] <a, a, a, a, a, a, a, a>
+[9] <a, a, a, a, a, a, a, a, a>
+...
+[glab] rel(/a:c . b:b . c:a/)
+[0] (<a, b, c>:<c, b, a>)

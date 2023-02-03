@@ -1,0 +1,55 @@
+#T Homework 5
+_n_reg := /'box' + 'can' + 'car' + 'cat' + 'couch' + 'cough' + 'dash' + 'dog' + 'fizz' + 'house' + 'kiss' + 'sloth' + 'spa' + 'tomato'/
+_n_irr := /'child' + 'goose'/
+
+_NStem_reg := /N:(_n_reg)/
+_NStem_irr := /N: (_n_irr)/
+_NStem := /_NStem_reg + _NStem_irr/
+_N_sg := /(_NStem.sg:_e_)/
+_N_pl_reg := /_NStem_reg.pl:S/
+_pluralize_irr := /'child':'children' + 'goose':'geese'/
+_N_pl_irr := / (_NStem_irr % _pluralize_irr).pl:_e_/
+_NO := /_N_sg + _N_pl_reg + _N_pl_irr/
+rel(_NO)
+_xszo := new_fsa()
+E(1,x,2)
+E(1,s,2)
+E(1,z,2)
+E(1,o,2)
+E(1,_else_,1)
+F(1)
+E(2,x,2)
+E(2,s,2)
+E(2,z,2)
+E(2,o,2)
+E(2,S:e,3)
+E(2,_else_,1)
+F(2)
+E(3,_e_:s,2)
+_xszo('xS')
+_xszo('kS')
+_sch := new_fsa()
+E(1,s,2)
+E(1,c,2)
+E(1,_else_,1)
+F(1)
+E(2,h,3)
+E(2,s,2)
+E(2,c,2)
+E(2,_else_,1)
+F(2)
+E(3,s,2)
+E(3,c,2)
+E(3,S:e,4)
+E(3,_else_,1)
+F(3)
+E(4,_e_:s,1)
+_sch('shS')
+_sch('sS')
+_S := new_fsa()
+E(1,S:s,1)
+E(1,_else_,1)
+F(1)
+_orth := _xszo % _sch % _S
+_Noun := _NO % _orth
+rel(_Noun, 40)

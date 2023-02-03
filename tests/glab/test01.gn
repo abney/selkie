@@ -1,0 +1,126 @@
+#T Test Notebook
+test
+trace(syntax)
+test
+untrace(syntax)
+quote(foo(x+y))
+S -> N[_n] V[_n]
+show(_grammar_)
+dog <- N[sg]
+barks <- V[sg]
+show(_grammar_)
+start()
+S0 -> S
+start() := S0
+start()
+show(_grammar_)
+"dog barks"
+parse("dog barks")
+include(testinclude)
+_foo
+_bar
+good("dog barks")
+good("the dog barks")
+bad("dog bark")
+results()
+a
+_a
+_a := foo
+_a
+<hi, there>
+'hi'
+"hi there"
+<hi>.<there>
+<"dog barks", 7>
+<eight>
+<k, a, t>
+<1,1,2,3,5,8,13>
+eight = eight
+eight = <eight>
+<eight> = <<eight>>
+'kek'
+<fire, house> = <house, fire>
+|<4,4>|
+<>
+_e_
+_e_ = <>
+|_e_|
+<k,a>.<t> = <k,a,t>
+<k,a>._e_ = <k,a>.<>
+<k,a>._e_ = <k,a>
+<k,_e_>
+<3,hi>.<bye,0>
+<hi> = <h,i>
+<h,i>._e_ = _e_.<h,i>
+foo.<b,a,r>
+2^3
+3^2
+<a,b>^3
+_a := <t,l,e>
+_b := <c,a,t>
+<a,b>._e_
+|'dog'|
+|'cat'.'fish'|
+_b._a
+|_b._a|
+_a._a
+_a.x
+{m,o,m}
+{m,o}
+{m,o,m} = {m,o}
+{m,o} = {o,m}
+_0_
+|{a,b,c}|
+{a} = a
+a = {a}
+{a,_0_} = {a}
+{} = _0_
+{a,b,c} = {b,b,a,c}
+<a,b,c> = <b,b,a,c>
+<a,b,c> = {b,b,a,c}
+<hi> = hi
+<a>.<b,c> = <a,b>.<c>
+{{hi}} = {hi}
+0 = _0_
+_0_ = _e_
+|{s,i,t,s}|
+|<s,i,t,s>|
+|{<s,i,t,s>}|
+|s,i,t,s|
+|_0_|
+|{_0_}|
+{x | x^2 = 9}
+1 < 2 < 3
+_A := {_a,b,c,d,e}
+_A
+a @ _A
+b @ _A
+_B := {c,d,e,f,g}
+_A + _B
+_A & _B
+_A - _B
+5 - 2
+hi - there
+{b,c} @< _A
+{b,c} @> _A
+_A @> {b,c}
+_D := {the, a, this, that}
+_N := {dog, cat, fish, this, that}
+_V := {run, chase, fish}
+_W := _D + _N + _V
+_T := {0,1}
+_D + _N
+_D & _N
+_N - _D
+(_D&_N) + _V
+_D & (_N+_V)
+|{c,o,o,l}| = 4
+a @ {a}
+_e_ @ {a}
+_0_ @ {a}
+_0_ @< {a}
+h @ {hi}
+hi @< {hi}
+hit = hi.t
+hi = hi._e_
+hi._e_

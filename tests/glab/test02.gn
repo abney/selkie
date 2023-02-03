@@ -1,0 +1,36 @@
+#T Test2
+quote(a)
+quote(a.b)
+quote(a+b)
+quote(a*)
+quote((a+b)*)
+_L := /a/
+_L
+isstring(<a,b>)
+isstring(<a,0>)
+islang({<a>,<b>})
+islang({<a>,b})
+type({a,b})
+L({a,b})
+_L := /a+b/
+a @ _L
+<a,b> @ _L
+_L := /(a+b)*/
+<a> @ _L
+<a,b> @ _L
+<b,a,b> @ _L
+_e_ @ _L
+<c> @ _L
+_L := /((a+b).(c+d))*/
+<a,b> @ _L
+<a,c> @ _L
+<a,c,a> @ _L
+<a,c,a,c> @ _L
+<a,d,b,c> @ _L
+_x := fsa(_L)
+show(_x)
+E(0,a,1)
+E(0,b,2)
+show(_fsa_)
+new(_fsa_)
+show(_fsa_)

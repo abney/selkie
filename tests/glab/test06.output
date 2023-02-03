@@ -1,0 +1,90 @@
+[glab] _reg_nouns := {'dog', 'buzz', 'kiss', 'church'}
+[glab] _reg_nouns
+{<b, u, z, z>, <c, h, u, r, c, h>, <d, o, g>, <k, i, s, s>}
+[glab] _a := fsa(_reg_nouns)
+[glab] show(_a)
+FSA:
+ -> 0 b 2
+ -> 0 c 5
+ -> 0 d 10
+ -> 0 k 12
+    2 u 3
+    3 z 4
+    4 z 1 (F)
+    5 h 6
+    6 u 7
+    7 r 8
+    8 c 9
+    9 h 1 (F)
+    10 o 11
+    11 g 1 (F)
+    12 i 13
+    13 s 14
+    14 s 1 (F)
+[glab] lang(_a)
+[0] <k, i, s, s>
+[1] <d, o, g>
+[2] <c, h, u, r, c, h>
+[3] <b, u, z, z>
+[glab] rel(_a)
+[0] (<k, i, s, s>:<k, i, s, s>)
+[1] (<d, o, g>:<d, o, g>)
+[2] (<c, h, u, r, c, h>:<c, h, u, r, c, h>)
+[3] (<b, u, z, z>:<b, u, z, z>)
+[glab] _NStem := /N:_reg_nouns/
+[glab] rel(_NStem)
+[0] (<N>:<k, i, s, s>)
+[1] (<N>:<d, o, g>)
+[2] (<N>:<c, h, u, r, c, h>)
+[3] (<N>:<b, u, z, z>)
+[glab] _irr_sg_nouns := {'child', 'goose'}
+[glab] _irr_pl_nouns := {'children', 'geese'}
+[glab] _NounI := /(N.sg):_irr_sg_nouns + (N.pl):_irr_pl_nouns/
+[glab] _Noun0 := /_NStem . (sg:_e_ + pl:S) + _NounI/
+[glab] rel(_Noun0)
+[0] (<N, pl>:<g, e, e, s, e>)
+[1] (<N, pl>:<c, h, i, l, d, r, e, n>)
+[2] (<N, sg>:<g, o, o, s, e>)
+[3] (<N, sg>:<c, h, i, l, d>)
+[4] (<N, pl>:<k, i, s, s, S>)
+[5] (<N, sg>:<k, i, s, s>)
+[6] (<N, pl>:<d, o, g, S>)
+[7] (<N, sg>:<d, o, g>)
+[8] (<N, pl>:<c, h, u, r, c, h, S>)
+[9] (<N, sg>:<c, h, u, r, c, h>)
+...
+[glab] _Orth := new_fsa()
+[glab] E(1, s, 2)
+[glab] E(1, z, 2)
+[glab] E(1, h, 2)
+[glab] E(1, S:s, 1)
+[glab] E(1, _else_, 1)
+[glab] F(1)
+[glab] E(2, S:_e_, 3)
+[glab] E(2, s, 2)
+[glab] E(2, z, 2)
+[glab] E(2, h, 2)
+[glab] E(2, _else_, 1)
+[glab] E(3, _e_:e, 4)
+[glab] E(4, _e_:s, 1)
+[glab] F(2)
+[glab] _Noun := _Noun0 % _Orth
+[glab] rel(_Noun)
+[0] (<N, pl>:<g, e, e, s, e>)
+[1] (<N, pl>:<c, h, i, l, d, r, e, n>)
+[2] (<N, sg>:<g, o, o, s, e>)
+[3] (<N, sg>:<c, h, i, l, d>)
+[4] (<N, pl>:<k, i, s, s, e, s>)
+[5] (<N, sg>:<k, i, s, s>)
+[6] (<N, pl>:<d, o, g, s>)
+[7] (<N, sg>:<d, o, g>)
+[8] (<N, pl>:<c, h, u, r, c, h, e, s>)
+[9] (<N, sg>:<c, h, u, r, c, h>)
+...
+[glab] good(<N,sg>, <d,o,g>)
+[glab] good(<N,pl>, <d,o,g,s>)
+[glab] good(<N,pl>, <c,h,u,r,c,h,e,s>)
+[glab] check(_Noun)
+:) good <N, sg> -> <d, o, g>
+:) good <N, pl> -> <d, o, g, s>
+:) good <N, pl> -> <c, h, u, r, c, h, e, s>

@@ -1,0 +1,82 @@
+[glab] #T Test2
+[glab] quote(a)
+'a'
+[glab] quote(a.b)
+'concat(a, b)'
+[glab] quote(a+b)
+'plus(a, b)'
+[glab] quote(a*)
+'star(a)'
+[glab] quote((a+b)*)
+'star(plus(a, b))'
+[glab] _L := /a/
+[glab] _L
+/a/
+[glab] isstring(<a,b>)
+True
+[glab] isstring(<a,0>)
+False
+[glab] islang({<a>,<b>})
+True
+[glab] islang({<a>,b})
+False
+[glab] type({a,b})
+Vocabulary
+[glab] L({a,b})
+{<a>, <b>}
+[glab] _L := /a+b/
+[glab] a @ _L
+ERROR: Not a string: a
+[glab] <a,b> @ _L
+False
+[glab] _L := /(a+b)*/
+[glab] <a> @ _L
+True
+[glab] <a,b> @ _L
+True
+[glab] <b,a,b> @ _L
+True
+[glab] _e_ @ _L
+True
+[glab] <c> @ _L
+False
+[glab] _L := /((a+b).(c+d))*/
+[glab] <a,b> @ _L
+False
+[glab] <a,c> @ _L
+True
+[glab] <a,c,a> @ _L
+False
+[glab] <a,c,a,c> @ _L
+True
+[glab] <a,d,b,c> @ _L
+True
+[glab] _x := fsa(_L)
+[glab] show(_x)
+FSA:
+ -> 0 _e_ 2
+ -> 0 _e_ 1 (F)
+    2 _e_ 4
+    2 _e_ 6
+    3 _e_ 8
+    4 a 5
+    5 _e_ 3
+    6 b 7
+    7 _e_ 3
+    8 _e_ 10
+    8 _e_ 12
+    9 _e_ 2
+    9 _e_ 1 (F)
+    10 c 11
+    11 _e_ 9
+    12 d 13
+    13 _e_ 9
+[glab] E(0,a,1)
+[glab] E(0,b,2)
+[glab] show(_fsa_)
+FSA:
+ -> 0 a 1
+ -> 0 b 2
+[glab] new(_fsa_)
+[glab] show(_fsa_)
+FSA:

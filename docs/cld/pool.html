@@ -1,0 +1,58 @@
+<html>
+<head>
+<title>Pools</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="spa.css"/>
+</head>
+<body>
+<h1>Pools</h1>
+
+
+\section{Pools and Lists}
+
+\subsection{{\tt Pool}}
+
+A {\tt Pool} is a {\tt Directory} containing a
+set of numbered items, all of the same type.  {\tt Pool} must be
+specialized, and the specialization must define a {\tt childtype}
+member; it is used when instantiating a child.
+
+The \verb|new_child()| method of {\tt PoolWriter} takes no arguments; it
+allocates the next available number for the new child.
+Children are assigned sequential numeric names:
+{\tt "1"}, {\tt "2"}, etc.  (As for all files, however, the names are
+strings, not integers.)
+
+\subsection{{\tt List}}\label{seal.cld.pool.List}
+
+A {\tt List} is a sequential list of items.  The items are allocated
+in a central index, which assigns a unique numeric name to each new
+item.  Multiple lists can use the same index.  All items are
+guaranteed to have unique names, and the index stores the type and
+location of each item.
+Lists are intended for use in creating a hierarchy of items:
+lists may contain lists as members, or objects that contain lists.
+
+The class {\tt List} must be specialized, and the specialization must
+define two methods:
+\begin{itemize}
+\item\verb|create_childtypes()| should return a table that maps type names to types.
+It will be called once; the results will be cached.
+The table is used both when loading the list of elements from disk as well as
+when allocating a new element in the list.
+\item\verb|get_index()| should return a {\tt PoolIndex}.
+\end{itemize}
+A specialization may also redefine {\tt writer()}.
+
+\subsection{{\tt PoolIndex}}
+
+A {\tt PoolIndex} is a central index for a set of related {\tt PoolBlocks}.
+The index is saved in a file, and maps IDs to the relpaths where the
+corresponding files are located.
+
+Currently it is used only for texts.  The file \verb|_texts| in a
+language directory maps text IDs to their locations.
+
+
+</body>
+</html>

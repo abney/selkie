@@ -1,0 +1,729 @@
+<html>
+<head>
+<title>Python Servers</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Python Servers</h1>
+
+<h2 id="1">Introduction</h2>
+<p>
+The Seal application framework builds on the Python HTTP server.
+This appendix describes the implementation of <tt>http.server</tt> and
+the classes that it inherits from.</p>
+
+<h2 id="TCP server">The Python TCP server</h2>
+<p>
+The Python TCP server (<tt>SocketServer.TCPServer</tt>)
+handles the lowlevel connection to the client
+(that is, to the browser).</p>
+
+<h3 id="Sockets">Sockets</h3>
+<p>
+The TCP server creates a <b>socket</b>, which is an endpoint for
+communication.  It binds the socket to a <b>port</b>, and associates it
+with a hostname.  (The empty string can be used for localhost.)
+This initial socket is known as the <b>listening socket</b>.</p>
+<p>
+When a client sends a TCP request to the port, the listening socket
+accepts the connection, and spawns a new socket, called the
+<b>connection socket</b>, that represents the connection to this
+particular client.  The listening socket then continues listening for
+new connections, while the connected socket processes the request from
+the client.</p>
+<p>
+The port remains bound until the listening socket and any connected
+sockets are closed.  An attempt to create a new socket bound to the
+same port will fail with an error.</p>
+
+<h3 id="TCP server detail">TCP server</h3>
+<p>
+A TCPServer is created with an address and a handler class.  The
+address is a pair (<i>host, port</i>).  One can use the empty string for
+localhost.  This becomes the initial value for the attribute
+<tt>server_address</tt>; the attribute is updated after the socket is
+bound.  Here is an example:</p>
+<pre class="source">
+server = TCPServer(('', 8000), TCPTestHandler)
+server.serve_forever()
+</pre>
+<p>
+(Instead of calling <tt>serve_forever()</tt>, one could call
+<tt>server.handle_request()</tt> to process a single request.)</p>
+<p>
+When the server's listening socket receives a connection, spawning a
+connected socket, the server
+instantiates the handler class, and the handler instance is wrapped
+around the connected socket.  The handler class should be a
+specialization of <tt>StreamRequestHandler</tt>.
+In the above example, the handler class is <tt>TCPTestHandler</tt>.</p>
+<p>
+A StreamRequestHandler has the following attributes:</p>
+<ul>
+<li><tt>request</tt> is the connection socket.</li>
+<li><tt>client_address</tt> is a (<i>host, port</i>) pair.</li>
+<li><tt>server</tt> is the TCPServer instance.  The server, in
+turn, has the attribute <tt>server_address</tt>, which is a
+(<i>host, port</i>) pair.</li>
+<li><tt>connection</tt> is set equal to <tt>request</tt> by
+<tt>StreamRequestHandler.setup()</tt>.</li>
+<li><tt>rfile</tt> and <tt>wfile</tt> get set by
+<tt>StreamRequestHandler.setup()</tt>.  These are streams that read from and
+ write to the connection socket.</li>
+<li><tt>handle()</tt> is a no-op method that is intended to be overridden.</li>
+</ul>
+
+<h3 id="TCP test handler">TCP test handler</h3>
+<p>
+The class <tt>seal.server.TCPTestHandler</tt> provides an
+implementation of <tt>handle()</tt>
+that prints out information about the handler, and generates a simple
+HTTP response.  Point a browser at:</p>
+<pre class="source">
+http://localhost:8000/
+</pre>
+<p>
+The server should generate output that looks something like this:</p>
+<pre class="source">
+Client address: ('127.0.0.1', 51958)
+Server address: ('0.0.0.0', 8000)
+BEGIN REQUEST
+GET / HTTP/1.1
+Host: localhost:8000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+    
+END REQUEST
+</pre>
+<p>
+The test handler also sends an HTTP response (using the
+utility function <tt>write_test_response()</tt>).
+In the browser, you should see a web page containing the text "Hello, World!"</p>
+
+<h3 id="Start and stop">Start and stop</h3>
+<p>
+The server method <tt>serve_forever()</tt> processes TCP requests forever.
+If one calls it in the main thread, one must
+press control-C to break the loop.  The utility function <tt>start()</tt>
+calls it in a new thread, so that it can be stopped again more gracefully.
+<pre class="source">
+>>> server = TCPServer(('', 8000), TCPTestHandler)
+>>> start(server)
+</pre>
+<p>
+This is essentially the definition of the function <tt>tcp_test()</tt>,
+which creates and starts a TCP server using the TCP test handler:</p>
+<pre class="source">
+>>> server = tcp_test()
+</pre>
+<p>
+One can do manually what <tt>start()</tt> does, as follows:</p>
+<pre class="source">
+>>> from thread import start_new_thread
+>>> start_new_thread(server.serve_forever, ())
+-1341648896
+</pre>
+<p>
+The first argument to <tt>start_new_thread()</tt> is a function, and the
+second is an argument list for it, which in this case is empty.  The
+return value is the thread ID.</p>
+<p>
+Once the server is running, we can send it a request by using a
+browser.  Alternatively, we can issue a TCP request programmatically:</p>
+<pre class="source">
+>>> s = GET('http://localhost:8000/')
+Client address: ('127.0.0.1', 51952)
+Server address: ('0.0.0.0', 8000)
+BEGIN REQUEST
+GET / HTTP/1.0
+Host: localhost:8000
+User-Agent: Python-urllib/1.17
+
+END REQUEST
+</pre>
+<p>
+Note that the printing comes from the TCP test handler, not from
+<tt>GET</tt>.  The string <i>s</i> contains the response from the test
+handler:</p>
+<pre class="source">
+>>> print s,
+&lt;html&gt;&lt;head&gt;&lt;title&gt;Hello&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;Hello, World!&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+<p>
+The function <tt>GET()</tt> is merely a convenience.  One can do the
+same thing manually like this:</p>
+<pre class="source">
+>>> from urllib import urlopen
+>>> s = urlopen('http://localhost:8000/').read()
+</pre>
+<p>
+To stop the server gracefully, and free the port, Seal provides the
+utility function <tt>stop()</tt>.</p>
+<pre class="source">
+>>> stop(server)
+</pre>
+<p>
+It calls the method <tt>shutdown()</tt> to stop the server, and it calls
+the method <tt>server_close()</tt> to cause the port to be released.
+It may take a few seconds for the port to be freed.  After that, one
+can create a new server.</p>
+
+<!--
+\begin{table}
+\begin{tabular}{|lp{3.8in}|}
+\hline
+{\tt start(s)} & Start server $s$ running in a new thread.\\
+{\tt stop(s)} & Stop a server that was started using {\tt start()}.\\
+{\tt GET(url)} & Request a URL.\\
+\hline
+\end{tabular}
+\caption{Generally useful functions.  These can be used with any kind of server.}
+\end{table}
+-->
+
+<h2 id="Hypertext Transfer Protocol">Hypertext Transfer Protocol</h2>
+
+<h3 id="Format of HTTP requests">Format of HTTP requests</h3>
+<p>
+In the above examples of the TCP test handler print-out, the "REQUEST"
+portions represent HTTP requests.  For example:</p>
+<pre class="source">
+GET / HTTP/1.0
+Host: localhost:8000
+User-Agent: Python-urllib/1.17
+
+</pre>
+An HTTP request consists of three parts:
+<ul>
+<li>The <b>request</b>, which is <tt>GET</tt> or <tt>POST</tt> followed by
+a pathname followed by an HTTP version.  In our example:
+"<tt>GET / HTTP/1.0</tt>."</li>
+<li>The <b>mime headers</b> with various additional information.  They
+are terminated by an empty line.  In our example, there are two mime
+headers ("Host" and "User-Agent").</li>
+<li> The <b>data</b>, which begins after the empty line.  The data
+section is empty for a <tt>GET</tt> request, but contains form
+information for a <tt>POST</tt> request.  In our example, the data
+section is empty.</li>
+</ul>
+
+<h3 id="GET requests">GET requests</h3>
+<p>
+As we have just seen, one can issue a GET request by visiting
+<pre class="source">
+http://localhost:8000/
+</pre>
+<p>
+The URL may contain an arbitrary pathname - the request handler may
+interpret it however it likes.
+The HTTP request contains only mime headers, no data.</p>
+
+<h3 id="POST requests">POST requests</h3>
+<p>
+To see an example of an HTTP POST request, use <tt>tcp_test()</tt>
+to start up the TCP server, and visit the URL
+<pre class="source">
+file:///cl/examples/form.html
+</pre>
+<p>
+The form on that page looks like this:</p>
+<pre class="source">
+&lt;form method="POST" action="http://localhost:8000/foo/bar">
+User: &lt;input type="text" name="user" size="20" value="James & Nancy Kirk">&lt;/input>&lt;br/>
+User2: &lt;input type="text" name="user2" size="20">&lt;/input>&lt;br/>
+Vote: &lt;input type="radio" checked name="vote" value="Y">Yes&lt;/input>
+      &lt;input type="radio" name="vote" value="N">No&lt;/input>&lt;br/>
+Pets: &lt;input type="checkbox" checked name="pets" value="dog">Dog&lt;/input>
+      &lt;input type="checkbox" checked name="pets" value="cat">Cat&lt;/input>
+      &lt;input type="checkbox" name="pets" value="iguana">Iguana&lt;/input>&lt;br/>
+Comments: &lt;textarea name="comments">&lt;/textarea>&lt;br/>
+&lt;input type="submit" value="OK">
+&lt;/form>
+</pre>
+<p>
+If you simply click "OK," the print-out from the test handler will
+include a request section that looks something like this:</p>
+<pre class="source">
+BEGIN REQUEST
+POST /foo/bar?hi=john%20doe HTTP/1.1
+Host: localhost:8000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 67
+
+user=James+%26+Nancy+Kirk&user2=&vote=Y&pets=dog&pets=cat&comments=
+END REQUEST
+</pre>
+<p>
+The entire form is sent as a single line of text.
+The format of the <tt>POST</tt> data is called <b>urlencoded</b>;
+it is the same as the format of the query string following the
+"<tt>?</tt>" in the URL of a <tt>GET</tt> request.
+Note that spaces in the text value for <tt>user</tt> get replaced
+with <tt>+</tt> characters, and <tt>%26</tt> is the code for
+ampersand.</p>
+
+<h3 id="Upload requests">Upload requests</h3>
+<p>
+A special case of a <tt>POST</tt> request is a file upload.  To generate an upload
+request, visit</p>
+<pre class="source">
+file:///cl/examples/upload.html
+</pre>
+<p>
+The form on this webpage is as follows:</p>
+<pre class="source">
+&lt;form method="POST" enctype="multipart/form-data"
+      action="http://localhost:8000/foo/bar">
+File: &lt;input type="file" name="myfile">&lt;/input>&lt;br/>
+&lt;input type="submit" value="OK">&lt;/input>
+&lt;/form>
+</pre>
+<p>
+Click on "browse" to specify the file.  A convenient choice is</p>
+<pre class="source">
+/cl/examples/text1
+</pre>
+<p>
+Then click "OK."
+The resulting request looks like this:</p>
+<pre class="source">
+BEGIN REQUEST
+POST /foo/bar HTTP/1.1
+Host: localhost:8000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Content-Type: multipart/form-data; boundary=---------------------------9849436581144108930470211272
+Content-Length: 264
+
+-----------------------------9849436581144108930470211272
+Content-Disposition: form-data; name="myfile"; filename="text1"
+Content-Type: application/octet-stream
+
+This is a test.
+It is only a test.
+
+-----------------------------9849436581144108930470211272--
+
+END REQUEST
+</pre>
+
+<h2 id="HTTP Server">HTTP Server</h2>
+
+<h3 id="HTTP server class">HTTPServer class</h3>
+<p>
+The Python HTTPServer (module BaseHTTPServer)
+is almost identical to TCPServer.
+The only difference is that it looks up the server host name, and sets
+the attributes <tt>server_name</tt> and <tt>server_port</tt>.</p>
+<p>
+The main difference is not in the server but in the request handler.
+The appropriate class is
+<tt>BaseHTTPRequestHandler</tt> (module BaseHTTPServer),
+which builds on
+<tt>StreamRequestHandler</tt> (module SocketServer).  It reads the mime headers
+from <tt>rfile</tt> and parses them.  (It knows it has reached the end
+when it reads an empty line.)</p>
+<p>
+The parsed headers are of class <tt>mimetools.Message</tt>.  For basic
+purposes, they can be treated simply as a dict.  For example:</p>
+<pre class="source">
+for key in headers:
+    print key, headers[key]
+</pre>
+<p>
+The values are strings.</p>
+<p>
+The function <tt>http_test()</tt> is defined as follows:</p>
+<pre class="source">
+def http_test ():
+    server = HTTPServer(('', 8000), HTTPTestHandler)
+    start(server)
+    return server
+</pre>
+<p>
+If one visits <tt>http://localhost:8000/</tt>, the output
+from the HTTP test handler looks like this:</p>
+<pre class="source">
+Client address: ('127.0.0.1', 51072)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: GET / HTTP/1.1
+    command: GET
+    path: /
+    request_version: HTTP/1.1
+    Headers:
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+</pre>
+<p>
+The handler reads and digests the mime-headers portion of the request.
+Note, however, that in the case of a <tt>POST</tt> request, the data
+section of the request is left unread in <tt>rfile</tt>.</p>
+
+<h3 id="Data section">Processing the data section</h3>
+<p>
+Python provides the class <tt>cgi.FieldStorage</tt> to process the data
+section of <tt>POST</tt> requests.  It also handles the query string portion of
+a <tt>GET</tt> request, to provide a uniform interface to key-value information
+regardless of the request method.  The class <tt>CGITestHandler</tt>
+in <tt>seal.server</tt> gives examples of using <tt>FieldStorage</tt>
+to process <tt>GET</tt> and <tt>POST</tt> requests.</p>
+<pre class="source">
+class CGITestHandler (BaseHTTPServer.BaseHTTPRequestHandler):
+
+    def do_GET (self):
+        (path, qs) = parse_path(self.path)
+        self.form = cgi.FieldStorage(fp=None,
+                                     headers=None,
+                                     keep_blank_values=True,
+                                     environ={'REQUEST_METHOD':'GET',
+                                              'QUERY_STRING':qs})
+        print_request_info(self, 'GET')
+
+    def do_POST (self):
+        ctype = self.headers['Content-Type']
+        self.form = cgi.FieldStorage(fp=self.rfile,
+                                     headers=self.headers,
+                                     keep_blank_values=True,
+                                     environ={'REQUEST_METHOD':'POST',
+                                              'CONTENT_TYPE':ctype})
+        print_request_info(self, 'POST')
+</pre>
+<p>
+The information contained in the resulting <tt>FieldStorage</tt> object
+can be accessed as follows:</p>
+<pre class="source">
+for key in form:
+    print key, repr(form.getlist(key))
+</pre>
+<p>
+The method <tt>getlist()</tt> returns a list of strings.  There is also a
+method <tt>getfirst()</tt> which returns a single string.</p>
+
+<h3 id="Query string">Query string example</h3>
+<p>
+The function <tt>cgi_test()</tt> is identical to <tt>http_test()</tt>, except
+that it uses <tt>CGITestHandler</tt> as its request handler.
+Start <tt>cgi_test()</tt> and visit</p>
+<pre class="source">
+http://localhost:8000/foo?x=42&y=10
+</pre>
+<p>
+The handler prints out:</p>
+<pre class="source">
+Client address: ('127.0.0.1', 51086)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: GET /foo?x=42&y=10 HTTP/1.1
+    command: GET
+    path: /foo?x=42&y=10
+    request_version: HTTP/1.1
+    Headers:
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+    Form:
+        y ['10']
+        x ['42']
+</pre>
+<p>
+The "form" portion comes from the query string in the URL path.</p>
+
+<h3 id="Form example">Form example</h3>
+<p>
+Visit <tt>file:///cl/examples/form.html</tt> and click "OK."
+The handler prints out:</p>
+<pre class="source">
+Client address: ('127.0.0.1', 51090)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: POST /foo/bar?hi=john%20doe HTTP/1.1
+    command: POST
+    path: /foo/bar?hi=john%20doe
+    request_version: HTTP/1.1
+    Headers:
+        content-length: '67'
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+        content-type: 'application/x-www-form-urlencoded'
+    Form:
+        vote ['Y']
+        user2 ['']
+        user ['James & Nancy Kirk']
+        pets ['dog', 'cat']
+        comments ['']
+</pre>
+<p>
+Note that the <tt>FieldStorage</tt> object hides the fact that the
+information is coming from the form on the web page instead of from
+the query string at the end of the URL path.  Observe also that
+there are multiple values for <tt>pets</tt>.
+The value for <tt>user2</tt> is the empty string because we specified
+<tt>keep_blank_values=True</tt>.  If we had not specified keeping blank
+values, the key <tt>user2</tt> would have been entirely absent.</p>
+
+<h3 id="Upload example">Upload example</h3>
+<p>
+Finally, visit <tt>file:///cl/examples/form.html</tt>
+and browse to <tt>/cl/examples/text1</tt>.  Click "OK."  The handler
+prints out:</p>
+<pre class="source">
+Client address: ('127.0.0.1', 51091)
+Server address: ('0.0.0.0', 8000)
+Server name: skye.local
+Mime:
+    requestline: POST /foo/bar HTTP/1.1
+    command: POST
+    path: /foo/bar
+    request_version: HTTP/1.1
+    Headers:
+        content-length: '256'
+        accept-language: 'en-us,en;q=0.5'
+        accept-encoding: 'gzip, deflate'
+        host: 'localhost:8000'
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        user-agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:11.0) Gecko/20100101 Firefox/11.0'
+        connection: 'keep-alive'
+        content-type: 'multipart/form-data; boundary=---------------------------168072824752491622650073'
+    Form:
+        myfile ['This is a test.\nIt is only a test.\n']
+</pre>
+<p>
+Observe that the contents of the uploaded file is returned as a single
+string.</p>
+
+<h2 id="Secure HTTP">Secure HTTP</h2>
+<p>
+The Secure Socket Layer (SSL) protocol runs on top of TCP.
+HTTP requests and responses are sent via TCP, whereas
+HTTPS consists simply of HTTP requests and responses sent via SSL.</p>
+
+<h3 id="SSL server">SSL server</h3>
+<p>
+The function <tt>ssl.wrap_socket()</tt> wraps a TCP socket, returning an
+SSL socket.  All writes on the SSL socket are encrypted and written as
+ciphertext to the TCP socket, and all reads from the SSL socket read
+ciphertext from the TCP socket, decrypt it, and return the plaintext.</p>
+<p>
+If one wraps a listening socket, rather than a connection socket, then
+the result is a SSL listening socket.  When a connection is accepted,
+it creates a TCP connection socket and automatically wraps it in an
+SSL connection socket.</p>
+<p>
+The class <tt>SSLServer</tt> is a specialization of <tt>TCPServer</tt> that
+contains an SSL socket.  All communication with clients is encrypted.
+Here is an example of creating an <tt>SSLServer</tt>:</p>
+<pre class="source">
+def ssl_test ():
+    server = SSLServer(('', 8003), TCPTestHandler)
+    start(server)
+    return server
+</pre>
+<p>
+Note that <tt>ssl_test()</tt> and <tt>tcp_test()</tt> are identical except for
+the server class.  In particular, they both use the same TCP test
+handler.  After starting <tt>ssl_test()</tt>, visit the url:</p>
+<pre class="source">
+https://localhost:8003/
+</pre>
+<p>
+The results are also the same as for <tt>tcp_test()</tt>, except that
+among the other information printed out, one will see:</p>
+<pre class="source">
+Cipher: ('AES256-SHA', 'TLSv1/SSLv3', 256)
+</pre>
+
+<h3 id="Secure HTTP Server">Secure HTTP Server</h3>
+<p>
+The class SecureHTTPServer is a specialization of
+HTTPServer.  The only modification is in the init method:
+the secure server wraps the socket and sets <tt>self.socket</tt> to the
+resulting SSL socket.</p>
+<p>
+There is, again, a test function:</p>
+<pre class="source">
+def https_test ():
+    server = SecureHTTPServer(('', 8003), HTTPTestHandler)
+    start(server)
+    return server
+</pre>
+<p>
+Note that there is again no special handler: one uses the same HTTP
+test handler as in <tt>http_test()</tt>.  After starting <tt>https_test()</tt>,
+visit the url:</p>
+<pre class="source">
+https://localhost:8003/
+</pre>
+<p>
+The result is the same as for <tt>http_test()</tt>, except that
+"Cipher" is now present.</p>
+<p>
+Incidentally, SecureHTTPServer also emulates HTTPServer.
+If it is created with the keyword argument <tt>use_ssl=False</tt>, it
+uses TCP without SSL, and listens (by default) to port 8000 instead of
+8003.</p>
+
+<h2 id="WSGI Server">WSGI Server</h2>
+<p>
+A WSGI server is simply a web server that uses the Web Services
+Gateway Interface (WSGI) to interact with a handler representing an
+application (service).</p>
+<p>
+A WSGI <b>handler</b> is a function that takes two
+arguments, <i>environ</i> and <i>send function</i>, and returns a <i>response</i>.
+Let us consider environ, send function, and response in turn.</p>
+
+<h3 id="Environ">Environ</h3>
+<p>
+The environ is a dict
+containing calling information that corresponds to the environment
+variables that a web server passes to a CGI script via
+environment variables.  The variables of particular interest are as
+follows.
+<ul>
+<li><tt>PATH_INFO</tt> contains the pathname component of the request.</li>
+<li><tt>REQUEST_METHOD</tt> has an HTTP request method as value.  By
+  far the commonest values are <tt>'GET'</tt> and <tt>'POST'</tt>.</li>
+<li><tt>QUERY_STRING</tt> is provided for <tt>GET</tt> requests.</li>
+
+<li><tt>CONTENT_TYPE</tt> is provided for <tt>POST</tt> requests.  It
+<li><tt>wsgi.input</tt> is an open file containing the body of a <tt>POST</tt> request.
+  This is the only key whose value is not a string.</li>
+<li><tt>REDIRECT_REMOTE_USER</tt>, <tt>REMOTE_USER</tt>, <tt>USER</tt>
+are all possibilities for where the user name is stored.  Try them in
+that order.</li>
+<li><tt>SCRIPT_NAME</tt>, if present, should be prepended to the
+pathname to get the pathname that the browser actually requested.</li>
+<li><tt>HTTP_COOKIE</tt> has a value of form "key=value; key=value; ..."</li>
+</ul>
+<p>
+To get the keys and values of a GET request:</p>
+<pre class="source">
+cgi.parse_qs(environ['QUERY_STRING'])
+</pre>
+<p>
+To get the keys and values of a <tt>multipart/form-data</tt> POST request:</p>
+<pre class="source">
+header = environ['CONTENT_TYPE']
+(ctype, pdict) = cgi.parse_header(header)
+if ctype != 'multipart/form-data':
+    raise Exception('Expecting multipart/form-data')
+# bug fix
+pdict['boundary'] = bytes(pdict['boundary'], 'ascii')
+form = cgi.parse_multipart(env['wsgi.input'], pdict)
+for k in form:
+    form[k] = [v.decode('utf8') for v in form[k]]
+</pre>
+
+<h3 id="The response">The response</h3>
+<p>
+The handler passes back several pieces of information to the server.
+For concreteness, let us assume that the information is placed in
+variables, as follows.</p>
+<ul>
+<li><tt>status</tt>.  This is a string indicating the kind
+  of response.  The most commonly used possibilities
+  are listed here:
+    <ul>
+    <li><tt>'200 OK'</tt></li>
+    <li><tt>'303 See Other'</tt></li>
+    <li><tt>'400 Bad Request'</tt></li>
+    <li><tt>'401 Permission Denied'</tt></li>
+    <li><tt>'404 Not Found'</tt></li>
+    <li><tt>'500 Internal Server Error'</tt></li>
+    </ul>
+</li>
+<li><tt>location</tt>.  In the special case of a redirect (status
+  303), the location is a string representing the URL that the browser
+  should redirect to.</li>
+<li><tt>mimetype</tt>.  Here are some common examples:
+    <ul>
+    <li><tt>'text/css;charset=us-ascii'</tt></li>
+    <li><tt>'text/html;charset=utf-8'</tt></li>
+    <li><tt>'application/javascript;charset=us-ascii'</tt></li>
+    <li><tt>'video/mp4'</tt></li>
+    <li><tt>'text/pdf'</tt></li>
+    <li><tt>'text/plain;charset=utf-8'</tt></li>
+    <li><tt>'audio/wave'</tt></li>
+    </ul>
+</li>
+<li><tt>contents</tt>.  A list of bytelike objects (not strings).</li>
+</ul>
+<p>
+A set of HTTP response headers is then constructed.
+If the status is <tt>'303 See Other'</tt>, the headers should be:</p>
+<pre class="source">
+[('Location', location), ('Content-Length', '0')]
+</pre>
+<p>
+Otherwise, the headers should be:</p>
+<pre class="source">
+[('Content-Type', mimetype), ('Content-Length', sum(len(bs) for bs in contents))]
+</pre>
+<p>
+Finally, the response is returned in two separate pieces:</p>
+<ul>
+<li>The send function is called with arguments <tt>status</tt> and <tt>headers</tt>.</li>
+<li>The <tt>contents</tt> are returned.</li>
+</ul>
+
+<h3 id="Running the server">Running the server</h3>
+<p>
+A web server that implements the WSGI is provided.  Assume that <tt>handler</tt>
+is a variable containing our WSGI handler.  The server can be run as follows:</p>
+<pre class="source">
+from wsgiref.simple_server import make_server
+server = make_server('localhost', 8000, handler)
+server.serve_forever()
+</pre>
+<p>
+Point a browser as <tt>http://localhost:8000/</tt>.</p>
+
+<h3 id="A simple example">A simple example</h3>
+<pre class="source">
+import cgi
+from wsgiref.simple_server import make_server
+
+def handler (environ, send):
+    contents = [b'Hello, world!\n',
+                b'Path: ',
+                environ['PATH_INFO'].encode('ascii')]
+    nb = sum(len(s) for s in contents)
+    send('200 OK', [('Content-Type', 'text/plain;charset=utf-8'),
+                    ('Content-Length', str(nb))])
+    return contents
+
+server = make_server('localhost', 8000, handler)
+server.serve_forever()
+</pre>
+
+</body>
+</html>

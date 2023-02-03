@@ -1,0 +1,431 @@
+<html>
+<head>
+<title>Conversational agent</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Conversational agent</h1>
+<p>
+The module <tt>seal.bot</tt> provides a conversational agent.</p>
+
+<h2 id="1">Using the engine</h2>
+
+<h3 id="1.1">An interaction</h3>
+<p>
+The previous chapters have described the various components of a
+conversational agent: parser, semantic
+interpreter, and resolution theorem prover.  The <tt>seal.bot</tt> module
+encapsulates them in a conversational agent, represented by the class
+<tt>NPC</tt> (non-player character), and embeds the agent in a bare-bones
+environment, in the style of an interactive fiction engine.</p>
+<p>
+Here is an example of an interaction, with commentary.
+<pre class="source">
+$ python -m seal.bot
+NPC enter
+> 
+</pre>
+<p>
+The engine does provide an environment for multiple characters and
+event types, but it is a stub.  There are two characters: Player
+and Non-Player Character (NPC).  The only event type with any
+non-trivial implementation is "say."  Anything typed at the prompt
+is converted to a "say" action whose agent is Player.</p>
+<pre class="source">
+> all humans are mortal
+NPC say OK
+> Socrates is human
+NPC say OK
+> who is mortal
+NPC say Socrates
+> is Socrates mortal
+NPC say yes
+> is Socrates human
+NPC say yes
+> is Zeus human
+NPC say I don't know
+> Zeus is not mortal
+NPC say OK
+> is Zeus human
+NPC say no
+</pre>
+
+<h3 id="1.2">The KB and theorem prover</h3>
+<p>
+Several debugging commands are available to examine the internal state
+of the conversational agent.</p>
+<pre class="source">
+> :kb
+1. -(human _2) +(mortal _2)
+2. +(human Socrates)
+27. -(mortal Zeus)
+</pre>
+<p>
+The KB contains three clauses.  "<tt>_2</tt>" is an anonymous
+variable; variables are interpreted as universally bound.  A clause
+consists of literals, which have a polarity (positive or negated), and
+are implicitly connected by disjunction.  Clauses are connected by
+conjunction.</p>
+<p>
+For example, clause 1 states that either <tt>_2</tt> is not human, or
+<tt>_2</tt> is mortal.  That is equivalent to "if <i>x</i> is human, then
+<i>x</i> is mortal."  Clause 2 states that Socrates is human, and clause
+27 states that Zeus is not mortal.  All three clauses are asserted to
+be simultaneously true.</p>
+<p>
+Here is another example (adapted from Russell &amp; Norvig, Chapter 9),
+illustrating case-based reasoning of the sort that a purely backward
+chaining reasoner does not support.</p>
+<pre class="source">
+> either Smith killed Tuna or Curiosity killed Tuna
+NPC say OK
+> any one who loves animals does not kill animals
+NPC say OK
+> Tuna is a cat
+NPC say OK
+> every cat is an animal
+NPC say OK
+> Smith loves animals
+NPC say OK
+> does Smith love Tuna
+NPC say yes
+> did Smith kill Tuna
+NPC say I don't know
+</pre>
+<p>
+It would seem NPC <i>ought</i> to know.  The problem is that "any
+one" is interpreted to mean "any <i>person,</i>" and NPC does not
+know that Smith is a person.</p>
+<pre class="source">
+> Smith is a person
+NPC say OK
+> did Smith kill Tuna
+NPC say no
+> who killed Tuna
+NPC say Curiosity
+</pre>
+<p>
+At this point, the KB contains the following clauses.</p>
+<pre class="source">
+> :kb
+1. -(human _2) +(mortal _2)
+2. +(human Socrates)
+27. -(mortal Zeus)
+35. +(kill Smith Tuna) +(kill Curiosity Tuna)
+36. -(person _18) +(animal (_Sk1 _18)) -(animal _20) -(kill _18 _20)
+37. -(person _18) -(love _18 (_Sk1 _18)) -(animal _20) -(kill _18 _20)
+38. +(cat Tuna)
+39. -(cat _22) +(animal _22)
+40. -(animal _25) +(love Smith _25)
+63. +(person Smith)
+</pre>
+<p>
+Backward-chaining systems like Prolog permit only Horn clauses
+(clauses containing exactly one positive literal).
+Clauses 35 and 37 are not Horn clauses; the reasoning illustrated here
+is not supported by Prolog.</p>
+
+<h3 id="1.3">Parser and interpreter</h3>
+<p>
+Additional debugging commands allow one to examine the most important
+intermediate representations.  The three main components are the
+parser, the interpreter, and the reasoner.  The parser takes a
+sentence and converts it to a parse tree.  The process can be seen
+using the <tt>:chart</tt> command.</p>
+<pre class="source">
+> who does every cat love
+NPC say I don't know
+> :chart
+sent= 'who does every cat love'
+Add Node [0 WhPron.sg 1] who WhPron.sg : wh
+Add Edge (WhNP.$0 -> [0 WhPron.sg 1] * {sg})
+Add Node [0 WhNP.sg 1] (WhNP.$0 -> [0 WhPron.sg 1] * {sg})
+Add Edge (WhInv -> [0 WhNP.sg 1] * Aux.$0.$1 NP.$0 VP.$1.+ {* *})
+...
+Add Edge (Start -> [0 Root 5] * {})
+Add Node [0 Start 5] (Start -> [0 Root 5] * {})
+Add Edge (VP.$0.- -> [4 V.base.t.0 5] * NP.* MP.$1 {base 0})
+Add Edge (VP.$0.+ -> [4 V.base.t.0 5] * MP.$1 {base 0})
+Add Edge (VP.$0.$1 -> [4 V.base.t.0 5] * NP.* SC.$2.$1 {base * 0})
+</pre>
+<p>
+The interpreter takes the parse tree and converts it to a
+predicate-calculus expression.  This is accomplished in several steps,
+which are shown by the <tt>:parse</tt> command.</p>
+<pre class="source">
+> :parse
+sent= 'who does every cat love'</p>
+<p>
+who does every cat love
+#Tree:
+  Start : $1
+    Root : (wh _9 (!g= _9 $1))
+      WhInv : (!qs ($4 $3))
+        WhNP.sg : $1
+          WhPron.sg who : wh
+        Aux.sg.base does : None
+        NP.sg : (!q $1 _7 ($2 _7))
+          Det.sg every : every
+          N2.sg : $1
+            N1.sg : $1
+              N.sg cat : cat
+        VP.base.+ : (lambda _8 ($1 _8 !g))
+          V.base.t.0 love : love
+#Raise quantifiers:
+  Start : $1
+    Root : (wh _9 (!g= _9 $1))
+      NP.sg : ($1 _7 ($2 _7) $3)
+        Det.sg every : every
+        N2.sg : $1
+          N1.sg : $1
+            N.sg cat : cat
+        WhInv : ($4 $3)
+          WhNP.sg : $1
+            WhPron.sg who : wh
+          Aux.sg.base does : None
+          NP.sg : _7
+          VP.base.+ : (lambda _8 ($1 _8 !g))
+            V.base.t.0 love : love
+#Translation:
+  (wh _9 (!g= _9 (every _7 (cat _7) ((lambda _8 (love _8 !g)) _7))))
+#Replace gaps:
+  (wh _9 (every _7 (cat _7) ((lambda _8 (love _8 _9)) _7)))
+#Definitions:
+  (wh _9 (forall _7 (if (cat _7) ((lambda _8 (love _8 _9)) _7))))
+#Lambda reduction:
+  (wh _9 (forall _7 (if (cat _7) (love _7 _9))))
+</pre>
+<p>
+Finally, the reasoner converts predicate calculus expressions to
+clauses, before doing inference proper.  The steps in the conversion
+can be seen by invoking the <tt>:clause</tt> command.</p>
+<pre class="source">
+> :clause
+expr= (wh _3 (forall _1 (if (cat _1) (love _1 _3))))
+#Standardize variables:
+  (wh _13 (forall _14 (if (cat _14) (love _14 _13))))
+#Expand query:
+  (forall _13 (if (forall _14 (if (cat _14) (love _14 _13))) (_Ans _13)))
+#Eliminate implications:
+  (forall _13 (or (not (forall _14 (or (not (cat _14)) (love _14 _13)))) (_Ans _13)))
+#Lower negation:
+  (forall _13 (or (exists _14 (and (cat _14) (not (love _14 _13)))) (_Ans _13)))
+#Skolemize:
+  (or (and (cat (_Sk2 _13)) (not (love (_Sk2 _13) _13))) (_Ans _13))
+#Conjunctive normal form:
+  [[(cat (_Sk2 _13)), (_Ans _13)], [(not (love (_Sk2 _13) _13)), (_Ans _13)]]
+#Clauses:
+  4. +(cat (_Sk2 _13)) ; +(_Ans _13)
+  5. -(love (_Sk2 _13) _13) ; +(_Ans _13)
+4. +(cat (_Sk2 _13)) ; +(_Ans _13)
+5. -(love (_Sk2 _13) _13) ; +(_Ans _13)
+</pre>
+
+<h3 id="1.4">Grammar files</h3>
+<p>
+The parser and interpreter are controlled by a grammar, a lexicon, and
+a set of defined symbols.  To give a sense of the contents, I give the
+first few lines of each section of the current default grammar,
+<tt>sg2a.g</tt>.  The rewrite rules:</p>
+<pre class="source">
+Start -> Root : $1
+Start -> NP.* : $1
+Start -> PP.* : $1
+Start -> Greeting : ($1)
+
+# Clauses
+Root -> S.-               : $1
+Root -> YN                : (yn $1)
+Root -> WhInv             : (wh @ (!g= @ $1))
+Root -> Wh                : (wh @ (!g= @ $1))
+</pre>
+<p>
+Each line is a grammar rule, which consists of a syntactic portion and
+a semantic attachment, separated by a colon.  The format is discussed
+in more detail below.</p>
+<p>
+The first few lines of the lexicon section are as follows:</p>
+<pre class="source">
+a        Det.sg : some
+a        IndefArt
+all      Det.pl   : every
+am       Aux.1s.pred
+am       Aux.1s.ing
+am       Aux.1s.enp
+</pre>
+<p>
+The generalized quantifiers <tt>some</tt> and <tt>every</tt> are defined in
+terms of the basic quantifiers <tt>forall</tt> and <tt>exists</tt> in the
+macros section:</p>
+<pre class="source">
+every x R S: (forall x (if R S))
+some x R S: (exists x (and R S))
+nsome x R S: (not (exists x (and R S)))
+</pre>
+
+<h2 id="2">Agents and events</h2>
+
+<h3 id="2.1">The event model</h3>
+<p>
+In our model, an {\df agent} is essentially a function that takes a
+percept and returns an action.  A percept is an {\df event}, which is
+the combination of an agent and an action.  An {\df action} is a tuple
+whose first element is a string representing the action type, and
+whose remaining elements are determined by the type.  Currently, the
+primary action type is <tt>'say'</tt>; it takes a single argument, which
+is a string representing the utterance.  Two other action types
+occur.  The system generates an <tt>'enter'</tt> action when the game
+begins, and the user generates a <tt>'quit'</tt> action by hitting
+control-D.</p>
+<p>
+The class <tt>Event</tt> represents an event.  It is created from an
+agent and action:</p>
+<pre class="python">
+>>> from seal.nlp.bot import Engine, Event
+>>> eng = Engine()
+>>> p = eng.player
+>>> e = Event(p, ('say', 'hi'))
+>>> e.agent == p
+True
+>>> e.action
+('say', 'hi')
+</pre>
+
+<h3 id="2.2">NPC</h3>
+<p>
+The conversational agent is an instance of the class <tt>NPC</tt>
+("non-player character").  It requires a grammar:</p>
+<pre class="python">
+>>> from seal.nlp.bot import NPC
+>>> from seal.core.io import ex
+>>> npc = NPC(ex.sg2a)
+</pre>
+<p>
+It creates an interpreter (which contains a parser), a KB, and a
+prover.</p>
+<pre class="source">
+>>> npc.interpreter
+&lt;seal.interp.Interpreter object at 0x10320ed90>
+>>> npc.kb
+&lt;seal.logic.KB object at 0x103271590>
+>>> npc.prover
+&lt;seal.logic.Prover object at 0x1032715d0>
+</pre>
+<p>
+The <tt>__call__()</tt> method accepts a percept.  The NPC responds only
+if the type is <tt>'say'</tt>.  Otherwise it returns <tt>None</tt>.</p>
+<pre class="python">
+>>> npc(e)
+('say', 'hello')
+>>> npc(Event(p, ('foo',)))
+>>> 
+</pre>
+<p>
+In the case of a <tt>'say'</tt> event, the argument of the event is the
+utterance.  The NPC applies the interpreter
+to the utterance to get a list of expressions.
+If the sentence does not parse, the NPC responds "I don't
+understand."</p>
+<pre class="python">
+>>> npc(Event(None, ('say', 'sdfsdf')))
+('say', "I don't understand")
+</pre>
+<p>
+If there are multiple interpretations, the NPC simply takes the
+first.  Then it calls <tt>speech_act()</tt> on the expression to
+classify it as <tt>'ask'</tt>, <tt>'greet'</tt>, or <tt>'inform'</tt>.</p>
+<pre class="python">
+>>> from seal.nlp.expr import parse_expr
+>>> from seal.nlp.bot import speech_act
+>>> speech_act(parse_expr('(greeting)'))
+'greet'
+>>> speech_act(parse_expr('(wh x (human x))'))
+'ask'
+>>> speech_act(parse_expr('(human Socrates)'))
+'inform'
+</pre>
+<p>
+In response to a greeting, the NPC says "hello."  In response to a
+question, the NPC queries its KB and speaks the answer or answers.  If
+no answer is found, it says "I don't know."  Finally, in response to
+an inform, the NPC adds the expression to the KB and says "OK."
+If anything throws an exception, the NPC traps the exception and says
+"Ugh, my brain hurts."</p>
+
+<h3 id="2.3">Player</h3>
+<p>
+The class <tt>Player</tt> is an avatar of the user.  It is given access to the
+engine to allow the user to examine the internal state of the engine,
+including the internal state of the NPC, via
+the debugging commands described below.</p>
+<pre class="python">
+>>> from seal.nlp.bot import Player
+>>> p = Player(eng)
+</pre>
+<p>
+The player is an agent, meaning
+that it has a <tt>__call__()</tt> method that expects a percept and
+returns an action.  It simply prints the percept, and then prompts the
+user to "say" something.</p>
+<pre class="source">
+>>> p(Event(npc, ('say', 'hello')))
+NPC say hello
+> 
+</pre>
+<p>
+Whatever the user types (a single line) is wrapped in a <tt>'say'</tt>
+action and returned:
+<pre class="source">
+>>> p(Event(npc, ('say', 'hello')))\\
+NPC say hello
+> <b>hello</b>
+('say', 'hello')
+</pre>
+<p>
+The user's input is "hello" (in boldface), and <tt>('say', 'hello')</tt> is
+the return value from the original call.</p>
+<p>
+If the user types a line beginning with a colon, it is interpreted as
+a debugging command.  Debugging commands produce some output, and then
+a new prompt is generated.  However, the call to the player does not
+return until an utterance - a line not beginning with colon - is
+typed.</p>
+<pre class="source">
+>>> p(Event(npc, ('enter',)))
+NPC enter
+> :help
+:? - this help message
+:help - this help message
+:clauses - show the clauses from the prev sent
+:kb - show the knowledge base
+:parse - show the parse & interp of the prev sent
+:reload - reload .g, .lex, .defs
+:err - print the previous error
+> :kb
+
+> the dog barked
+('say', 'the dog barked')
+</pre>
+<p>
+The debugging commands print out information about the internal state
+of the NPC: the parse tree and its interpretation, the mapping from
+expression to clauses, the KB, the identity of the error if an error
+was encountered.</p>
+<p>
+If the user presses control-D in response to the player prompt, the
+player returns the action <tt>(quit,)</tt>.</p>
+
+<h2 id="3">Engine</h2>
+<p>
+The class <tt>Engine</tt> runs the simulation.  It creates an NPC and
+player, and an initial event, in which the NPC enters.  Then it enters
+a loop in which it alternates between agents.  It calls the current
+agent with the current event, and the combination of current agent and
+the action that it returns, constitutes the next event, which is
+passed to the other agent.  The loop continues until a <tt>'quit'</tt>
+action is encountered.</p>
+<p>
+
+</body>
+</html>

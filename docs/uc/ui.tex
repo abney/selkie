@@ -1,0 +1,33 @@
+
+\section{The UC UI}
+
+This section documents the module {\tt seal.uc.ui}.  The examples
+assume that one has done:
+\begin{python}
+>>> from seal.uc.ui import *
+>>> from seal.wsgi import run
+>>> from seal.uc.corpus import copy_corpus, Corpus, delete_corpus
+>>> from seal.io import ex
+\end{python}
+
+\subsection{Introduction}
+
+This is the current implementation of {\tt cld}, which is described in
+{\it The Design of CLD.\/}  The module {\tt seal.uc.ui} contains a web
+application.  It draws on several previous chapters, especially:
+\begin{itemize}
+\item The tabular-file database (Chapter~\ref{chap2})
+\item The Python interface to the UC data (Chapter~\ref{chap3})
+\item The Seal user interface (Chapter~\ref{chap4})
+\end{itemize}
+
+
+\subsection{Item store editor}
+
+Access at a low level is provided by the class {\tt ItemStoreEditor}.
+To run it:
+\begin{myverb}
+>>> copy_corpus(ex.uc, '/tmp/foo')
+>>> corpus = Corpus(ex.uc)
+>>> run(ItemStoreEditor(corpus))
+\end{myverb}

@@ -1,0 +1,60 @@
+<html>
+<head>
+<title>Romanizations</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Romanizations</h1>
+<p>
+For general information about romanizations and registries, see
+<a href="../core/romanization.html">Romanization</a>.</p>
+
+<h2>Registry</h2>
+<p>
+A Registry is a specialization of Directory that contains
+Romanizations.  The following methods are useful:</p>
+<dl>
+<dt><tt>new_child(name)</tt></dt>
+<dd>Create a new Romanization.</dd>
+
+<dt><tt>__getitem__(name)</tt></dt>
+<dd>Returns an existing Romanization.  Returns a Romanization file.
+  If the directory contains a file with the given name, it is
+  returned, and otherwise, if there is a "standard" romanization with
+  the given name, it is returned, wrapped in the ReadOnlyRomanization class.</dd>
+
+<dt><tt>__contains__(name)</tt></dt>
+<dd>True if there is a file in the directory or a standard
+  romanization with the given name.</dd>
+
+<dt><tt>__iter__()</tt></dt>
+<dd>Iterates only over the files that are actually in the directory.</dd>
+
+</dl>
+
+<h2>Romanization</h2>
+<p>
+A Romanization is a mapping from 7-bit ASCII strings to Unicode
+strings.</p>
+<dl>
+<dt><tt>decode(b)</tt></dt>
+<dd>Returns the decoding of the byte-sequence <i>b</i>.</dd>
+
+<dt><tt>decoder()</tt></dt>
+<dd>Returns a decoder.  (The decode method creates a new one each time
+  it is called.)</dd>
+
+<dt><tt>romanization()</tt></dt>
+<dd>Returns the romanization itself; the file contents.</dd>
+
+<dt><tt>__setitem__(k,v)</tt></dt>
+<dd>Modifies the mapping.</dd>
+
+</dl>
+<p>
+A ReadOnlyRomanization behaves the same, except that it signals an
+error if one tries to set an entry.</p>
+
+</body>
+</html>

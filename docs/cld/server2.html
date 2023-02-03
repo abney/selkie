@@ -1,0 +1,83 @@
+<html>
+<head>
+<title>A web server</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="spa.css"/>
+</head>
+<body>
+<h1>A web server</h1>
+
+
+
+<h2 id="4">Client</h2>
+
+<h3 id="4.1">The Client class</h3>
+<p>
+The Client constructor takes a single argument, the server address,
+which takes the form of a pair (host, port).  The instantiated client
+behaves like a function.  Its <tt>__call__()</tt> method takes a
+request and an optional <tt>follow_redirects</tt>
+argument, which defaults to True.  The request is first normalized
+using the function <tt>parse_request(),</tt>
+then the method <tt>send_and_receive()</tt> is called to process the request.
+If <tt>follow_redirects</tt> is True, then as long as the return value
+from <tt>send_and_receive()</tt> is a redirect, it is used to issue a
+new request to the server, until a non-redirect response is eventually
+obtained.</p>
+<p>
+A parsed request may be just a pathname, in which case an HTTP GET is
+constructed and sent to the server, or it may be a 3-tuple of
+pathname, form information, and cookie information, in which case an
+HTTP POST is constructed and sent to the server.</p>
+
+<h3 id="4.2">String format for requests</h3>
+<p>
+There is a uniform string format for requests,
+which <tt>parse_request()</tt> takes as input.
+In the string format, a string containing no colons is a pathname, but
+a string containing colons represents a complex request.
+A complex request
+contains either two or three fields separated by colons.  The first
+field is the pathname, which obviously may not contain any colons.
+The second field
+is form information, and the third field (if present) contains cookie
+information.</p>
+<p>
+Form information and cookie information consist of
+settings of the form "key=value" or just "key."  In the latter form,
+where there is no equals sign, the empty string is supplied as value.  Multiple
+settings are separated by commas.</p>
+<p>
+A dict is constructed from the cookie settings.  A "multidict" is
+constructed from the form information, meaning a dict in which each
+key is associated with a <i>list</i> of values.  That is, a given key
+may be repeated in the form settings, but keys cannot be repeated
+among the cookie settings.  The values in a form dict are lists of
+strings, and the values in a cookie dict are single strings.</p>
+<p>
+To give the user additional flexibility, as an alternative to the
+string format, a request may take the
+form of a tuple containing two or three elements.  The first element
+must be a string (the pathname).  The second and third elements should
+be sequences of (key, value) pairs.</p>
+<p>
+Here is an example of the behavior of <tt>parse_request():</tt>
+<pre class="python">
+>>> from seal.app.parse import parse_request
+>>> parse_request('/foo/bar')
+'/foo/bar'
+>>> parse_request('/foo/bar:x=10,y=20')
+('/foo/bar', {'x': ['10'], 'y': ['20']}, {})
+>>> rs = '/foo.1/bar.2.4:x=10,*ss=hi,y=2,*ss=bye:user=abney,token=foo'
+>>> (pathname, form, cookie) = parse_request(rs)
+>>> pathname
+'/foo.1/bar.2.4'
+>>> form
+{'x': ['10'], '*ss': ['hi', 'bye'], 'y': ['2']}
+>>> cookie
+{'user': 'abney', 'token': 'foo'}
+</pre>
+
+
+</body>
+</html>

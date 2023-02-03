@@ -1,0 +1,4 @@
+(forall x
+   (if (forall y
+          (if (animal y) (loves x y)))
+       (exists y (loves y x))))

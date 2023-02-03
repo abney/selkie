@@ -1,0 +1,560 @@
+<html>
+<head>
+<title>Other lexica and grammars</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../default.css"/>
+</head>
+<body>
+<h1>Other lexica and grammars</h1>
+
+<h2 id="1">Census</h2>
+<p>
+The module <tt>seal.data.census</tt>
+provides an interface to a list of names from
+the U.S. Census.  A sample of about 6,000,000 census entries was selected,
+and the distribution of first and last names was computed.  The actual
+sample of last names included only valid last-name entries, so it was
+somewhat smaller than the original sample of entries.  The first-name
+sample was divided by gender, so that the male sample and female
+sample contain about 3,000,000 sample points each.</p>
+<p>
+The basic function is <tt>get()</tt>.</p>
+<pre class="python">
+>>> from seal.data import census
+>>> francis = census.get('Francis')
+>>> francis
+&lt;Name FRANCIS mr=127 fr=393 lr=385>
+</pre>
+<p>
+The argument to <tt>get()</tt> is case-insensitive.  If the argument is
+not found in the database, the return value is <tt>None</tt>.</p>
+<pre class="python">
+>>> francis.male.freq
+0.16
+>>> francis.female.freq
+0.039
+>>> francis.last.freq
+0.029
+>>> francis.maleness()
+0.8040201005025125
+</pre>
+<p>
+The value for <tt>francis.male</tt> or <tt>francis.female</tt>
+or <tt>francis.last</tt> is a
+<tt>census.Entry</tt> object, which has attributes <tt>string</tt>,
+<tt>freq</tt>, <tt>cumfreq</tt>, and <tt>rank</tt>.</p>
+<ul>
+<li><p>
+The <tt>string</tt> is the
+same as <tt>n.string</tt>, where <tt>n</tt> is the <tt>Name</tt> object.</p>
+<pre class="python">
+>>> francis.string
+'FRANCIS'
+</pre>
+</li>
+<li><p>
+The <tt>freq</tt> is in percent.  It represents the percent of people in
+the sample whose name was the one given.  Note that a last name with
+frequency of 1% corresponds to an absolute count of
+about 60,000 (out of 6,000,000), whereas a first name with frequency 1%
+corresponds to an absolute count of about 30,000 (out of
+3,000,000).</p>
+</li>
+<li><p>
+The <tt>cumfreq</tt> is in percent.</p>
+<pre class="python">
+>>> francis.male.cumfreq
+64.25
+</pre>
+</li>
+<li><p>
+The <tt>rank</tt> is an integer; the most-frequent name in the
+relevant sample has rank 1.</p>
+<pre class="python">
+>>> francis.male.rank
+127
+</pre>
+</li>
+<li><p>
+The method <tt>maleness()</tt> returns the
+conditional probability that the name is male, given that it is a
+first name.  That is, if <i>m</i> is the frequency in the male entry, and
+<i>f</i> is the frequency in the female entry, maleness is <i>m/(m+f)</i>.  (If
+the name never occurs as a first name, maleness defaults to 0.5.)</p>
+<pre class="python">
+>>> jordan = census.get('jordan')
+>>> jordan.maleness()
+0.8235294117647058
+</pre>
+</li>
+</ul>
+<p>
+A name that occurs at all has values for all three entries.  For
+example, "Morrison" occurs only as a last name:</p>
+<pre class="python">
+>>> n = census.get('Morrison')
+>>> n.male.freq
+0.0
+>>> n.female.freq
+0.0
+>>> n.last.freq
+0.048
+</pre>
+<p>
+If the name occurs in none of the samples, <tt>census.get()</tt> returns
+<tt>None</tt>.</p>
+<p>
+One can iterate over all names by calling the function
+<tt>names()</tt>.</p>
+
+<h2 id="2">WordNet</h2>
+<p>
+WordNet is a lexical database of word senses.  A <b>word</b> is
+represented simply as a string.  Each word has one or more <b>senses</b>:</p>
+<pre class="source">
+>>> hound = word_senses('hound')
+>>> hound
+[Synset('hound.n.01'), Synset('cad.n.01'), Synset('hound.v.01')]
+</pre>
+<p>
+In WordNet, senses are called <b>synsets</b>.  They are thought of as
+sets of synonyms, which is to say, words expressing a common sense.
+We can also go from senses to the words that express them:</p>
+<pre class="source">
+>>> words_expressing(hound[0])
+['hound', 'hound_dog']
+>>> words_expressing(hound[1])
+['cad', 'bounder', 'blackguard', 'dog', 'hound', 'heel']
+>>> words_expressing(hound[2])
+['hound', 'hunt', 'trace']
+</pre>
+<p>
+The senses of a word are implicitly grouped by part of speech.  In our
+example, the noun senses of "hound" come first, and then the verb sense, and
+this is true in general in WordNet.  One can get the group for a
+particular part of speech by providing the part of speech as a second
+argument to <tt>word_senses()</tt>:</p>
+<pre class="source">
+>>> word_senses('hound', 'v')
+[Synset('hound.v.01')]
+</pre>
+<p>
+Senses never cross parts of
+speech; a given sense belongs to a single part of speech.  For
+example, even if "christening" names the act of
+christening, its sense is taken to be distinct from that of the verb
+"christen."  (To be precise, WordNet treats "christening" as
+ambiguous between a noun and gerund, the latter having part of speech
+<tt>v</tt> and synonymous with "christen.")</p>
+<p>
+By convention, senses are numbered within part-of-speech groups,
+beginning at 1.  The two nominal senses of "hound" are
+<tt>hound.n.01</tt> and <tt>hound.n.02</tt>.  One can use <tt>sense()</tt> to
+retrieve the synset corresponding to a designator, or <b>sense name</b>:</p>
+<pre class="source">
+>>> sense('hound.n.01')
+Synset('hound.n.01')
+>>> sense('hound.n.02')
+Synset('cad.n.01')
+</pre>
+<p>
+Each sense name identifies a unique synset, but there may be more than
+one name for a given synset, and the default name for a synset may
+differ from the one used to access it, as in the case of <tt>hound.n.02</tt>.
+In fact, there are as many names for a synset as there are words
+expressing the sense:</p>
+<pre class="source">
+>>> words_expressing(hound[1])
+['cad', 'bounder', 'blackguard', 'dog', 'hound', 'heel']
+>>> sense_names(hound[1])
+['cad.n.01', 'bounder.n.01', 'blackguard.n.01', 'dog.n.04', '
+hound.n.02', 'heel.n.03']
+</pre>
+<p>
+One can confirm that the second nominal sense of "hound" and the
+fourth nominal sense of "dog" are one and the same:</p>
+<pre class="source">
+>>> dog = word_senses('dog', 'n')
+>>> dog[3] == hound[1]
+True
+</pre>
+<p>
+Words expressing a sense are sorted in approximate order of decreasing
+frequency.  The default name for a sense uses the most-common word
+that expresses it.  However, there is no guarantee that the sense is
+the first sense of the word.  The word "pointer" provides an
+example:</p>
+<pre class="source">
+>>> word_senses('pointer')
+[Synset('arrow.n.01'), Synset('pointer.n.02'), Synset('cursor.
+n.01'), Synset('pointer.n.04')]
+>>> words_expressing(pointer[1])
+['pointer']
+</pre>
+<p>
+The second sense of "pointer" can only be expressed as "pointer,"
+so necessarily the word chosen for the default sense name is
+"pointer."  But it is not the dominant sense of the word
+"pointer."</p>
+<p>
+The name "synset" suggests that a sense is uniquely determined by
+the set of words that express it, but that is not actually the case.
+For example, the two senses of "otter" are identical as sets of
+words, but they are nonetheless distinct senses:</p>
+<pre class="source">
+>>> otter = word_senses('otter')
+>>> words_expressing(otter[0])
+['otter']
+>>> words_expressing(otter[1])
+['otter']
+</pre>
+<p>
+Their names do differ: the first is <tt>otter.n.01</tt> and the second is
+<tt>otter.n.02</tt>.  WordNet also provides definitions for senses, and
+in a case like this, the definition is the easiest way to determine the
+intended distinction.</p>
+<pre class="source">
+>>> otter[0].definition
+'the fur of an otter'
+>>> otter[1].definition
+'freshwater carnivorous mammal having webbed and clawed feet 
+and dark brown fur'
+</pre>
+<p>
+Incidentally, the official unique identifier for a synset is not the
+sense name, but its byte offset in the file for the given part of speech.
+For example, the first sense of "otter" occurs at offset 
+14765785 of the noun file, and the second sense occurs at offset
+2444819 of the same file:</p>
+<pre class="source">
+>>> otter[0].pos
+'n'
+>>> otter[0].offset
+14765785
+>>> otter[1].pos
+'n'
+>>> otter[1].offset
+2444819
+</pre>
+<p>
+WordNet defines a number of relations among word senses.   The most
+common is the "is-a" relation.  The parents of a sense are called
+its <tt>hypernyms()</tt>, and its children are called <tt>hyponyms()</tt>.
+For example:</p>
+<pre class="source">
+>>> otter[0].hypernyms()
+[Synset('fur.n.01')]
+>>> otter[0].hyponyms()
+[]
+>>> otter[1].hypernyms()
+[Synset('musteline_mammal.n.01')]
+>>> otter[1].hyponyms()
+[Synset('river_otter.n.01'), Synset('eurasian_otter.n.01')]
+</pre>
+<p>
+Most words have a unique parent, though there is occasional multiple parentage.</p>
+
+<h2 id="3">English Grammar</h2>
+
+<h3 id="3.1">First grammars</h3>
+<p>
+Grammars 5, 6, and 7 represent a sequence of grammars covering
+additional phenomena.  In each case, there are three files: for
+example, <tt>ex.g5</tt>, <tt>ex.lex5</tt>, and <tt>ex.text5</tt>.</p>
+<p>
+Grammar 5 adds pronouns and names, noun modification, a richer set
+of subcategorization, including complements of adjectives, and
+subordinate clauses.</p>
+<pre class="source">
+Root -> S;
+Root -> NP;
+S -> NP[n:$n] VP[f:$n];
+NP[n:$n] -> Pron[n:$n];
+NP[n:$n] -> Name[n:$n];
+NP[n:$n] -> Det[n:$n] Nom[n:$n];
+NP[n:pl] -> NP Conj NP;
+Nom[n:$n] -> Adj1 Nom[n:$n];
+Nom[n:$n] -> N[n:$n];
+VP[f:$f] -> V[f:$f,t:n,s:null];
+VP[f:$f] -> V[f:$f,t:y,s:null] NP;
+VP[f:$f] -> V[f:$f,t:y,s:$p] NP PP[f:$p];
+VP[f:$f] -> V[f:$f,t:y,s:np] NP NP;
+VP[f:$f] -> V[f:$f,t:n,s:$p] PP[f:$p];
+VP[f:$f] -> V[f:$f,t:n,s:adj] AdjP;
+VP[f:$f] -> V[f:$f,t:y,s:$c] NP SC[f:$c];
+VP[f:$f] -> V[f:$f,t:n,s:$c] SC[f:$c];
+PP[f:$p] -> P[f:$p] NP;
+AdjP -> Adj1[s:null];
+AdjP -> Adj1[s:$p] PP[f:$p];
+Adj1[s:$p] -> Deg Adj[s:$p];
+Adj1[s:$p] -> Adj[s:$p];
+SC[f:$c] -> C[f:$c] S;
+SC[f:inf] -> P[f:to] VP[f:base];
+</pre>
+<p>
+Here are examples of coverage (see <tt>text5</tt>):</p>
+<pre class="source">
+this dog
+*this dogs
+these dogs
+the dog
+the dogs
+this dog barks
+these dogs bark
+*these dogs barks
+*these dogs bark the cat
+these dogs chase the cat
+the black dog
+Fido chases the cat
+he thinks about the dog
+she thinks that the dog chases the cat
+*she thinks the dog
+*she tells that the dog chases the cat
+she tells the dog that the cat barks
+the cat thinks
+the cat wants to bark
+Fido is black
+the cat is happy about the toy
+we gave the dog a toy
+we gave a toy to the dog
+</pre>
+<p>
+Grammar 6 adds only one rule to grammar 5:</p>
+<pre class="source">
+VP[f:$f] -> Aux[f:$f,t:n,s:$v] VP[f:$v];
+</pre>
+<p>
+This provides coverage of auxiliary verb sequences in English.  Here
+are examples (<tt>text6</tt>):</p>
+<pre class="source">
+Fido chases Spot
+Fido has chased Spot
+Fido is chasing Spot
+Fido will chase Spot
+Spot will be chased
+Fido will be chasing Spot
+Fido will have been chasing Spot
+Spot will have been being chased
+*Spot will be had been chased
+</pre>
+<p>
+Grammar 7 adds movement: yes-no questions, wh-questions, and relative
+clauses.  Here are examples of its coverage:</p>
+<pre class="source">
+what did you chase
+which cat did you chase
+*what did you bark
+did you bark
+the dog that Max chased
+the dog that chased Max
+these black dogs that Max chased
+</pre>
+
+<h3 id="3.2">Numbers</h3>
+<p>
+<b>One digit numbers.</b>  These are simply the digits
+<i>zero, one, ..., nine.</i>  Zero is not embeddable: we cannot
+say *<i>twenty zero.</i>  Let us define <tt>digit</tt> to
+exclude zero: it consists of the embeddable digits.</p>
+<p>
+<b>Teens.</b>  These are the numbers
+<i>ten, eleven, ..., nineteen.</i>  The category is <tt>teen</tt>.</p>
+<p>
+<b>Two digit numbers.</b>  They begin with twenty:
+ <i>twenty, twenty one, ..., twenty nine, ... ninety nine.</i>  Note 
+that "zero" does not count as a digit here: a two-digit number
+consists of a <tt>tens</tt> and a <tt>digit</tt>.
+When embedded, wherever we can use a two-digit number, a <tt>teen</tt> or
+<tt>digit</tt> can also be used.  So we define the category <tt>num2</tt>
+to include two-digit numbers properly speaking, as well as <tt>teen</tt>
+and <tt>digit</tt>.</p>
+<p>
+<b>Hundreds.</b>  Examples: <i>one hundred, a
+  hundred, one hundred one, one hundred and one, ... one hundred
+  ninety nine, ... nine hundred ninety nine, eleven hundred
+  ninety nine, ... ninety nine hundred ninety nine.</i>  The
+example <i>ten hundred</i> does not really sound bad; perhaps it
+should not be excluded.</p>
+<p>
+There is an alternation between "one" and "a," though "a" is not a
+<tt>digit</tt>.  What follows "hundred" cannot be "a": *<i>one
+hundred a.</i>  Also, when embedding a three-digit number, the form
+beginning with "a" cannot be used: *<i>two thousand a hundred and six.</i>
+Let us distinguish between embeddable and non-embeddable three-digit
+numbers.  The non-embeddable case includes the embeddable case, but
+also ones beginning with "a hundred."</p>
+<p>
+If a number greater than nine precedes the word "hundred," then the
+result is also not embeddable: we cannot say
+*<i>six thousand thirteen hundred.</i></p>
+<p>
+What follows the word "hundred" may be a <tt>digit</tt>, a <tt>teen</tt>,
+or a two-digit number: that is, the class <tt>num2</tt>.  Between
+"hundred" and <tt>num2</tt> there is an optional "and."  Let us use
+the category <tt>tail3</tt> for 
+"hundred" followed by optional "and" followed by <tt>num2</tt>.</p>
+<p>
+Let us call the embeddable case <tt>hundreds</tt>.  The pattern is a
+<tt>digit</tt> followed by a <tt>tail3</tt>.
+The non-embeddable case is <tt>ne-hundreds</tt>, which consists of
+"a" or <tt>num2</tt> followed by <tt>tail3</tt>.  Note that
+the prefix cannot be omitted: *<tt>hundred six.</tt></p>
+<p>
+Let us use <tt>num3</tt> for the union of <tt>hundreds</tt> and <tt>num2</tt>.</p>
+<p>
+<b>Thousands.</b>  Examples: <i>a thousand, two thousand,
+  thirteen thousand, ninety nine thousand, six thousand and four, six
+  thousand three hundred, nine hundred ninety nine thousand nine
+  hundred ninety nine.</i>  But not *<i>six thousand thirteen hundred</i>
+  or *<i>six thousand ninety nine hundred.</i></p>
+<p>
+Again, "a" is not permissible when the number is embedded:
+*<i>four million a thousand three.</i>  The pattern for
+ <tt>thousands</tt> is <tt>num3</tt> followed by <tt>tail4</tt>, where <tt>tail4</tt>
+is the word "thousand" followed by an optional <tt>num3</tt>.  There may be an
+"and" between "thousand" and the trailing <tt>num3</tt>.</p>
+<p>
+The non-embeddable case is <tt>ne-thousands</tt>, which is
+"a" followed by <tt>tail4</tt>.</p>
+<p>
+Define <tt>num5</tt> to be the union of <tt>thousands</tt> and
+<tt>num3</tt>.</p>
+<p>
+<b>Millions and higher.</b>  For higher numbers, the pattern is
+repeated.  Define <tt>tail6</tt> to be "million" followed by an
+optional <tt>num5</tt>, with an optional "and" in between.  Then
+<tt>millions</tt> is <tt>num3</tt> followed by <tt>tail6</tt>, and <tt>ne-millions</tt>
+is "a" followed by <tt>tail6</tt>.  The union of
+<tt>millions</tt> with <tt>num5</tt> is <tt>num8</tt>.</p>
+<p>
+For <tt>billions</tt>, the helping category is <tt>tail9</tt>, and the
+result is <tt>num11</tt>.  For <tt>trillions</tt> they are <tt>tail12</tt> and
+<tt>num14</tt>, and so on.</p>
+<p>
+<b>Numbers.</b>
+The general case, <tt>num</tt>, is <tt>num14</tt> or <tt>ne-trillions</tt> or
+<tt>ne-billions</tt> or <tt>ne-millions</tt> or <tt>ne-thousands</tt> or
+<tt>ne-hundreds</tt> or <tt>ne-digit</tt>.</p>
+
+<h2 id="4">Translation to German</h2>
+
+<h3 id="4.1">Example</h3>
+<p>
+The book known in English as <i>Heidi</i> by Johanna Spyri was
+originally published in German as two separate volumes:
+<i>Heidis Lehr-- und Wanderjahre</i> (Gutenberg ebooks 7500)
+and <i>Heidi kann brauchen, was es gelernt hat</i> (Gutenberg ebooks
+7512).  This is the beginning of the first chapter of the first
+volume.</p>
+<blockquote>
+Vom freundlichen Dorfe Maienfeld f&uuml;hrt ein Fu&szlig;weg durch gr&uuml;ne,
+baumreiche Fluren bis zum Fu&szlig;e der H&ouml;hen, die von dieser Seite gro&szlig;
+und ernst auf das Tal herniederschauen.  Wo der Fu&szlig;weg anf&auml;ngt,
+beginnt bald Heideland mit dem kurzen Gras und den kr&auml;ftigen
+Bergkr&auml;utern dem Kommenden entgegenzuduften, denn der Fu&szlig;weg geht
+steil und direkt zu den Alpen hinauf.
+</blockquote>
+<p>
+Before tackling the first sentence, we should be able to handle:</p>
+<blockquote>
+das freundliche Dorf<br/>
+the friendly village<br/>
+das Dorf ist freundlich<br/>
+the village is friendly<br/>
+vom freundlichen Dorfe<br/>
+from the friendly village<br/>
+das Dorf Maienfeld<br/>
+the village Maienfeld<br/>
+der Fu&szlig;weg f&uuml;hrt hoch<br/>
+the path leads up<br/>
+vom Dorf f&uuml;hrt ein Fu&szlig;weg hoch<br/>
+a path leads up from the village
+</blockquote>
+<p>
+There are judgment questions, such as whether to leave place names
+untranslated, or to attempt to translate them (e.g., Mayfield for
+Maienfeld).</p>
+<p>
+One of the things that is needed for German is morphology.  For
+pexample, we want to map the category-semantics pair
+(<tt>det.m.dat.sg</tt>, <tt>ein</tt>) to <tt>einem</tt> and back
+again.  The reverse mapping may be ambiguous.</p>
+
+<h3 id="4.2">German morphology</h3>
+<p>
+<b>Determiners.</b>
+<table class="display">
+<tr><th></th> <th>Masc</th> <th>Neut</th> <th>Fem</th> <th>Pl</th></tr>
+<tr><td><b>Nom</b></td> <td>dieser</td> <td>dieses</td> <td>diese</td>
+  <td>diese</td></tr>
+<tr><td><b>Gen</b></td> <td>dieses</td> <td>dieses</td> <td>dieser</td>
+  <td>dieser</td></tr>
+<tr><td><b>Dat</b></td> <td>diesem</td> <td>diesem</td> <td>dieser</td>
+  <td>diesen</td></tr>
+<tr><td><b>Acc</b></td> <td>diesen</td> <td>dieses</td> <td>diese</td>
+  <td>diese</td></tr>
+</table>
+<p>
+This declension is also used for <i>jener, mancher.</i>  The
+declension for the definite article differs in neuter singular nom/acc
+(<i>das,</i> not <i>des</i>) and fem/pl nom/acc (<i>die</i>, not
+<i>de</i>).  The plural is used for <i>viele, beide.</i></p>
+<p>
+<b>Adjectives.</b>
+Adjectives have weak and strong declensions: weak in
+<i>das gute Bier,</i> strong in <i>gutes Bier.</i>
+The strong declension:
+<table class="display">
+<tr><th></th> <th>Masc</th> <th>Neut</th> <th>Fem</th> <th>Pl</th></tr>
+<tr><td><b>Nom</b></td> <td>guter</td> <td>gutes</td> <td>gute</td> <td>gute</td></tr>
+<tr><td><b>Gen</b></td> <td>guten</td> <td>guten</td> <td>guter</td> <td>guter</td></tr>
+<tr><td><b>Dat</b></td> <td>gutem</td> <td>gutem</td> <td>guter</td> <td>guten</td></tr>
+<tr><td><b>Acc</b></td> <td>guten</td> <td>gutes</td> <td>gute</td> <td>gute</td></tr>
+</table>
+<p>
+The weak declension:</p>
+<table class="display">
+<tr><th></th> <th>Masc</th> <th>Neut</th> <th>Fem</th> <th>Pl</th></tr>
+<tr><td><b>Nom</b></td> <td>der gute</td> <td>das gute</td> <td>die
+    gute</td> <td>die guten</td></tr>
+<tr><td><b>Gen</b></td> <td>des guten</td> <td>des guten</td> <td>der
+    guten</td> <td>der guten</td></tr>
+<tr><td><b>Dat</b></td> <td>dem guten</td> <td>dem guten</td> <td>der
+    guten</td> <td>den guten</td></tr>
+<tr><td><b>Acc</b></td> <td>den guten</td> <td>das gute</td> <td>die
+    gute</td> <td>die guten</td></tr>
+</table>
+
+
+<h2 id="5">Internet Dictionary Project</h2>
+<p>
+The module <tt>seal.data.idp</tt> provides an interface to the
+Internet Dictionary Project (IDP) dictionaries.  Dictionaries are
+available for French (fra), German (deu), Italian (ita), Latin (lat),
+Portuguese (por), and Spanish (spa).  For all except Latin, the keys
+are English words and the target language translation is the value.
+For Latin, the keys are Latin words.</p>
+<p>
+Dictionaries are loaded on demand and cached.
+One may look up individual words as follows:</p>
+<pre class="python">
+>>> from seal.data.idp import lookup
+>>> lookup('animal', 'deu')
+'Tier[Noun]'
+>>> lookup('proprius', 'lat')
+"one's own, permanent, special, peculiar."
+</pre>
+<p>
+Alternatively, one may fetch the entire dictionary (a dict) and access
+it directly:</p>
+<pre class="python">
+>>> from seal.data.idp import lexicon
+>>> latin = lexicon('lat')
+>>> latin['amor']
+'love, affection, infatuation, passion.'
+</pre>
+<p>
+See <a href="../../../../thirdparty/idp/index.html">IDP</a>.</p>
+
+</body>
+</html>

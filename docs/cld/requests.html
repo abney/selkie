@@ -1,0 +1,287 @@
+<html>
+<head>
+<title>Request processing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Request processing</h1>
+<p>
+The process of handling a web-page request was described briefly
+above, in the secton <a href="app_intro.html#2">App as function</a>.
+In this section, I give more detail.</p>
+
+<h2 id="1">Descending through the web space</h3>
+
+<h3 id="1.1">Calling App</h3>
+<p>
+A request is essentially a sequence
+of <b>pathname components</b> (class <a href="api/seal/app.html#URLPathComponent">URLPathComponent</a>) describing a path through a <b>web space</b>.
+There is a fixed <b>root web directory</b> at which the app begins,
+whose pathname in the web space is called the <b>root prefix</b>.
+Then each (subsequent) component of the pathname is used to access an
+item in the current directory.  If the component sequence is
+exhausted, the retrieved item should be
+a web page, and if there are more components to process, the
+retrieved item should be a subdirectory, which becomes the new current
+directory.</p>
+<p>
+Let us walk through a concrete example.  A call to App begins with a
+request.  We can create a Request instance as follows:</p>
+<pre class="source">
+>>> from seal.app import request_from_string
+>>> req = request_from_string('/seal/index.html')
+>>> req.path
+('', 'seal', 'index.html')
+</pre>
+<p>
+The App first does some set-up.</p>
+<ul>
+<li>It wraps the request in a Context.  Contexts are discussed in
+  a <a href="context.html">later section</a>.
+  They provide logging and
+  authentication services, and may also be used by the application to
+  store global web resources.
+<pre class="source">
+>>> context = ency.make_context(req)
+>>> context
+&lt;seal.app.Context object at 0x10284ada0&gt;
+</pre>
+</li>
+<li>It opens the application file.  (The ency app does not actually
+  have an application file; it uses the default
+  <tt>open_file</tt> method implementation, which simply returns None.)
+<pre class="source">
+>>> file = ency.open_file(ency.filename, context)
+</pre>
+</li>
+<li>It instantiates the root web directory:
+<pre class="source">
+>>> dir = ency.make_root(req.path[0], file, context)
+>>> dir
+&lt;seal.ency.Ency object at 0x10284ae10&gt;
+</pre>
+</li>
+</ul>
+<p>
+The first component of the request path is the root prefix, which
+provides the web pathname for the root directory.</p>
+<p>
+Once the set-up has been completed, the App follows the sequence of
+names remaining in the request path.  In our examples, two names
+remain: <tt>'seal'</tt> and <tt>'index.html'</tt>.  The first one
+gives us a subdirectory:</p>
+<pre class="source">
+>>> req.path[1]
+'seal'
+>>> dir[_]
+&lt;Directory seal&gt;
+>>> dir = _
+</pre>
+<p>
+The subdirectory becomes the new current directory.  The App accesses
+it using the next pathname component:</p>
+<pre class="source">
+>>> req.path[2]
+'index.html'
+>>> dir[_]
+&lt;EncyFile 'index' 'html' '/Users/abney/git/seal/doc/html/index.html'&gt;
+>>> item = _
+</pre>
+<p>
+Since this is the last component, we expect it to give us a web page,
+or rather, something that can be converted to a web page.  This is the
+point at which the <tt>follow</tt> method returns:</p>
+<pre class="source">
+>>> ency.follow(req)
+&lt;EncyFile 'index' 'html' '/Users/abney/git/seal/doc/html/index.html'&gt;
+</pre>
+
+<h3 id="1.2">Postprocessing</h3>
+<p>
+The final item found in the descent through the web space may be
+an HtmlDirectory, a Page, or a Widget.  The App's return value should
+be a Response.  The conversion from final item to Response
+proceeds in two steps.</p>
+<p>
+First, the final item's <tt>to_page</tt> method</p> is called to
+convert it to a Page:</p>
+<pre class="source">
+>>> page = item.to_page()
+>>> page
+&lt;seal.app.RawFile object at 0x10288aa20&gt;
+</pre>
+<p>
+(If the item a Page, its <tt>to_page</tt> method simply
+returns the same item again.)</p>
+<p>
+Second, the Page's <tt>to_response</tt> method is called to convert it
+to a Response, which is returned to the caller.</p>
+
+<h2 id="2">Web objects</h2>
+
+<h3 id="2.1">The web object hierarchy</h3>
+<p>
+<a href="app_intro.html#2.3">Recall</a>
+that the App descends through the web space
+by calling the __getitem__ method of one web object to get the next
+one in line, starting from the root web directory.  When the path is
+exhausted, the App calls the last item's <tt>to_page</tt> method to
+convert it to a web page.
+In this section, we flesh out the details.</p>
+<p>
+<b>Web objects</b> are the objects that the App visits when processing
+a request.
+The following is the upper hierarchy of web objects:</p>
+<ul>
+<li>Item
+    <ul>
+    <li>HtmlDirectory</li>
+    <li>Page
+        <ul>
+        <li>HtmlPage</li>
+        <li>RawFile</li>
+        <li>Data</li>
+        <li>Text</li>
+        <li>Redirect</li>
+        <li>HttpException
+            <ul>
+            <li>PermissionDenied</li>
+            <li>PageNotFound</li>
+            <li>HttpUserError</li>
+            <li>HttpSystemError</li>
+            </ul>
+        </li>
+        </ul>
+    </li>
+    <li>Element</li>
+        <ul>
+        <li>Widget
+        </ul>
+    </li>
+    </ul>
+</li>
+</ul>
+<p>
+An <b>addressable</b> web object is one that is associated with a path
+through the web space.  These are the ones that the App can reach by
+following a request.  They include HtmlDirectories, Pages, and
+Widgets.</p>
+<p>
+Let us further distinguish
+between <b>nonterminal</b> and <b>terminal</b> items.  Specifically,
+define a nonterminal item to be one that returns values for at least
+some calls to __getitem__, and define a terminal item to be one that
+returns itself when when <tt>to_page</tt> is requested.</p>
+<p>
+There are four important cases:</p>
+<ul>
+<li>HtmlDirectories are nonterminal addressable items.</li>
+<li>Page and its specializations are terminal addressable items.</li>
+<li>Widget is also a terminal addressable item.</li>
+<li>An HtmlPage that contains widgets is simultaneously terminal and
+  nonterminal.</li>
+</ul>
+
+<h3 id="2.2">Item</h3>
+<p>
+The following members of Item are significant for
+traversing the web space:</p>
+<dl>
+<dt><tt>__pages__</tt></dt> <dd>By default None.  Directory-like Items
+    must set __pages__ to a dict.  "Directory-like Items" includes
+    both HtmlDirectories and HtmlPages that contain Widgets.
+    In the case of HtmlDirectories, the dict maps component names to
+    page-method names, and in the case of HtmlPages, the dict maps
+    component names to Widgets.</dd>
+
+<dt><tt>__home__</tt></dt> <dd>The name of the home page.  By default, <tt>'home'</tt>.</dd>
+
+<dt><tt>parent</tt></dt> <dd>The parent HtmlDirectory.</dd>
+
+<dt><tt>file</tt></dt> <dd>The file associated with this web object,
+    if any.</dd>
+
+<dt><tt>cpt</tt></dt> <dd>The URLPathComponent associated with this page.</dd>
+
+<dt><tt>context</tt></dt> <dd>The Context.</dd>
+</dl>
+<p>
+The __init__ method of Item takes four
+arguments, which set the corresponding
+members: <i>parent,</i> <i>file,</i> <i>cpt,</i> <i>context.</i>
+If <i>parent</i> is provided, the other three are initialized from the
+parent.  (Just during the call to the method that fetches the child,
+the child's cpt is stored in the parent's <tt>childcpt</tt> member.)
+Even if <i>parent</i> is provided, the other three may be used to
+override the values from the parent.</p>
+
+<h3 id="2.3">Method __getitem__</h3>
+<p>
+The Item.__getitem__ method is the one that App uses to get a child of
+an HtmlDirectory.  The sole argument to __getitem__ is <i>pathcpt.</i>
+It does the following:</p>
+<ul>
+<li><p>Let (<i>name,</i> <i>args,</i> <i>kwargs</i>) be the elements of <code><i>pathcpt</i>.call</code>.</p></li>
+<li><p>If the <i>name</i> is the empty string, return a Redirect to
+  the home page, obtained by joining the value of __home__ to this
+  page's pathname.</p></li>
+<li><p>Look up <i>name</i> in the __pages__ dict.</p></li>
+<li><p>If the value is an Item, return it.</p></li>
+<li><p>Otherwise, the value is a method name.  Get the named method
+    and call it on <i>*args</i> <i>**kwargs</i>.  Signal an error if the return
+    value is None, or if the name is __home__ and the return value is
+    an HtmlDirectory.  Otherwise, return the value.</li>
+</ul>
+
+<h3 id="2.4">Method to_page</h3>
+<p>
+If the requested path leads the App to an HtmlDirectory, and the
+HtmlDirectory has a <tt>to_page</tt> method, the App
+calls <tt>to_page</tt> to convert the directory to a page.  Several
+classes have a <tt>to_page</tt> implementation:</p>
+<ul>
+<li><p><tt>Item:</tt> signals an error.</p></li>
+<li><p><tt>HtmlDirectory:</tt> returns a Redirect to the pathname
+  obtained by joining __home__ to the directory's pathname.</p></li>
+<li><p><tt>Page:</tt> returns itself.</p></li>
+</ul>
+
+<h3 id="2.5">Method to_response</h3>
+<p>
+Page and its specializations provide a method <tt>to_response</tt>
+that takes a Context and returns a Response.
+The Context is used only for access to the cookie, if any.
+The Response constructor
+gets the page's <tt>response_code</tt>
+and it uses the the page's <tt>content_type</tt> to determine
+a Mime type and character encoding.  Then
+it iterates over the Page and stores the results
+in its own <tt>contents</tt> member.
+In the process, it
+converts any strings to byte-strings using the encoding determined by
+the page's content-type.  If the page has binary contents (that is, if
+encoding is None), only byte-strings are permitted.
+As byte-strings are added to <tt>contents,</tt> a running count of bytes
+is kept in the member <tt>nbytes.</tt>
+Note that a page's iterator will be used only once; there is no need
+for it to be reusable.</p>
+
+<h2 id="3">Script library</h2>
+
+<h2 id="4">Defining an HtmlDirectory</h2>
+
+<!--
+
+<h3 id=""><tt>hex_encode</tt>, <tt>hex_decode</tt></h3>
+<p>
+The functions <tt>hex_encode</tt> and <tt>hex_decode</tt>
+make it convenient to embed arbitrary strings into URLs.  <tt>hex_encode()</tt>
+takes an arbitrary Unicode string and converts it to a sequence of hex
+digits (simply the code point sequence), and <tt>hex_decode()</tt>
+does the inverse.<p>
+
+-->
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+<html>
+<body foo="hi&amp;bye" bar=16>
+A &quot;little&quot; <b>example</b>.
+</body>
+</html>

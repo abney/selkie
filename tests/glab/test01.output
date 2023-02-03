@@ -1,0 +1,257 @@
+[glab] #T Test Notebook
+[glab] test
+test
+[glab] trace(syntax)
+[glab] test
+[parse] test
+test
+[glab] untrace(syntax)
+[parse] untrace(syntax)
+[glab] quote(foo(x+y))
+'foo(plus(x, y))'
+[glab] S -> N[_n] V[_n]
+[glab] show(_grammar_)
+Start: S
+
+Rules:
+    [0] S -> N[_n] V[_n]
+[glab] dog <- N[sg]
+[glab] barks <- V[sg]
+[glab] show(_grammar_)
+Start: S
+
+Rules:
+    [0] S -> N[_n] V[_n]
+
+Lexicon:
+    barks V[sg]
+    dog N[sg]
+[glab] start()
+S
+[glab] S0 -> S
+[glab] start() := S0
+[glab] start()
+S0
+[glab] show(_grammar_)
+Start: S0
+
+Rules:
+    [0] S -> N[_n] V[_n]
+    [1] S0 -> S
+
+Lexicon:
+    barks V[sg]
+    dog N[sg]
+[glab] "dog barks"
+<dog, barks>
+[glab] parse("dog barks")
+
+0   (S0
+1      (S
+2         (N[sg] dog)
+3         (V[sg] barks)))
+
+[glab] include(testinclude)
+[glab] _foo
+<hi, there>
+[glab] _bar
+<d, o, g>
+[glab] good("dog barks")
+[glab] good("the dog barks")
+[glab] bad("dog bark")
+[glab] results()
+:) good <dog, barks>
+** good <the, dog, barks>
+:)  bad <dog, bark>
+[glab] a
+a
+[glab] _a
+ERROR: Unbound variable: _a
+[glab] _a := foo
+[glab] _a
+foo
+[glab] <hi, there>
+<hi, there>
+[glab] 'hi'
+<h, i>
+[glab] "hi there"
+<hi, there>
+[glab] <hi>.<there>
+<hi, there>
+[glab] <"dog barks", 7>
+<<dog, barks>, 7>
+[glab] <eight>
+<eight>
+[glab] <k, a, t>
+<k, a, t>
+[glab] <1,1,2,3,5,8,13>
+<1, 1, 2, 3, 5, 8, 13>
+[glab] eight = eight
+True
+[glab] eight = <eight>
+False
+[glab] <eight> = <<eight>>
+False
+[glab] 'kek'
+<k, e, k>
+[glab] <fire, house> = <house, fire>
+False
+[glab] |<4,4>|
+2
+[glab] <>
+<>
+[glab] _e_
+<>
+[glab] _e_ = <>
+True
+[glab] |_e_|
+0
+[glab] <k,a>.<t> = <k,a,t>
+True
+[glab] <k,a>._e_ = <k,a>.<>
+True
+[glab] <k,a>._e_ = <k,a>
+True
+[glab] <k,_e_>
+<k, <>>
+[glab] <3,hi>.<bye,0>
+<3, hi, bye, 0>
+[glab] <hi> = <h,i>
+False
+[glab] <h,i>._e_ = _e_.<h,i>
+True
+[glab] foo.<b,a,r>
+<foo, b, a, r>
+[glab] 2^3
+8
+[glab] 3^2
+9
+[glab] <a,b>^3
+<a, b, a, b, a, b>
+[glab] _a := <t,l,e>
+[glab] _b := <c,a,t>
+[glab] <a,b>._e_
+<a, b>
+[glab] |'dog'|
+3
+[glab] |'cat'.'fish'|
+7
+[glab] _b._a
+<c, a, t, t, l, e>
+[glab] |_b._a|
+6
+[glab] _a._a
+<t, l, e, t, l, e>
+[glab] _a.x
+<t, l, e, x>
+[glab] {m,o,m}
+{m, o}
+[glab] {m,o}
+{m, o}
+[glab] {m,o,m} = {m,o}
+True
+[glab] {m,o} = {o,m}
+True
+[glab] _0_
+{}
+[glab] |{a,b,c}|
+3
+[glab] {a} = a
+False
+[glab] a = {a}
+False
+[glab] {a,_0_} = {a}
+False
+[glab] {} = _0_
+True
+[glab] {a,b,c} = {b,b,a,c}
+True
+[glab] <a,b,c> = <b,b,a,c>
+False
+[glab] <a,b,c> = {b,b,a,c}
+False
+[glab] <hi> = hi
+False
+[glab] <a>.<b,c> = <a,b>.<c>
+True
+[glab] {{hi}} = {hi}
+False
+[glab] 0 = _0_
+False
+[glab] _0_ = _e_
+False
+[glab] |{s,i,t,s}|
+3
+[glab] |<s,i,t,s>|
+4
+[glab] |{<s,i,t,s>}|
+1
+[glab] |s,i,t,s|
+ERROR: Too many args for 'abs', expected 1
+[glab] |_0_|
+0
+[glab] |{_0_}|
+1
+[glab] {x | x^2 = 9}
+ERROR IN PARSING: Unmatched delimiter: |
+[glab] 1 < 2 < 3
+ERROR IN PARSING: Unmatched delimiter: <
+[glab] _A := {_a,b,c,d,e}
+[glab] _A
+{<t, l, e>, b, c, d, e}
+[glab] a @ _A
+False
+[glab] b @ _A
+True
+[glab] _B := {c,d,e,f,g}
+[glab] _A + _B
+{<t, l, e>, b, c, d, e, f, g}
+[glab] _A & _B
+{c, d, e}
+[glab] _A - _B
+{<t, l, e>, b}
+[glab] 5 - 2
+3
+[glab] hi - there
+ERROR: Not a valid object for subtraction: hi
+[glab] {b,c} @< _A
+True
+[glab] {b,c} @> _A
+False
+[glab] _A @> {b,c}
+True
+[glab] _D := {the, a, this, that}
+[glab] _N := {dog, cat, fish, this, that}
+[glab] _V := {run, chase, fish}
+[glab] _W := _D + _N + _V
+[glab] _T := {0,1}
+[glab] _D + _N
+{a, cat, dog, fish, that, the, this}
+[glab] _D & _N
+{that, this}
+[glab] _N - _D
+{cat, dog, fish}
+[glab] (_D&_N) + _V
+{chase, fish, run, that, this}
+[glab] _D & (_N+_V)
+{that, this}
+[glab] |{c,o,o,l}| = 4
+False
+[glab] a @ {a}
+True
+[glab] _e_ @ {a}
+False
+[glab] _0_ @ {a}
+False
+[glab] _0_ @< {a}
+True
+[glab] h @ {hi}
+False
+[glab] hi @< {hi}
+ERROR: Cannot be used with @<: hi
+[glab] hit = hi.t
+False
+[glab] hi = hi._e_
+False
+[glab] hi._e_
+<hi>

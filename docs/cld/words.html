@@ -1,0 +1,137 @@
+<html>
+<head>
+<title>Words</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Words</h1>
+
+
+% This is not a module
+
+\section{General}
+
+\subsection{Words}
+
+The original and primary aim of CLD is to support computational-linguistic study
+of multiple languages simultaneously.  We would like all languages to
+be both readable and writable for all users, but we do not wish to
+require users to install hundreds of input methods on their computers,
+nor can we make any assumptions about which input methods are already
+installed, since there is no standard set across platforms.
+
+One option is to define {\df romanizations}, which convert
+ASCII key sequences ({\df ASCII orthography} or {\df romanized text}) to Unicode characters
+({\df native orthography}).  Character entry
+is (or may be) entirely in ASCII, but display is (or may) use the
+native script for the language.
+There are actually at least three choices where orthography comes to play:
+in text input, in text display, and in data
+files.
+
+The Universal Dependencies (UD) Treebank uses standard native orthography
+(Unicode strings) in data files, and an interest in conforming to
+it as an emerging standard gives us motivation to do likewise.
+The main potential drawback is that producing romanized text for
+editing involves inverting a romanization, and
+romanizations are not guaranteed
+to be invertible.  Nonetheless, it does seem natural to
+expect the romanized version of a text to exist and to be unique, so we will
+require that all romanizations we use are in fact invertible.
+
+The UD documentation discusses {\df tokenization}, which converts
+running {\df plaintext} to {\df tokenized text}.  Plaintext is
+something of an artificial construct, however.  The more general
+problem is conversion of arbitrary {\df text documents}
+to tokenized text, a more difficult problem, and one that in our model
+is part of {\df document importing}.
+
+Our approach within CLD will be to be accommodating to those reading
+texts, but require somewhat more of those entering texts.
+Entering text is a more specialized action than reading it, so
+expecting editors to have more specialized training
+seems acceptable.
+In particular, we expect texts to be entered in tokenized form, with
+word boundaries explicitly indicated.
+The main point of text entry is in the text boxes of the
+{\tt PlainTextPanel}.  We would like to give users a choice of whether
+to use ASCII orthography or native orthography, but in either case,
+we will assume that word boundaries are unambiguously marked.  When
+entering Chinese, for example, spaces will be required between words,
+even though that is not standard orthography.
+
+The model we adopt for input and internal representation is the
+following.  Text consists of a sequence of {\df words}.  Punctuation
+marks are not treated as separate words, rather, associated
+with each word is {\df leading punctuation} and {\df trailing punctuation}.
+We will also allow the possibility of distinguishing otherwise
+identical forms by the addition of a {\df sense number}.
+The algorithm for taking input text provided by the user and
+converting it to tokenized text is as follows:
+\begin{itemize}
+\item Split the text at whitespace.  Each resulting unit contributes
+  one word.
+\item If the text is romanized, use the romanization to convert it to
+  native (Unicode) orthography.
+\item A {\it word character\/} is defined to be one whose Unicode
+  category is letter (L), mark (M), number (N), or symbol (S).
+  Non-word characters have category punctuation (P), control (C), or
+  space (Z).  Characters before the first word character are leading
+  punctuation and characters after the last word character are
+  trailing punctuation.
+\item If the remaining portion ends with a period followed by one or
+  more digits, that is further stripped off as representing the
+ {\df sense number}.
+\item What remains is the word.  It is an error if it is empty.
+\end{itemize}
+That is the procedure for processing text coming from the user and
+storing it in a tokenized-text file.  When the user edits existing
+text (rather than entering new text), it must be converted from
+tokenized format back to the plaintext format that is presented to the
+user in a text box.  For that purpose, we must be able to invert the
+romanization.
+
+\subsection{Multiple orthographies}
+
+There may be multiple orthographies in use for a given language; for
+example, Ojibwe may be written either with Latin letters or with
+Canadian Syllabics.  Within the Latin orthography, there are
+systematic variations.  For example, Kimewon uses {\it N\/} where
+the standard orthography use {\it nh,\/} and he writes {\it k, t, p\/}
+word-finally, even in cases where the standard orthography has {\it g, d, b.\/}
+There are also dialectal differences, particularly on the question of
+whether to write vowels that are silent due to syncope.
+
+Sporadic spelling differences can be treated simply as variant forms.
+The lexicon includes a facility for indicating the canonical form for any given
+variant form and conversely getting the list of variant forms for any
+given canonical form.  That approach becomes onerous for systematic
+spelling differences.  We cannot simply use different romanizations,
+however, because spelling variations are not generally invertible.
+For example, it is not possible to (unambiguously) invert Kimewon's
+orthographized word-final devoicing.
+
+The approach we take is to adopt a single {\df canonical orthography}
+but multiple {\df display orthographies}.  
+We require those who enter text to cooperate in using a common orthography.  One
+can then define a {\df respeller} to be a function that maps text in
+the canonical orthography to a given display orthography.  (Having a
+single canonical orthography makes the construction of respellers manageable.)
+Unlike romanizations, respellers do not need to be bidirectional.
+
+On the input side, we provide only two
+options: direct entry of canonical orthography, or the use of a
+default romanization, of which only one is defined for each language.
+That is, we require those who enter text to
+cooperate on a common romanization for the language.  
+
+\subsection{Access points}
+
+The basic unit of representation for tokenized text is the
+{\tt TokenBlock}, which represents a translation unit (sentence or
+paragraph) in tokenized format.
+
+
+</body>
+</html>

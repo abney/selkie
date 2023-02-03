@@ -1,0 +1,225 @@
+
+#--  Object  -------------------------------------------------------------------
+
+##  A generic object.  One can set attributes as one pleases.
+#   (The standard 'object' class does not allow one to set attributes.)
+#
+#   One can also set and access attributes using square brackets.  (If one uses
+#   keys that are not valid identifiers, they of course cannot be used with dot
+#   syntax, only with square-bracket syntax.)
+#
+#   If all keys are ints, the Object is list-like, and prints out with square
+#   brackets.
+#   
+
+class Object (object):
+
+    def __init__ (self, *args, **kwargs):
+        d = dict(kwargs)
+        object.__setattr__(self, '_listlen', 0)
+        object.__setattr__(self, '_dict', d)
+        for (i, arg) in enumerate(args):
+            d[i] = arg
+
+    def _setlistlen (self, n):
+        object.__setattr__(self, '_listlen', n)
+
+    def __getitem__ (self, key):
+        return self._dict[key]
+
+    def __getattr__ (self, name):
+        return self._dict[name]
+            
+    def __setitem__ (self, name, value):
+        self._dict[name] = value
+        n = self._listlen
+        if not (isinstance(name, int) and n is not None and 0 <= name < n):
+            self._setlistlen(None)
+
+    def __setattr__ (self, name, value):
+        self.__setitem__(name, value)
+
+    def append (self, value):
+        if self._listlen is None:
+            raise Exception('Not a list-like Object')
+        else:
+            n = self._listlen
+            self._setlistlen(n + 1)
+            self._dict[n] = value
+
+    def __iter__ (self):
+        if self._listlen is None:
+            for k in self._dict.keys():
+                yield k
+        else:
+            for i in range(self._listlen):
+                yield self._dict[i]
+
+    def __len__ (self):
+        return len(self._dict)
+
+    def __repr__ (self):
+        if self._listlen is None:
+            return repr(self._dict)
+        else:
+            return repr(list(self))
+
+
+from selkie.object import string_to_object
+
+def test (ns):
+    return ns['Foo']
+
+
+#--  KV format  ----------------------------------------------------------------
+#
+#  Values:
+#      |    String, to end of line.
+#      NUM  float or int; begins with +, -, or digit.
+#      :    Object or list.  The type is determined by the first record.
+#      {}   Empty object.
+#      []   Empty list.
+#      
+#  An object consists of key-value pairs.
+#  A list consists of values.
+#
+#  At beginning of file, or after a record whose value is ':', we are in "first-child" mode.
+#  If the record begins with a key, the parent is an object.
+#  If the file begins with a value, the parent is a list.
+#  Otherwise, error.
+#
+#  Parent is the object that we are working on.
+#  Parent_indent is parent's indentation.
+#  Current_indent is the indentation for the current parent's *children*.
+#  For the first child, current_indent is None.
+#
+#  If the parent is an object, the current record must be key-value.
+#  If the parent is a list, the current record must be a value.
+#
+#  When the value is in ':', create a new parent.
+#  Push the old parent and its indentation on the stack.
+#
+
+def _kverror (loc, msg):
+    (fn, lno) = loc
+    raise Exception(f'[{fn}:{lno}] {msg}')
+    
+def _split_key_value (line):
+    if not line[0].isalpha():
+        return (None, line)
+    i = 1
+    while not (i >= len(line) or line[i].isspace()):
+        i += 1
+    if i == len(line):
+        return (line, '')
+    key = line[:i]
+    while i < len(line) and line[i].isspace():
+        i += 1
+    return (key, line[i:])
+
+def _parse_value (loc, value, parentpath):
+    if not value:
+        _kverror(loc, 'Empty value')
+    elif value[0].isspace():
+        _kverror(loc, 'Indentation must consist of spaces only')
+    elif value[0] == '|':
+        return value[1:]
+    elif value == ':T':
+        return True
+    elif value == ':F':
+        return False
+    elif value == '-':
+        return None
+    elif value in ('{}', '{}:'):
+        return {}
+    elif value in ('[]', '[]:'):
+        return []
+    elif value == ':':
+        return None
+    elif value[0] in '/.~':
+        if not (value.startswith('/') or
+                value.startswith('./') or
+                value.startswith('../') or
+                value.startswith('~/') or
+                value in ('.', '..', '~')):
+            _kverror(loc, 'Illegal pathname')
+        if value.startswith('~'):
+            return Path(expanduser(value))
+        else:
+            return parentpath / value
+    else:
+        try:
+            if '.' in value:
+                return float(value)
+            else:
+                return int(value)
+        except:
+            _kverror(loc, 'Illegal numeric value')
+
+def read_kvi (f, filename=None):
+    path = Path(filename).parent if filename else Path('.')
+    roots = [None]
+    stack = []
+    parent_loc = (roots, 0)
+    parent = None
+    parent_indent = -1
+    current_indent = None
+
+    for (lno, (indent, line)) in enumerate(indented_lines(f), 1):
+        loc = (filename, lno)
+        if not line or line.startswith('#'):
+            continue
+
+        (key, value) = _split_key_value(line)
+
+        # first child?
+        if parent is None:
+            parent = [] if key is None else {}
+            (gp,k) = parent_loc
+            gp[k] = parent
+
+        if current_indent is None:
+            if indent <= parent_indent:
+                _kverror(loc, 'Illegal indentation: <= parent_indent')
+            current_indent = indent
+            
+        # end of parent
+        while indent < current_indent:
+            if not stack:
+                _kverror(loc, 'Illegal indentation: empty stack')
+            current_indent = parent_indent
+            (parent, parent_indent) = stack.pop()
+
+        if indent != current_indent:
+            _kverror(loc, 'Illegal indentation: > current_indent')
+
+        # process record
+        if key is None:
+            if not isinstance(parent, list):
+                _kverror(loc, 'Expecting a key-value pair')
+            key = len(parent)
+            parent.append(None)
+        else:
+            if not isinstance(parent, dict):
+                _kverror(loc, 'Expecting a simple value')
+            if key in parent:
+                _kverror(loc, f'Key {key} is not unique')
+
+        if not value:
+            _kverror(loc, 'Missing value')
+
+        parent[key] = parsed_value = _parse_value(loc, value, path)
+
+        # push
+        if value in (':', '[]:', '{}:'):
+            parent_loc = (parent, key)
+            stack.append((parent, parent_indent))
+            parent = parsed_value
+            parent_indent = current_indent
+            current_indent = None
+
+    return roots[0]
+
+def load_kvi (fn, **kwargs):
+    with open(fn, **kwargs) as f:
+        return read_kvi(f, filename=fn)

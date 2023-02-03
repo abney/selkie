@@ -1,0 +1,7 @@
+_g := new_grammar()
+include(1)
+include(2)
+include(3)
+show(_g)
+parse("the dog chases the cats")
+results()

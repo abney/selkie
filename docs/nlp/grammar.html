@@ -1,0 +1,440 @@
+<html>
+<head>
+<title>Constituent grammars</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>Constituent grammars</h1>
+
+<h2 id="1">Lexicon</h2>
+
+<h3 id="1.1">Lexical entry</h3>
+<p>
+A lexical entry has type <tt>Lexicon.Entry</tt>.  It consists of a word,
+a part of speech, and an optional semantic translation.
+<pre class="python">
+>>> from seal.nlp.features import C
+>>> from seal.nlp.grammar import Lexicon
+>>> ent = Lexicon.Entry('dog', C('n'), 'DOG')
+>>> ent.word
+'dog'
+>>> ent.pos
+n
+>>> ent.sem
+'DOG'
+</pre>
+
+<h3 id="1.2">Lexicon</h3>
+<p>
+A <tt>Lexicon</tt> consists of a set of lexical entries.
+The basic method is <tt>define()</tt>; it takes a
+word, a part of speech (category), and an optional semantic value.
+<pre class="python">
+>>> lex = Lexicon()
+>>> lex.define('cat', C(['n','sg']))
+>>> print(lex)
+cat n[sg]
+</pre>
+<p>
+The lexicon can be accessed by word.  The value is a list of entries.</p>
+<pre class="python">
+>>> lex['cat']
+[&lt;Entry cat n[sg]>]
+</pre>
+<p>
+An error is signalled if the word is not present.</p>
+<p>
+The length of the lexicon is the number of entries.</p>
+<pre class="python">
+>>> len(lex)
+1
+</pre>
+<p>
+For purposes of iteration, the elements of a lexicon are entries.</p>
+<pre class="python">
+>>> list(lex)
+[&lt;Entry cat n[sg]>]
+</pre>
+
+<h2 id="2">Grammar</h2>
+
+<h3 id="2.1">Rule</h3>
+<p>
+Grammar rules are represented by instances of the class <tt>Rule</tt>.  A
+<tt>Rule</tt> has five attributes: <tt>lhs</tt>, <tt>rhs</tt>, <tt>bindings</tt>,
+<tt>variables</tt>, and <tt>sem</tt>.  The <tt>lhs</tt>
+is a single category, and the <tt>rhs</tt> is a list of categories.  The
+value for <tt>bindings</tt> is a list containing <tt>*</tt>'s, one for each
+variable used in the rule.  The value for <tt>variables</tt> is a list of
+string representations for the variables, or <tt>None</tt>.
+The value for <tt>sem</tt> is an expression.</p>
+<p>
+The constructor takes a lhs, rhs, sem, and a symbol table.  The symbol
+table is a dict that maps variable names to integers from 0 to the
+size of the table.  The symbol table is optional; if omitted,
+variables are anonymous.  The length of the bindings list is the size
+of the symbol table, if provided.  Otherwise, it is one greater than
+the largest numeric variable occurring in either the lhs or rhs.</p>
+<pre class="python">
+>>> from seal.nlp.grammar import Rule
+>>> r = Rule('vp', ['v', 'np'], 'foo')
+>>> r.lhs
+'vp'
+>>> r.rhs
+['v', 'np']
+>>> r.bindings
+[]
+>>> r.sem
+'foo'
+</pre>
+
+<h3 id="2.2">Grammar</h3>
+<p>
+The <tt>Grammar</tt> class has a similar structure to the <tt>Lexicon</tt> class.
+Internally, it maintains two indices.  A rule of form <i>X ->
+Y<sub>1</sub> ... Y<sub>n</sub></i> is indexed by <i>X</i> in the lefthand side index, and it
+is indexed by <i>Y<sub>1</sub></i> in the righthand side index.</p>
+<p>
+The basic method is <tt>define()</tt>.  It takes a lhs, rhs, an optional
+semantic translation, and an optional symbol table.
+<pre class="python">
+>>> from seal.nlp.grammar import Grammar
+>>> g = Grammar()
+>>> g.define(C('s'), [C('np'), C('vp')])
+>>> g.define(C('vp'), [C('v'), C('np')])
+>>> print(g)
+Start: s
+
+Rules:
+    [0] s -> np vp
+    [1] vp -> v np
+</pre>
+<p>
+The attribute <tt>start</tt> contains the start category.  It defaults to
+the lhs of the first rule defined.
+<pre class="python">
+>>> g.start
+s
+</pre>
+<p>
+The method <tt>expansions()</tt> takes a string <i>X</i>
+and returns the list of rules of form <i>X -> Y<sub>1</sub> ... Y<sub>n</sub></i>.
+Note that the input is just a string, not a full category.
+<pre class="python">
+>>> g.expansions('vp')
+[&lt;vp -> v np>]
+</pre>
+The method <tt>continuations()</tt> returns the list of rules whose righthand
+side begins with a given symbol.  For example:
+<pre class="python">
+>>> g.continuations('v')
+[&lt;vp -> v np>]
+</pre>
+<p>
+A grammar also has attributes <tt>declarations</tt> and <tt>lexicon</tt>.
+The value of <tt>declarations</tt> is generally <tt>None</tt>, unless the
+grammar is created by the grammar loader
+from a file that
+contains declarations.</p>
+<p>
+
+<h2 id="3">Grammar loader</h2>
+<p>
+The <tt>GrammarLoader</tt> reads a grammar file.  Here is a simple
+example of the format.  This is the contents of <tt>ex.g9.g</tt>.
+In the section headers (e.g., "<tt>% Features</tt>"), the space
+following the percent sign is optional, and the capitalization of
+the section name does not matter.
+<pre class="source">
+% Features
+nform = sg/pl
+vform = nform/ing
+trans = i/t
+bool = +/- default -
+% Categories
+S   []
+NP  [form:nform, wh:bool]
+VP  [form:vform]
+V   [form:vform, trans:trans]
+N   [form:nform]
+Det [form:nform]
+% Rules
+S -> NP[_f] VP[_f]
+NP[_f] -> Det[_f] N[_f]
+VP[_f] -> V[_f,i]
+VP[_f] -> V[_f,t] NP
+% Lexicon
+the Det
+a Det[sg]
+cat N[sg]
+dog N[sg]
+dogs N[pl]
+barks V[sg,i]
+chases V[sg,t]
+</pre>
+<p>
+The grammar loader is called by the <tt>Grammar</tt> constructor when a
+filename is provided.  For example:</p>
+<pre class="python">
+>>> from seal.core.io import ex
+>>> g = Grammar(ex.g9)
+>>> print(g)
+Start: S
+
+Rules:
+    [0] S -> NP[_f,-] VP[_f]
+    [1] NP[_f,-] -> Det[_f] N[_f]
+    [2] VP[_f] -> V[_f,i]
+    [3] VP[_f] -> V[_f,t] NP[pl/sg,-]
+
+Lexicon:
+    a Det[sg]
+    barks V[sg,i]
+    cat N[sg]
+    chases V[sg,t]
+    dog N[sg]
+    dogs N[pl]
+    the Det[pl/sg]
+</pre>
+
+<h2 id="4">GDev</h2>
+
+<h3 id="4.1">Executable</h3>
+<p>
+The usual way to run gdev is from the shell:
+<pre class="source">
+<i> python -m seal.gdev
+</pre>
+<p>
+When it starts up, it prints out the usage message, followed by a
+prompt (<tt>&gt;</tt>).
+The commands are as follows.</p>
+<dl>
+<dt>ls</dt> <dd>List the existing grammars.  It looks in the directories on
+its grammar path for files with suffix "<tt>.g</tt>."  The initial path
+includes the current directory, <tt>/cl/examples</tt>, and <tt>/cl/data/eng</tt>.</p>
+</dd>
+<dt>r</dt> <dd>Reload the grammar and sentence files, and reparse.</p>
+</dd>
+<dt>n</dt> <dd>Next: go forward one sentence.</p>
+</dd>
+<dt>p</dt> <dd>Previous: go back one sentence.</p>
+</dd>
+<dt><i>number</i></dt> <dd>Go to the sentence with that number.</p>
+</dd>
+<dt><i>grammar</i></dt> <dd>Load the grammar.</p>
+</dd>
+<dt><i>expression</i></dt> <dd>Evaluate the given semantic expression in the model.</p>
+</dd>
+<dt><i>sentence</i></dt> <dd>Parse and evaluate a temporary sentence.</p>
+</dd>
+<dt>c</dt> <dd>Print the current sentence.  Discard the temporary sentence, if any.</p>
+</dd>
+<dt>g</dt> <dd>Print the grammar.</p>
+</dd>
+<dt>m</dt> <dd>Print the model.</p>
+</dd>
+<dt>s</dt> <dd>Print the sentences.</p>
+</dd>
+<dt>t</dt> <dd>Save the translations to <i>grammar</i><tt>-trans.txt</tt></p>
+</dd>
+<dt>h</dt> <dd>Print a help message.  Question mark or an empty command
+also cause the help message to be printed.</p>
+</dd>
+<dt>trace</dt> <dd>Takes zero or more arguments, from the following list:
+      <tt>on</tt> turns tracing on (the default), <tt>off</tt> turns tracing
+      off, <tt>parse</tt> affects tracing of parse-tree construction,
+      <tt>unif</tt> affects tracing of unifications, <i>number</i>
+      specifies a particular rule to trace.  If both <tt>on</tt> and <tt>off</tt>
+      are specified, the one that comes later overrides the one that
+      comes earlier.
+</dd>
+<dt>^D</dt> <dd>Quit.</dd>
+</dl>
+
+<h3 id="4.2">Dev</h3>
+<p>
+When one calls <tt>seal.gdev</tt> from the shell, it instantiates the
+class <tt>Dev</tt> and calls its <tt>run()</tt> method.  The <tt>run()</tt>
+method repeatedly reads a line from stdin and passes it to the
+<tt>com()</tt> method.  Here is an example.  First we instantiate <tt>Dev</tt>:
+<pre class="python">
+>>> from seal.nlp.gdev import Dev
+>>> d = Dev()
+</pre>
+Load grammar <tt>g9</tt>, along with its example sentences:
+<pre class="python">
+>>> d.com('g9')
+</pre>
+Show the sentences.  The numbers not in brackets indicate how many
+parses the grammar assigns to the sentence.
+<pre class="python">
+>>> d.com('s')
+[0]   1  a cat barks
+[1]   0 *a dogs barks
+[2]   1  the cat chases the dog
+</pre>
+Show the parse tree(s) for the current sentence:
+<pre class="python">
+>>> d.com('c')
+
+[0]   a cat barks
+#Parses: 1
+Parse 0:
+0   (S
+1      (NP[sg,-]
+2         (Det[sg] a)
+3         (N[sg] cat))
+4      (VP[sg]
+5         (V[sg,i] barks)))
+</pre>
+
+<h3 id="4.3">Sentences and labels</h3>
+<p>
+When the command is the name of a grammar file, <tt>Dev</tt> expects two files to exist:
+<i>prefix</i><tt>.g</tt> should contain a grammar, and
+<i>prefix</i><tt>.sents</tt> should contain a list of sentences.
+Each line of the sentence file is considered to be a sentence, except
+that empty lines and lines beginning with <tt>#</tt> are ignored.
+Leading and trailing whitespace is ignored.  If the first
+non-whitespace character is <tt>*</tt>, it indicates that the example is
+ungrammatical.  For example:
+<pre class="python">
+>>> from seal.core.io import contents
+>>> print(contents(ex.g9.sents), end='')
+ a cat barks
+*a dogs barks
+ the cat chases the dog
+</pre>
+<p>
+<tt>Dev</tt> creates a parser from the grammar file, and uses it to parse
+each of the sentences in the sentence file.  The predicted label is
+<tt>'OK'</tt> if the parser deems the sentence to be grammatical, and
+<tt>'*'</tt> if the parser rejects it.  The predicted labels are compared
+to the true labels, and the results are printed out.</p>
+
+<h2 id="5">Generation</h2>
+<p>
+<i>This is currently broken.</i></p>
+
+<h3 id="5.1">Description</h3>
+<p>
+Random generation from a feature grammar is a little tricky.  It is
+not currently implemented, but the algorithm is described here.</p>
+<p>
+To do random generation with feature grammars, we require both a
+downward and upward pass, analogous to the upward chart-filling
+step followed by the downward unwinding step in parsing.  In parsing,
+we ``enter'' an expansion from the lower left corner (the first)
+child, and proceed from child to child, finally ``exiting'' at the
+top.  The ``enter'' steps involve unification of a node with a child
+category, and the ``exit'' step involves instantiation of the lefthand
+side category.  In generation, we enter from the top, unifying the
+parent node with the lefthand side category.  </p>
+<p>
+
+In random generation, we fully instantiate rules as we generate a
+tree.  Full instantiation means eliminating not only variables but
+also disjunctions, leaving a unique value for each attribute.  The
+choice among disjuncts is made stochastically.</p>
+<p>
+We begin by fully instantiating the start
+category.  We create a root node for the start category, but leave the
+children as yet unspecified.</p>
+<p>
+Then, at each point, we have a parent node with a fully instantiated
+category, and we find the rules that could expand it.
+Rules are indexed by symbol in the grammar, not by complete
+feature sets, so we must scan through a candidate list to determine
+which ones actually match the given parent category.  The result of
+each successful match is an updated symbol table.  We make a list of
+the matching rules, and the symbol table for each.</p>
+<p>
+We make a stochastic choice among the rules that match the parent
+category.  We use the updated symbol table to fully instantiate each
+righthand-side category in turn, keeping track of further symbol-table
+updates as we go.  As we instantiate each child category, we create a
+node possessing the category and insert it into the parent's child
+array.  Then we recursively expand each child in turn.</p>
+<p>
+It is possible for generation to fail.  For example, consider the
+following little grammar.</p>
+<pre class="source">
+S -> A[f ?x] B[f ?x];
+S -> A[f ?x];
+A[f 1] -> foo;
+A[f 2] -> bar;
+B[f 2] -> baz;
+</pre>
+<p>
+The <tt>f</tt> attribute ranges over <tt>1</tt> and <tt>2</tt>; but if one
+choose the first expansion for <tt>S</tt>, then one must choose value
+<tt>2</tt>.  If one happens to choose <tt>1</tt>, though, the problem is
+not detected until one attempts to generate a subtree from
+<tt>B[f 1]</tt>.</p>
+
+<h3 id="5.2">Algorithm</h3>
+<p>
+A <b>node</b> represents the results of generating from a pair
+(<i>cat, sem</i>).  We may consider indexing nodes: a given node may
+well be needed multiple times, because many choices of first
+child may lead to the same requirements for the next child.
+The calling state is recorded with the node.  If additional states
+call for the same node, they will also be recorded as callers.</p>
+<p>
+To expand the node, we find all rules whose lhs is consistent with
+(<i>cat, sem</i>), and for each rule we create a new state.
+The node is passed along as states are expanded.</p>
+<p>
+A <b>state</b> is like a parser edge.  It represents a partial state of
+generating from a given rule.  The first <i>i</i> children have been
+generated.  Their categories have been merged into the current
+bindings, and their semantics has been unified into the rule
+semantics.</p>
+<p>
+To advance a state, we substitute the current bindings into the
+category of the next child, and we unify the appropriate sub-avs of
+the current one with the semantics of the next child.  Then we
+generate from that (<i>cat, sem</i>) pair.  The result is a list of
+trees.  For each tree, we create a new state in which the tree
+category is used to update the bindings, and the tree semantics is unified
+into the semantics of the previous state to create the new state's semantics.</p>
+<p>
+When a state has generated all children for its rule, a new tree is
+created, whose category
+comes from substituting the bindings into the rule lhs, and whose
+semantics is the state's semantics.  That tree is passed back to the
+node, which passes it to all of its callers.</p>
+<p>
+We keep a stack of active states.  The discipline is depth-first, so
+that we generate a complete tree as quickly as possible.</p>
+
+<h3 id="5.3">Example</h3>
+
+<pre class="source">
+>>> from seal.nlp.parser import Parser
+>>> from seal.nlp.gen import Generator
+>>> g = Grammar(ex.tinygen.g)
+>>> p = Parser(g)
+>>> ts = p('fido barks')
+>>> print ts[0]
+0   (s              : [subj fido; type bark]
+1      (np             : fido
+2         (name fido))    : fido
+3      (vp             : [type bark]
+4         (vi barks)))    : [type bark]
+>>> sem = ts[0].sem
+>>> gen = Generator(g)
+>>> iter = gen(sem)
+>>> t = iter.next()
+>>> print t
+0   (s              : [subj fido; type bark]
+1      (np             : fido
+2         (name fido))    : fido
+3      (vp             : 6.0
+4         (vi barks)))    : [type bark]
+</pre>
+
+</body>
+</html>

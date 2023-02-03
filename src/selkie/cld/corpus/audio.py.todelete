@@ -1,0 +1,534 @@
+
+import wave, os, sys
+from seal.cld.db.file import File
+from seal.cld.db.dir import Structure
+from seal.cld.corpus.token import TokenFile, TranslationUnits
+
+
+#--  load_clips  ---------------------------------------------------------------
+
+class ClipLocation (object):
+    
+    def __init__ (self, fpos, fc, nf):
+        self.fpos = fpos  # pos in wave file
+        self.fc = fc      # frame count
+        self.nf = nf      # number of frames in clip
+
+    def __repr__ (self):
+        return '<ClipLocation fpos=%d fc=%d nf=%d>' % (self.fpos, self.fc, self.nf)
+
+
+def iter_clips (fn):
+    with open(fn) as f:
+        for line in f:
+            (fpos, fc, nf) = line.rstrip('\r\n').split('\t')
+            fpos = int(fpos)
+            fc = int(fc)
+            nf = int(nf)
+            yield ClipLocation(fpos, fc, nf)
+
+def load_clips (fn):
+    return list(iter_clips(fn))
+
+
+#--  ClipsFile  ----------------------------------------------------------------
+
+class ClipsFile (File):
+
+    def load (self):
+        return load_clips(self.filename())
+
+
+#--  AudioDirectory  -----------------------------------------------------------
+
+class AudioDirectory (Structure):
+
+    signature = {'clips': ClipsFile,
+                 'transcript': TokenFile}
+
+    def __init__ (self, *args, **kwargs):
+        Structure.__init__(self, *args, **kwargs)
+        self._wave = None
+
+    def __bool__ (self): return self.exists()
+    def exists (self): return os.path.exists(self.filename())
+
+    def id (self): return self.parent().name()
+    def language (self): return self.parent().language()
+    def lexicon (self): return self.parent().lexicon()
+    def metadata (self): return self.parent().metadata()
+
+    def wave (self):
+        if self._wave is None:
+            tab = self.parent().media
+            if 'wav' not in tab:
+                raise HttpException('Missing media file')
+            self._wave = WaveFile(tab['wav'])
+        return self._wave
+
+    def get_clip (self, i):
+        clip = self.clips[i]
+        return self.wave().get_audio(clip)
+
+
+#--  AudioPage  ----------------------------------------------------------------
+
+# class AudioPage (Page):
+# 
+#     signature = {'audio': AudioDirectory,
+#                  'trans': Translation}
+# 
+#     def has_audio (self): return True
+#     def __len__ (self): return self.audio.transcript.n_translation_units()
+#     def plaintext (self): return TranslationUnits(self.audio.transcript)
+#     def tokens (self): return self.audio.transcript.tokens()
+#     def writer (self): return AudioPageWriter(self)
+
+
+#--  Hilo  ---------------------------------------------------------------------
+#
+#  Line or Clip.  Needs members: nd, dsylls, M
+#
+
+def hilo (dsylls, i):
+    if i >= len(dsylls): raise KeyError()
+    p = dsylls[i]/dsylls.max
+    if p < 0.02: return 0
+    elif p < 0.05: return 1
+    elif p < 0.10: return 2
+    elif p > 0.3: return 4
+    else: return 3
+
+hilo_colors = ['red', 'pink', 'yellow', 'rgb(128,255,164)', 'blue']
+
+
+#--  Clip  ---------------------------------------------------------------------
+
+class Clip (object):
+
+    def __init__ (self, header, loc, contents):
+        self.header = header
+        self.loc = loc
+        self.contents = contents
+
+    def save_wave (self, outfn):
+        with wave.open(outfn, 'wb') as out:
+            hdr = self.header
+            out.setnchannels(hdr.nchannels)
+            out.setsampwidth(hdr.width)
+            out.setframerate(hdr.rate)
+            out.setnframes(self.loc.nf)
+            out.writeframes(self.contents)
+
+
+#--  Graphics  -----------------------------------------------------------------
+
+class Graphics (object):
+
+    def __init__ (self, loc, points, dsylls):
+        self.loc = loc
+        self.points = points
+        self.dsylls = dsylls
+
+    def write_svg (self, out):
+        n = len(self.points)
+        out.write('<svg height="24" width="%d">\n' % ((n-1) * 2))
+        self._write_polyline(out)
+        self._write_hilo_lines(out)
+        out.write('</svg>\n')
+
+    def _write_polyline (self, out):
+        ymax = 20
+        points = self.points
+        n = len(points)
+        M = points.max
+        out.write('  <rect x="0" y="0" width="%d" height="%d" style="fill:white;stroke:none"/>\n' %
+                  ((n-1)*2, ymax))
+        out.write('  <polyline points="')
+        if points[0] != 0: out.write('0,%d ' % ymax)
+        for i in range(n):
+            out.write('%d,%d ' % (i*2, ymax - round(points[i]/M * ymax)))
+        out.write('%d,%d' % ((n-1)*2, ymax))
+        out.write('" style="fill:black;stroke:green;stroke-width:1" />\n')
+
+    # one hilo value for each demisyll = 10 points = 20 pixels
+
+    def _write_hilo_lines (self, out):
+        nd = len(self.dsylls)
+        prev = None
+        start = 0
+        for i in range(nd):
+            h = hilo(self.dsylls, i)
+            if h != prev:
+                self._write_line(prev, start, i, out)
+                prev = h
+                start = i
+        self._write_line(prev, start, nd, out)
+
+    def _write_line (self, type, i, j, out):
+        if type == None: return
+        color = hilo_colors[type]
+        x1 = i * 20
+        x2 = j * 20 - 2 # dsyll ends at point 9
+        out.write('  <line x1=%d y1=22 x2=%d y2=22 style="stroke:%s;stroke-width:2"/>\n' %
+                  (x1, x2, color))
+
+
+#--  WaveHeader  ---------------------------------------------------------------
+
+class WaveHeader (object):
+
+    def __init__ (self, file):
+        self.nchannels = file.getnchannels()
+        self.nframes = file.getnframes()
+        self.width = file.getsampwidth()
+        self.rate = file.getframerate()
+
+
+#--  WaveFile  -----------------------------------------------------------------
+#
+#  Thin wrapper around a wave file.
+#
+#  Keeps track of both file position and frame count, since there is no
+#  guarantee that the two are the same.
+#
+
+class WaveFile (object):
+
+    BUFFER_SIZE = 1024
+
+    def __init__ (self, fn):
+        self.file = wave.open(fn)
+        self.header = WaveHeader(self.file)
+        self.framecount = 0
+        self.buffer = None
+        self.bp = None
+
+    def seek (self, pos):
+        (fpos, fc) = pos
+        self.file.setpos(fpos)
+        self.framecount = fc
+        self.buffer = None
+        
+    def tell (self):
+        return (self.file.tell(), self.framecount)
+
+    def readframes (self, n):
+        nf = self.header.nframes
+        if self.framecount + n > nf:
+            n = nf - self.framecount
+        bs = self.file.readframes(n)
+        self.framecount += n
+        # checking
+        fpos = self.file.tell()
+        if fpos != self.framecount:
+            print('WARNING: fpos=%d, framecount=%d' % (fpos, self.framecount))
+        self.buffer = None
+
+    def at_eof (self): return self.framecount >= self.header.nframes
+    def __iter__ (self): return self
+
+    def __next__ (self):
+        nf = self.header.nframes
+        if self.framecount >= nf: raise StopIteration
+
+        # if buffer is empty, fill it
+        if self.buffer is None or self.bp >= len(self.buffer):
+            n = WaveFile.BUFFER_SIZE
+            if self.framecount + n > nf:
+                n = nf - self.framecount
+            self.buffer = self.file.readframes(n)
+            self.bp = 0
+
+        w = self.header.width
+        bs = self.buffer[self.bp:self.bp+w]
+        v = int.from_bytes(bs, byteorder='little', signed=True)
+        self.bp += w
+        self.framecount += 1
+        return v
+
+    def get_audio (self, loc):
+        print('get_audio', loc.fpos, loc.fc, loc.nf)
+        start = (loc.fpos, loc.fc)
+        self.seek(start)
+        contents = self.file.readframes(loc.nf)
+        clip = Clip(self.header, loc, contents)
+        print('...done')
+        return clip
+
+
+#--  Subsampler  ---------------------------------------------------------------
+#
+#  
+#  - Stateless; changing position of underlying stream is fine
+#
+
+class Subsampler (object):
+
+    def __init__ (self, stream, blocksize):
+        self.stream = iter(stream)
+        self.blocksize = blocksize
+
+    def __iter__ (self): return self
+
+    def __next__ (self):
+        val = 0
+        anyvals = False
+        try:
+            for i in range(self.blocksize):
+                val += abs(next(self.stream))
+                anyvals = True
+        except StopIteration:
+            pass
+        if anyvals: return val
+        else: raise StopIteration
+
+
+#--  Buffer  -------------------------------------------------------------------
+#
+#  - Behaves like an array.
+#  - Filled from an iterator, to a given length.
+#  - One can shorten it, but not lengthen it.
+#
+
+class Buffer (object):
+
+    def __init__ (self, stream, n):
+        self.buffer = []
+        self.max = 0
+        try:
+            for i in range(n):
+                v = next(stream)
+                self.buffer.append(v)
+                if v > self.max: self.max = v
+        except StopIteration:
+            while len(self.buffer) < n:
+                self.buffer.append(0)
+
+    def __len__ (self): return self.buffer.__len__()
+    def __iter__ (self): return self.buffer.__iter__()
+    def __getitem__ (self, i): return self.buffer.__getitem__(i)
+
+    def trim (self, n):
+        if n < 0: raise KeyError('Negative index')
+        if n > len(self.buffer): raise KeyError('Cannot lengthen')
+        del self.buffer[n:]
+
+
+#--  Make Clips  ---------------------------------------------------------------
+#
+#  Precompute cut points
+#
+
+def make_clips (wavefn, outfn='-'):
+    cb = ClipBuilder(wavefn)
+    if outfn == '-':
+        _make_clips_1(cb, sys.stdout)
+    else:
+        with open(outfn, 'w') as out:
+            _make_clips_1(cb, out)
+
+def _make_clips_1 (cb, out):
+    out.write('frame_rate\t%d\n' % cb.frame_rate())
+    for loc in cb:
+        out.write('%d\t%d\n' % (loc.fpos, loc.nf))
+
+
+#    line = Line(text.filename)
+#
+#        for i in range(nlines):
+#            line.cut()
+#            line.write(out)
+#            line.save_wave(outprefix + '-%d.wav' % i)
+#            line.advance()
+#
+#        out.write('<script>\n')
+#        out.write(test_script % outprefix)
+#        out.write('</script>\n')
+
+
+#--  ClipBuilder  --------------------------------------------------------------
+#
+#  - hilo is defined within a line because we need a range in which to compute
+#    a max value
+#  - point_size is frames per point.  1 point = 10 ms.
+#  - dsyll_size is points per demisyllable.  10 points = 100 ms.
+#  - window_size is demisyllables per search window.  50 dsyll = 5.0 sec.
+#
+
+class ClipBuilder (object):
+
+    def __init__ (self, fn, window_size=50, dsyll_size=10):
+        self.file = WaveFile(fn)
+        self.cursor = self.file.tell()
+
+        self.point_size = int(self.file.header.rate/100)
+        self.dsyll_size = dsyll_size
+        self.window_size = window_size
+
+    def frame_rate (self):
+        return self.file.header.rate
+
+    def fill_window (self):
+        self.points = None
+        self.dsylls = None
+        self.loc = None
+
+        self._make_points()
+        self._make_dsylls()
+        self._make_clip_location()
+
+    def _make_points (self, np=None):
+        if np is None: np = self.window_size * self.dsyll_size
+        self.points = Buffer(Subsampler(self.file, self.point_size), np)
+
+    def _make_dsylls (self, nd=None):
+        if nd is None: nd = self.window_size
+        self.dsylls = Buffer(Subsampler(iter(self.points), self.dsyll_size), nd)
+
+    def _make_clip_location (self):
+        (fpos, fc) = self.cursor
+        np = self.find_cut()
+        nf = np * self.point_size
+        self.loc = ClipLocation(fpos, fc, nf)
+
+    # must do fill_window() first
+
+    def make_graphics (self):
+        np = int(self.loc.nf/self.point_size)
+        if np < len(self.points):
+            self.points.trim(np)
+            nd = int(np/self.dsyll_size)
+            dsylls.trim(nd)
+        return Graphics(loc, points, dsylls)
+
+    def at_eof (self): return self.file.at_eof()
+        
+    def __next__ (self):
+        if self.at_eof(): raise StopIteration
+        self.fill_window()
+        loc = self.loc
+        self.cursor = (loc.fpos + loc.nf, loc.fc + loc.nf)
+        # because the fpos is currently at the end of the window
+        try:
+            self.file.seek(self.cursor)
+        except wave.Error:
+            raise StopIteration
+        return loc
+
+    def __iter__ (self):
+        return self
+
+
+#     def goto_end (self, loc):
+#         pos = (loc.fpos, loc.fc)
+#         self.file.seek(pos)
+#         contents = self.file.readframes(nf)
+#         self.start = self.file.tell()
+#         return Clip(self.file.header, loc, contents)
+
+    def get_graphics (self, loc):
+        nf = loc.nf
+        np = int(nf/self.point_size)
+        points = self.make_points(np)
+        nd = int(np/self.dsyll_size)
+        dsylls = self.make_dsylls(points, nd)
+        return Graphics(points, dsylls)
+
+    # find the best point at which to end the phrase
+
+    def find_cut (self):
+        dsylls = self.dsylls
+        nd = len(dsylls)
+        i = self._find_dcut()
+        while (i < nd and
+               (i+1 == nd or dsylls[i+1] < dsylls[i])):
+            i += 1
+        if i < nd:
+            return self._minpoint(i)
+        else:
+            return nd * self.dsyll_size
+
+    # the best demisyllable to cut at
+
+    def _find_dcut (self):
+        i = self._find_dcut_1(1)
+        if i is None:
+            i = self._find_dcut_1(2)
+            if i is None:
+                i = self._find_dcut_1(3)
+                if i is None:
+                    i = len(self.dsylls)
+        return i
+
+    def _find_dcut_1 (self, type):
+        try:
+            i = 0
+            while hilo(self.dsylls, i) <= type: i += 1
+            i += 1 # this one is not minimal
+            while hilo(self.dsylls, i) > type: i += 1
+            return i
+        except KeyError:
+            return None
+
+    # the index of the (first) minimum point in dsyll[i]
+
+    def _minpoint (self, i):
+        min_t = None
+        min_val = None
+        t0 = i * self.dsyll_size
+        for t in range(t0, t0+self.dsyll_size):
+            val = self.points[t]
+            if min_val is None or val < min_val:
+                min_t = t
+                min_val = val
+        return min_t
+
+
+#--  Test  ---------------------------------------------------------------------
+
+_test_script = '''
+
+function init () {
+    var src = '%s';
+
+    var svgs = document.getElementsByTagName('svg');
+    for (var i = 0; i < svgs.length; ++i) {
+        var svg = svgs[i];
+        svg.onclick = clickHandler;
+        svg.audio = new Audio(src + '-' + i + '.wav');
+    }
+
+    function clickHandler (evt) {
+        var svg = evt.target.parentNode;
+        console.log('svg=', svg, 'svg.audio=', svg.audio);
+        svg.audio.play();
+    }
+}
+
+init();
+
+'''
+
+
+def test_page (nlines, wavefn, outprefix):
+    
+    line = Line(wavefn)
+
+    outfn = outprefix + '.html'
+    print('Writing', outfn)
+    with open(outfn, 'w') as out:    
+        out.write('<html>\n')
+        out.write('<body>\n')
+
+        for i in range(nlines):
+            clip = line.clip()
+            clip.write_svg(out)
+            out.write('<br/>\n')
+            clip.save_wave(outprefix + '-%d.wav' % i)
+
+        out.write('<script>\n')
+        out.write(_test_script % outprefix)
+        out.write('</script>\n')
+        out.write('</body>\n')
+        out.write('</html>\n')

@@ -1,0 +1,971 @@
+<html>
+<head>
+<title>Panlex</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../default.css"/>
+</head>
+<body>
+<h1>Panlex</h1>
+
+<h2 id="0">Panlex2</h2>
+<p>
+  This is a replacement for the previous version.
+</p>
+
+<h3>Usage</h3>
+<pre class="source">
+$ python -m seal.script.panlex2 COM ARG*
+</pre>
+<p>
+  Some of the commands are actually multi-word commands, in
+  particular, all the commands beginning with "compile."
+</p>
+<mydesc>
+  <dt><tt>lang</tt> CODE</dt>
+  <dd>
+    CODE is an ISO 639-3 language code.
+    Prints out information about all varieties of the language with the
+    given code.  The printout includes the LVID code for each variety
+    and the list of dictionaries (SIDs) for each variety.
+  </dd>
+
+  <dt><tt>lvid</tt> LVID</dt>
+  <dd>
+    Produces the same output as <tt>lang</tt>, but limited to a single
+    variety.
+  </dd>
+
+  <dt><tt>dict</tt> SID</dt>
+  <dd>
+    Prints out metadata for the dictionary whose "source ID" is SID.
+  </dd>
+
+  <dt><tt>compile varieties</tt></dt>
+  <dd>
+    Writes <tt>varieties.tab</tt>.  Needed for e.g. compile bilex.
+  </dd>
+
+  <dt><tt>compile bilex</tt> TGT [GLS]</dt>
+  <dd>
+    TGT and GLS must be language variety IDs.
+    If GLS is not given it defaults to 187 (English).
+    Writes the file <tt>bilex-</tt>TLVID<tt>-</tt>GLVID<tt>.tab</tt>,
+    which contains records of form <i>tgt_str gloss_str sids,</i>
+    where <i>sids</i> is a space-separate list of source IDs.
+  </dd>
+
+</mydesc>
+
+<h3>Environment</h3>
+<p>
+  The following variables must be set in <tt>~/.seal</tt>:
+</p>
+<mydesc>
+  <dt><tt>data.panlex.zipfn</tt></dt>
+  <dd>The pathname of the Panlex zip file.  It may begin with "<tt>~</tt>".</dd>
+
+  <dt><tt>data.panlex.dirname</tt></dt>
+  <dd>The toplevel directory in the zip file, e.g. "<tt>panlex-20190901-csv</tt>".</dd>
+
+  <dt><tt>data.panlex.tgtdir</tt></dt>
+  <dd>The directory in which to install compiled dictionaries, etc.
+    It may begin with "<tt>~</tt>".
+  </dd>
+</mydesc>
+
+
+<h2 id="1">Overview</h2>
+<p>
+Panlex is a relational database representing lexical information for
+the world's languages.  The information is drawn typically from
+bilingual dictionaries.  Accordingly, a dictionary is viewed as consisting of
+lexical entries ("meanings"), each of which is the pairing of
+an expression in the target language with an expression in the
+glossing language, such as:</p>
+<pre class="source">
+boojoo[oji] hello[eng]
+</pre>
+<p>
+Generalizing, multiple target languages and
+multiple glossing languages are allowed.  An example is a multilingual
+dictionary of several related languages, glossed in both English and
+French.  Viewed this way, there is actually little need to distinguish
+between target language and glossing language: a lexical entry
+is simply a set of synonymous expressions in multiple languages.</p>
+<p>
+Panlex includes some additional lexical information, such as parts
+of speech, properties, definitions, and semantic fields.  Definitions and semantic
+fields are associated with lexical entries, but parts of speech and
+properties are permitted to differ between a word and its gloss.  We should revise
+the previous example to:</p>
+<pre class="source">
+boojoo[oji]/int hello[eng]/int
+</pre>
+<p>
+This lexical entry consists of two fields: <tt>boojoo[oj]/int</tt>
+and <tt>hello[eng]/int.</tt>  A field is intrinsic to a lexical
+entry.  Even if an apparently identical field occurs in a different
+lexical entry, Panlex treats it as a distinct object.</p>
+<p>
+Hence, the main data types are as follows.</p>
+<ul>
+<li><p>
+  An <b>expression</b> is a piece of text that is explicitly labeled with
+  the language it is written in, like <tt>"boojoo[oji]."</tt>
+  An expression is represented in the
+  database by an <b>expression ID (exid).</b>
+  The <tt>ex</tt> table associates an exid with a string and language variety.</p>
+</li>
+<li><p>
+  A <b>field,</b> which Panlex calls a "denotation," contains
+  an expression, has a part of
+  speech ("word class"), and may have properties.  A field is represented by
+  a <b>field ID (fid).</b>  The expression and lexical entry for
+  a given fid are specified in the <tt>dn</tt> table.  The part of
+  speech is given in the <tt>wc</tt> table.  The list of properties
+  is given in the table <tt>md.</tt></p>
+</li>
+<li><p>
+  A <b>lexical entry,</b> which Panlex calls a "meaning," is represented by
+  a <b>lexical-entry ID (lxid).</b>  I use the term <i>lexical entry</i>
+  rather than <i>meaning</i>, because the object in question is dictionary-specific.
+  No attempt is made to identify
+  sameness of meaning across dictionaries.
+  The association between lxid and dictionary is given in
+  the <tt>mn</tt> table.
+  A lxid may also be associated with a definition, in the <tt>df</tt>
+  table, or with a semantic domain, in the <tt>dm</tt> table.</p>
+</li>
+<li><p>
+  A <b>dictionary,</b> which Panlex calls a "source" or "approver,"
+  consists of a list of lexical entries, plus metadata.
+  A dictionary is represented by a <b>dictionary ID (did).</b>
+  The association between did and lxids is given in the table <tt>mn</tt>,
+  and dictionary metadata is given in the table <tt>ap.</tt></p>
+</li>
+<li><p>
+  A <b>language variety</b> may be documented in multiple
+  dictionaries, and a dictionary may document multiple language varieties.
+  A language variety is represented by a <b>language variety ID (lvid).</b>
+  The Panlex code for a language variety is of form <tt>abc-123</tt>,
+  consisting of a three-letter <b>iso code</b> for the language and a
+  three-digit <b>variety code.</b>  The association between lvids
+  and dids is given in the <tt>av</tt> table.  The iso code and
+  variety code are given in the <tt>lv</tt> table.</p>
+</li>
+</ul>
+
+<h2 id="2">Data tables</h2>
+
+<h3 id="2.1">Data types</h3>
+<p>
+The data-type specifications used in the data tables are as follows.
+The most important are:
+</p>
+<ul>
+<li><i>exid</i> - Expression</li>
+<li><i>fid</i> - Field</li>
+<li><i>lxid</i> - Lexical entry</li>
+<li><i>did</i> - Dictionary</li>
+<li><i>lvid</i> - Language variety</li>
+</ul>
+<p>
+Supporting data types are as follows.</p>
+<ul>
+<li><i>bool</i> - t or f.</li>
+<li><i>num</i> - A number.</li>
+<li><i>str</i> - A string.</li>
+<li><i>char</i> - A Unicode code point.</li>
+<li><i>date</i> - A date.</li>
+<li><i>url</i> - A URL.</li>
+<li><i>iso</i> - A 3-letter ISO language code.</li>
+<li><i>vc</i> - A 3-digit Panlex variety code.</li>
+<li><i>lic2</i> - A 2-letter license code.</li>
+<li><i>fm</i> - A file format (?)</li>
+</ul>
+
+<h3 id="2.2">Expressions</h3>
+<p>
+Expressions are used not only for words in dictionaries but also for
+parts of speech and dictionary names.
+An expression is a word in a particular language variety.  It pairs a
+string with a language-variety ID.</p>
+<table class="display">
+<tr><th colspan="3"><tt>ex</tt></th></tr></td></tr>
+<tr><td><tt>ex</tt></td> <td><i>exid</i></td> <td>The expression.</td></tr>
+<tr><td><tt>lv</tt></td> <td><i>lvid</i></td> <td>Its language variety.</td></tr>
+<tr><td><tt>tt</tt></td> <td><i>str</i></td> <td>Its string.</td></tr>
+<tr><td><tt>td</tt></td> <td><i>str</i></td> <td>A "degraded text"
+  version of the string.  Contains only lowercase
+  letters and digits.</td></tr>
+</table>
+
+<h3 id="2.3">Fields</h3>
+<p>
+A field belongs to a particular lexical entry, and its contents is an
+expression.</p>
+<table class="display">
+<tr><th colspan="3"><tt>dn</tt></th></tr>
+<tr><td><tt>dn</tt></td> <td><i>fid</i></td> <td>The field.</td>
+<tr><td><tt>mn</tt></td> <td><i>lxid</i></td> <td>The lexical entry it
+    belongs to.</td></tr>
+<tr><td><tt>ex</tt></td> <td><i>exid</i></td> <td>The contents.</td></tr>
+</table>
+<p>
+A part of speech may be assigned to a field.</p>
+<table class="display">
+<tr><th colspan="3"><tt>wc</tt></th></tr>
+<tr><td><tt>wc</tt></td> <td><i>num</i></td> <td>An ID for the assignment?</td></tr>
+<tr><td><tt>dn</tt></td> <td><i>fid</i></td> <td>The field.</td></tr>
+<tr><td><tt>ex</tt></td> <td><i>exid</i></td> <td>The part of speech.</td></tr>
+</table>
+<p>
+The <tt>wcex</tt> table is a convenience listing of the expressions
+that are used as parts of speech.</p>
+<table class="display">
+<tr><th colspan="3"><tt>wcex</tt></th></tr>
+<tr><td><tt>ex</tt></td> <td><i>exid</i></td> <td>The part-of-speech expression.</td></tr>
+<tr><td><tt>tt</tt></td> <td><i>str</i> </td> <td>The part-of-speech string.</td></tr>
+</table>
+<p>
+A field may have properties (key-value pairs).  These are used
+for declension classes, valency, etc.</p>
+<table class="display">
+<tr><th colspan="3"><tt>md</tt></th></tr>
+<tr><td><tt>md</tt></td> <td><i>num</i></td> <td>An ID for the assignment?</td></tr>
+<tr><td><tt>dn</tt></td> <td><i>fid</i></td> <td>The field.</td></tr>
+<tr><td><tt>vb</tt></td> <td><i>str</i></td> <td>The key.</td></tr>
+<tr><td><tt>vl</tt></td> <td><i>str</i></td> <td>The value.</td></tr>
+</table>
+
+<h3 id="2.4">Lexical entries</h3>
+<p>
+A dictionary is a list of lexical entries.  Panlex calls them "meanings."</p>
+<table class="display">
+<tr><th colspan="3"><tt>mn</tt></th></tr>
+<tr><td><tt>mn</tt></td> <td><i>lxid</i></td> <td>The lexical entry.</td></tr>
+<tr><td><tt>ap</tt></td> <td><i>did</i></td> <td>The dictionary it belongs to.
+  The table is sorted by this column.</td></tr>
+</table>
+<p>
+The <tt>df</tt> table appears to represent definitions or explanations.
+Not all dictionaries have them.</p>
+<table class="display">
+<tr><th colspan="3"><tt>df</tt></th></tr>
+<tr><td><tt>df</tt></td> <td><i>num</i></td> <td>The definition ID (?)</td></tr>
+<tr><td><tt>mn</tt></td> <td><i>lxid</i></td> <td>The lexical entry.</td></tr>
+<tr><td><tt>lv</tt></td> <td><i>lvid</i></td> <td>The language variety of the definition text.</td></tr>
+<tr><td><tt>tt</tt></td> <td><i>str</i></td> <td>The definition text.</td></tr>
+</table>
+<p>
+The <tt>dm</tt> table appears to represent the semantic domain of an
+entry.  Not all dictionaries include it.</p>
+<table class="display">
+<tr><th colspan="3"><tt>dm</tt></th></tr>
+<tr><td><tt>dm</tt></td> <td><i>num</i></td> <td>The semantic domain (?)</td></tr>
+<tr><td><tt>mn</tt></td> <td><i>lxid</i></td> <td>The lexical entry.</td></tr>
+<tr><td><tt>ex</tt></td> <td><i>exid</i></td> <td>An expression naming
+    the semantic domain</td></tr>
+</table>
+<p>
+An additional table, <tt>mi</tt>, also provides information about
+lexical entries.  I have not been able to determine what it
+represents.  The values in the <tt>tt</tt>
+field are usually IDs of some sort, but occasionally English words.</p>
+<table class="display">
+<tr><th colspan="3"><tt>mi</tt></th></tr>
+<tr><td><tt>mn</tt></td> <td><i>lxid</i></td> <td>The lexical entry.</td></tr>
+<tr><td><tt>tt</tt></td> <td>?</td> <td>?</td></tr>
+</table>
+
+<h3 id="2.5">Dictionaries</h3>
+<p>
+A dictionary contains a list of lexical entries (see above).
+Metadata information is contained in the table <tt>ap</tt>.</p>
+<table class="display">
+<tr><th colspan="3"><tt>ap</tt></th></tr>
+<tr><td><tt>ap</tt></td> <td><i>did</i></td> <td>The dictionary ID.</td></tr>
+<tr><td><tt>dt</tt></td> <td><i>date</i></td> <td>Registration date.</td></tr>
+<tr><td><tt>tt</tt></td> <td><i>str</i> </td> <td>A short identifier, e.g. <tt>eng-ciw:Weshki</tt>.</td></tr>
+<tr><td><tt>ur</tt></td> <td><i>url</i> </td> <td>The URL.</td></tr>
+<tr><td><tt>bn</tt></td> <td><i>str</i> </td> <td>ISBN, perhaps?</td></tr>
+<tr><td><tt>au</tt></td> <td><i>str</i> </td> <td>Author.</td></tr>
+<tr><td><tt>ti</tt></td> <td><i>str</i> </td> <td>Title.</td></tr>
+<tr><td><tt>pb</tt></td> <td><i>str</i> </td> <td>Publisher.</td></tr>
+<tr><td><tt>yr</tt></td> <td><i>str</i> </td> <td>Year of publication.</td></tr>
+<tr><td><tt>uq</tt></td> <td><i>num</i> </td> <td>Quality?</td></tr>
+<tr><td><tt>ui</tt></td> <td><i>did</i></td> <td>Appears to be the same as <tt>ap</tt>.</td></tr>
+<tr><td><tt>ul</tt></td> <td><i>str</i> </td> <td>Some kind of summary line.</td></tr>
+<tr><td><tt>li</tt></td> <td><i>lic2</i> </td> <td>An IP license code.</td></tr>
+<tr><td><tt>ip</tt></td> <td><i>str</i> </td> <td>An IP license statement.</td></tr>
+<tr><td><tt>co</tt></td> <td><i>str</i> </td> <td>Company?</td></tr>
+<tr><td><tt>ad</tt></td> <td><i>str</i> </td> <td>Email address</td></tr>
+</table>
+<p>
+A dictionary documents one or more language varieties.</p>
+<table class="display">
+<tr><th colspan="3"><tt>av</tt></th></tr>
+<tr><td><tt>ap</tt></td> <td><i>did</i></td> <td>The dictionary.</td></tr>
+<tr><td><tt>lv</tt></td> <td><i>lvid</i></td> <td>A variety that it documents.</td></tr>
+</table>
+<p>
+The <tt>apli</tt> table appears to map 2-letter license codes to
+3-letter codes.  I don't know what the codes mean.</p>
+<table class="display">
+<tr><th colspan="3"><tt>apli</tt></th></tr>
+<tr><td><tt>id</tt></td> <td><i>num</i></td> <td>ID for the assignment (?)</td></tr>
+<tr><td><tt>li</tt></td> <td><i>lic2</i></td> <td>2-letter code</td></tr>
+<tr><td><tt>pl</tt></td> <td><i>?</i></td> <td>3-letter code</td></tr>
+</table>
+<p>
+The table <tt>af</tt> appears to indicate the file format of the original
+source for the dictionary.</p>
+<table class="display">
+<tr><th colspan="3"><tt>af</tt></th></tr>
+<tr><td><tt>ap</tt></td> <td><i>did</i></td> <td>The dictionary.</td></tr>
+<tr><td><tt>fm</tt></td> <td><i>fm</i></td> <td>The format.  Example values are <tt>html</tt>,
+   <tt>html-curl</tt>, <tt>pdf-lock/encrypt</tt>, <tt>txt</tt>, <tt>txt-wb</tt>,
+   <tt>xml</tt>, <tt>pdf-img</tt>, and <tt>db</tt>.</td></tr>
+</table>
+<p>
+The <tt>fm</tt> table appears to contain information about "fm" codes.</p>
+<table class="display">
+<tr><th colspan="3"><tt>fm</tt></th></tr>
+<tr><td><tt>fm</tt></td> <td><i>fm</i></td> <td>Format ID?</td></tr>
+<tr><td><tt>tt</tt></td> <td><i>str</i></td> <td>Dictionary name??</td></tr>
+<tr><td><tt>md</tt></td> <td><i>str</i></td> <td>?</td></tr>
+</table>
+<p>
+The table <tt>aped</tt> appears to contain Panlex processing information
+for dictionaries.</p>
+<table class="display">
+<tr><th colspan="3"><tt>aped</tt></th></tr>
+<tr><td><tt>ap</tt></td> <td><i>did</i></td> <td>The dictionary.</td></tr>
+<tr><td><tt>q</tt> </td> <td><i>bool</i> </td> <td>?</td></tr>
+<tr><td><tt>cx</tt></td> <td><i>num</i> </td> <td>?</td></tr>
+<tr><td><tt>im</tt></td> <td><i>bool</i> </td> <td>?</td></tr>
+<tr><td><tt>re</tt></td> <td><i>bool</i> </td> <td>?</td></tr>
+<tr><td><tt>ed</tt></td> <td>?         </td> <td>?</td></tr>
+<tr><td><tt>fp</tt></td> <td>?         </td> <td>A code that seems to indicate the documented
+   varieties and a one-word abbreviation of the title.  E.g., <tt>eng-ciw-Weshki</tt>.</td></tr>
+<tr><td><tt>etc</tt></td> <td><i>str</i></td> <td>Appears to be comments about what work
+    needs to be done yet.</td></tr>
+</table>
+
+<h3 id="2.6">Language varieties</h3>
+<p>
+Languages are identified by 3-digit ISO codes.  A language variety is
+a specialization.  The varieties of a given language are numbered from
+0: <tt>eng0</tt>, <tt>eng1</tt>, etc.  There is also a numeric ID for each
+language variety.  For example, variety 187 is <tt>eng0</tt>.</p>
+<table class="display"></td></tr>
+<tr><td><tt>lv</tt></td> <td><i>lvid</i></td> <td>The language variety.</td></tr>
+<tr><td><tt>lc</tt></td> <td><i>iso</i></td> <td>Its ISO language code.</td></tr>
+<tr><td><tt>vc</tt></td> <td><i>vc</i></td> <td>Language-variety sequence number.  The varieties of a
+   particular ISO-coded language are numbered sequentially from 0.</td></tr>
+<tr><td><tt>sy</tt></td> <td><i>bool</i></td> <td>?</td></tr>
+<tr><td><tt>am</tt></td> <td><i>bool</i></td> <td>?</td></tr>
+<tr><td><tt>ex</tt></td> <td><i>exid</i></td> <td>The name of the variety.  Names are usually given in
+   the variety (e.g., the name for German is given as "Deutsch."
+   But sometimes names are given in English.</td></tr>
+</table>
+<p>
+Additional information about language varieties is given in tables
+<tt>cp</tt> and <tt>cu</tt>.  I don't know what these tables contain,
+possibly punctuation characters in the language.</p>
+<p>
+<table class="display">
+<tr><th colspan="3"><tt>cp</tt></th></tr></td></tr>
+<tr><td><tt>lv</tt></td> <td><i>lvid</i></td> <td>A language variety.</td></tr>
+<tr><td><tt>c0</tt></td> <td><i>char</i></td> <td>A code point.</td></tr>
+<tr><td><tt>c1</tt></td> <td><i>char</i></td> <td>A code point.</td></tr>
+<tr><th colspan="3"><tt>cu</tt></th></tr></td></tr>
+<tr><td><tt>lv</tt></td> <td><i>lvid</i></td> <td>A language variety.</td></tr>
+<tr><td><tt>c0</tt></td> <td><i>char</i></td> <td>A code point.</td></tr>
+<tr><td><tt>c1</tt></td> <td><i>char</i></td> <td>A code point.</td></tr>
+<tr><td><tt>loc</tt></td> <td>?</td> <td>?</td></tr>
+<tr><td><tt>vb</tt></td> <td>?</td> <td>Values include <tt>pun</tt>, <tt>priv</tt>, <tt>aux</tt>,
+ <tt>cit:fin:pri</tt>, <tt>cit:kom:pri</tt>.</td></tr>
+</table>
+
+
+<h2 id="3">Panlex executable</h2>
+
+<h3 id="3.1">Zip</h3>
+<p>
+One can examine the contents of the original zip file using the
+<tt>zip</tt> command.  There are four subcommands:</p>
+<dl>
+<dt>list</td> <dd>List the filenames.</dd>
+<dt>head <i>f</i></td> <dd>Print the first 50 records of file <i>f</i>.</dd>
+<dt>cat <i>f</i></dt> <dd>Print all the records of file <i>f</i>.</dd>
+<dt>table <i>f</i></dt> <dd>The table is like the contents, except that, if
+there is a field labeled <tt>ex</tt>, two new columns are added: <tt>ex.tt</tt>
+and <tt>ex.lv</tt>.  The former contains the string contents of the
+expression and the latter is the language-variety code for the
+expression.  One may optionally provide an attribute <i>a</i> and value <i>v</i> to
+restrict the listing to records that have value <i>v</i> for attribute <i>a</i>.
+Nota bene: this command is generally <i>much</i> slower than <tt>cat</tt>.</dd>
+</dl>
+
+<h3 id="3.2">Variety</h3>
+<p>
+A language is a set of varieties.</p>
+<pre class="source">
+$ panlex variety deu
+lv | lc | vc | sy | am | ex | ex.tt | ex.lv
+157 | deu | 0 | t | t | 274 | Deutsch | 157
+1349 | deu | 1 | t | t | 18586881 | Masematte | 1349
+1845 | deu | 2 | t | t | 18586883 | Hessisch | 1845
+9097 | deu | 3 | t | t | 12660638 | doitS | 9097
+</pre>
+<p>
+These are all the language varieties corresponding to ISO code
+"deu."  Language variety 157 is deu0, variety 1349 is deu1, and so
+on.  I don't know what "sy" and "am" are.  The name of the variety
+is given in the variety itself.  Specifically, an expression (ex) is
+the pairing of a string (ex.tt) with an indiciation of which variety it is
+written in (ex.lv).</p>
+<p>
+To give another example, Ojibwe (oji) is a macrolanguage comprising
+Severn Ojibwa (ojs), Eastern Ojibwa (ojg), Central Ojibwa (ojc),
+Northwestern Ojibwa (ojb), Western Ojibwa (ojw), Chippewa (ciw),
+Ottawa (otw), and Algonquin (alq).</p>
+<pre class="source">
+$ panlex variety oji ojs ojg ojc ojb ojw ciw otw alq
+lv | lc | vc | sy | am | ex | ex.tt | ex.lv
+30 | ojb | 0 | t | t | 18592962 | Anishinaabemowin | 30
+536 | ciw | 0 | t | t | 18586345 | Anishinaabemowin | 536
+934 | otw | 0 | t | t | 18593131 | Daawaamwin | 934
+4069 | ojw | 0 | t | t | 18592975 | Nakaw?mowin | 4069
+5598 | ojs | 1 | t | t | 7505858 | ????? | 5598
+6930 | ojg | 0 | t | t | 18592966 | Nishnaabemwin | 6930
+6931 | ojc | 0 | t | t | 18592964 | Ojibwe | 6931
+6932 | ojs | 0 | t | t | 18592970 | Anishininiimowin | 6932
+6933 | ciw | 1 | t | t | 8150 | Central Minnesota Chippewa | 187
+7415 | ciw | 2 | t | t | 17070963 | Minnesota Ojibwe | 187
+9170 | alq | 1 | t | t | 241072 | ???????? | 9170
+19 | alq | 0 | t | t | 45808 | anicin?bemowin | 19
+</pre>
+<p>
+The question marks represent Unicode characters that Latex does not handle.
+The information here does not appear to be entirely correct.  Panlex
+labels a wordlist that Margaret and Howard produced as documenting
+variety 536 (ciw0), which is Chippewa.  I would have thought that they
+speak Eastern Ojibwa.</p>
+
+<h3 id="3.3">Dicts</h3>
+<p>
+For each variety, there is a set of
+dictionaries.</p>
+<p></p>
+<pre class="source">
+$ panlex dicts 30 536 934 4069 5598 6930 6931 6932 6933 7415 9170 19
+128 | Freelang Ojibwe-English dictionary | 13741 | eng-ciw-Weshki
+153 | Freelang Ojibwe-English dictionary | 1319 | ciw-ojw-ojc-ojs-ojg-otw-mic-pot-eng-Weshki
+611 | Astronomia Terminaro | 2474 | mul-Rapley
+2409 | Swadesh Lists | 207 | art-mul-SL
+2815 | Anishinaabemowinâ€“English | 131 | ciw-eng-Noori
+2830 | Ezhi-Giigidaang, How We Say It (Pronunciation) | 0 | ciw-eng-Kimewon
+4091 | Lexique de la langue algonquine | 0 | alq-fra-Cuoq
+3778 | Ojibwe Vocabulary Project | 0 | ciw-eng-Manidoons
+3779 | Ojibwe-English Wordlist | 0 | ciw-eng-Weshki
+4095 | Travels through the Canadas: Vocabulary of the Algonquin Tongue | 0 | alq-eng-Heriot
+4144 | The Ojibwe Peopleâ€™s Dictionary | 0 | eng-ciw-OPD
+</pre>
+<p>
+A dictionary may document more than one variety.</p>
+
+<h3 id="3.4">Dict</h3>
+<p>
+To see information about a dictionary:</p>
+<pre class="source">
+$ panlex dict 128
+ap | lv
+128 | 187
+128 | 536
+
+id 128
+dt 2007-12-11
+tt eng-ciw:Weshki
+ur http://www.freelang.net/dictionary/ojibwe.php
+bn
+au Weshki-ayaad; Charles Lippert; Guy T. Gambill
+ti Freelang Ojibwe-English dictionary
+pb Freelang
+yr 2010
+uq 5
+ui 128
+ul TG 122; FreeLang.English_Ojibwe.wb
+li co
+ip Every author exercises rights with respect to the part of a list that represents that personâ€™s own contribution.
+co Guy T. Gambill
+ad gambillgt1@yahoo.com
+</pre>
+<p>
+The first lines indicate which varieties the dictionary documents.  In
+this case, they are 187 (English, eng0) and 536 (Chippewa, ciw0).</p>
+
+<h3 id="3.5">Bidicts</h3>
+<p>
+To find out which dictionaries document a particular pair of
+varieties.</p>
+<pre class="source">
+$ panlex bidicts 187 536
+128 | Freelang Ojibwe-English dictionary | 13741 | eng-ciw-Weshki
+153 | Freelang Ojibwe-English dictionary | 1319 | ciw-ojw-ojc-ojs-ojg-otw-mic-pot-eng-Weshki
+611 | Astronomia Terminaro | 2474 | mul-Rapley
+2409 | Swadesh Lists | 207 | art-mul-SL
+2830 | Ezhi-Giigidaang, How We Say It (Pronunciation) | 0 | ciw-eng-Kimewon
+3778 | Ojibwe Vocabulary Project | 0 | ciw-eng-Manidoons
+4144 | The Ojibwe People's Dictionary | 0 | eng-ciw-OPD
+</pre>
+<p>
+The columns are: dictionary ID (<tt>ap.ap</tt>) title (<tt>ap.ti</tt>),
+number of entries (count where <tt>mn.ap==ap</tt>), and short code (<tt>aped.fp</tt>).</p>
+
+<h3 id="3.6">Bidict</h3>
+<p>
+To extract a bidict:</p>
+<pre class="source">
+$ panlex bidict 128 536 187 | uniq > tmp.out
+</pre>
+<p>
+The result is ASCII sorted (case sensitive), in two-column format,
+with a single tab character as column separator.  Let us think of the
+first column as the target language and the second column as the
+glossing language.  If a target-language word has multiple glosses,
+they produce multiple lines in the file, all sharing the same
+target-language word.  (Since the file is sorted, they form a
+contiguous block.)  For example, the following occurs in the middle of
+<tt>tmp.out</tt>:</p>
+<pre class="source">
+aabizh  cut seams open on
+aabizhiishin    perk up
+aabiziishin     come to
+aabiziishin     revive
+</pre>
+<p>
+For some reason, the dictionaries sometimes contain duplicate
+entries - hence the "uniq" in the command line above.</p>
+<p>
+
+<h2 id="4">Panlex module</h2>
+
+<h3 id="4.1">Zip files</h3>
+<pre class="source">
+f = open_zipfile()
+</pre>
+<p>
+The Panlex zip file is <tt>~/src/cl/panlex-20140501-csv.zip</tt>.</p>
+<p>
+Things you can do with a zip file:</p>
+<pre class="source">
+f.namelist()      # list of filenames
+f.printdir()      # print long listing
+s = f.read(name)  # one of the names from namelist
+</pre>
+<p>
+The entire file is read as a single string.</p>
+<p>
+The list of Panlex files:</p>
+<pre class="source">
+>>> from panlex import open_zipfile
+>>> f = open_zipfile()
+>>> for nm in f.namelist():
+...     print nm
+...
+panlex-20140501-csv/
+panlex-20140501-csv/af.csv
+panlex-20140501-csv/mi.csv
+panlex-20140501-csv/aped.csv
+panlex-20140501-csv/df.csv
+panlex-20140501-csv/wc.csv
+panlex-20140501-csv/av.csv
+panlex-20140501-csv/lv.csv
+panlex-20140501-csv/fm.csv
+panlex-20140501-csv/ex.csv
+panlex-20140501-csv/dm.csv
+panlex-20140501-csv/cp.csv
+panlex-20140501-csv/md.csv
+panlex-20140501-csv/dn.csv
+panlex-20140501-csv/cu.csv
+panlex-20140501-csv/ap.csv
+panlex-20140501-csv/wcex.csv
+panlex-20140501-csv/mn.csv
+panlex-20140501-csv/apli.csv
+</pre>
+
+<h3 id="4.2">Reading a file</h3>
+<p>
+<b>Raw contents.</b></p>
+<pre class="source">
+s = raw_contents(fn)
+</pre>
+<p>
+The <tt>fn</tt> omits the directory name and the <tt>.csv</tt> suffix.  That
+is, legitimate values are "af," "mi," etc.</p>
+
+<p>
+<b>Reader</b>.
+<p></p>
+<pre class="source">
+r = reader(fn)
+</pre>
+<p>
+Uses <tt>csv.reader</tt> to parse the csv format.
+The return value is an iterator over records, each record being a list
+of fields.  The first record contains the field names.</p>
+<pre class="source">
+>>> from panlex import reader
+>>> r = reader('af')
+>>> r.next()
+['ap', 'fm']
+>>> r.next()
+['1636', '24']
+</pre>
+
+<p>
+<b>Open file</b>.</p>
+<pre class="source">
+(hdr, recs) = open_file(fn)
+</pre>
+<p>
+The header is the list of field names, and <tt>recs</tt> is an iterator
+over the content records.</p>
+
+<p>
+<b>Print headers.</b>
+Prints the database schema: the names and headers of all the files.</p>
+<pre class="source">
+>>> from panlex import print_headers
+>>> print_headers()
+af: ap fm
+mi: mn tt
+aped: ap q cx im re ed fp etc
+df: df mn lv tt
+wc: wc dn ex
+av: ap lv
+lv: lv lc vc sy am ex
+fm: fm tt md
+ex: ex lv tt td
+dm: dm mn ex
+cp: lv c0 c1
+md: md dn vb vl
+dn: dn mn ex
+cu: lv c0 c1 loc vb
+ap: ap dt tt ur bn au ti pb yr uq ui ul li ip co ad
+wcex: ex tt
+mn: mn ap
+apli: id li pl
+</pre>
+<p>
+<b>Head and cat.</b>
+The function <tt>head()</tt> prints the first <i>n</i> records.  The function
+<tt>cat()</tt> dumps the contents readably.  <tt>cat(fn,'html')</tt>
+produces HTML output.</p>
+
+<h3 id="4.3">Database tables</h3>
+<p>
+<b>Where</b>.
+Select records containing specified values in a specified field.
+The return value is an iterator over records.</p>
+<pre class="source">
+>>> from panlex import where
+>>> for r in where('lv', 'lc', 'deu'):
+...     print '|'.join(r)
+...
+157|deu|0|t|t|274
+1349|deu|1|t|t|18586881
+1845|deu|2|t|t|18586883
+9097|deu|3|t|t|12660638
+</pre>
+<p>
+<b>Expand expressions.</b></p>
+<pre class="source">
+r = expand_expressions(recs, hdr)
+</pre>
+<p>
+Returns an iterator over records.  Two new columns are added: the
+first contains the expression's string, and the second contains the
+expression's variety.</p>
+<p>
+
+<h3 id="4.4">Extracting dictionaries</h3>
+<p>
+<b>Dict entries.</b>
+The function <tt>dict_entry_ids()</tt> returns an iterator over the entry IDs
+(<i>lxids</i>) for a given dictionary or dictionaries.</p>
+<pre class="source">
+>>> from panlex import dict_entries
+>>> len(list(dict_entry_ids('128')))
+13741
+</pre>
+<p>
+The function <tt>dict_entry_table()</tt> returns a table whose keys are
+meaning IDs, and whose values are list of pairs of form (<i>lvid, w</i>)
+where $w$ is a word string.</p>
+<pre class="source">
+>>> from panlex import dict_entries
+>>> ents = dict_entry_table('128')
+>>> len(ents)
+13741
+>>> mns = list(ents)
+>>> mns[0]
+'2525999'
+>>> ents[mns[0]]
+[('187', 'consider'), ('536', 'naagadawaabam')]
+>>> ents[mns[1]]
+[('187', 'knock against'), ('536', 'bitaakoshkan')]
+</pre>
+<p>
+<b>Bilex pairs.</b>
+The function <tt>bilex_pairs()</tt> returns an alphabetically sorted
+list of word pairs representing the entries of the given dictionary.</p>
+<pre class="source">
+>>> from panlex import bilex_pairs
+>>> pairs = bilex_pairs('128','536','187')
+>>> pairs[0]
+['Aabamadong', 'Fort Hope']
+>>> len(pairs)
+13739
+</pre>
+<p>
+Note that the pair of language IDs is not predictable from the
+dictionary.  The dictionary may contain more than two languages, and
+even if it only contains two, the dictionary does not specify their
+order.</p>
+
+
+<h2 id="5">The database</h2>
+
+<h3 id="5.1">Zip file</h3>
+<p>
+The database dump is contained in a zip file.  The class <tt>ZipFile</tt>
+is used to access it.</p>
+<pre class="source">
+>>> from seal.data.panlex import ZipFile
+>>> zf = ZipFile()
+</pre>
+<p>
+Methods are provided for listing the contents of the zip file.</p>
+<pre class="source">
+>>> zf.ls()
+File Name                                             Modified             Size
+panlex-20140501-csv/                           2014-05-01 03:02:18            0
+panlex-20140501-csv/af.csv                     2014-05-01 03:00:04        38522
+panlex-20140501-csv/mi.csv                     2014-05-01 03:02:00     33214449
+...
+>>> list(zf.filenames())
+['af', 'mi', 'aped', 'df', 'wc', 'av', 'lv', 'fm', 'ex', ..., 'apli']
+</pre>
+<p>
+The method <tt>print_headers()</tt> prints out, for each table, its name and field names.
+It takes a minute or two to run.</p>
+<pre class="source">
+>>> zf.print_headers()
+af: ap fm
+mi: mn tt
+aped: ap q cx im re ed fp etc
+...
+</pre>
+<p>
+To print the contents of the tables, the methods <tt>head</tt> and <tt>cat</tt>
+are provided.</p>
+<pre class="source">
+>>> zf.head('wcex', 3)
+ex | tt
+3846607 | noun
+3846608 | verb
+>>> zf.cat('wcex')
+ex | tt
+3846607 | noun
+3846608 | verb
+3846609 | adjv
+...
+</pre>
+<p>
+The method <tt>table</tt> returns a <tt>Table</tt> object containing the
+contents of the table.  If the table contains an <tt>ex</tt> field,
+two new fields named <tt>ex.tt</tt> and <tt>ex.lv</tt> are added to each
+record.  This method can be slow to run.</p>
+
+<h3 id="5.2">Tables</h3>
+<p>
+A <tt>Table</tt> is a collection of records.  It
+has the following members and methods:
+<dl></dd>
+<dt>header</dt> <dd>A list of strings.</dd>
+<dt>records</dt> <dd>A list of records, each record being a list of strings.</dd>
+<dt>where(<i>f</i>,<i>v</i>)</dt> <dd>Returns a new <tt>Table</tt> containing the subset
+of records in which field <i>f</i> has value <i>v</i>.</dd>
+<dt>dump()</dt> <dd>Prints out the table.</dd>
+<dt>grep(<i>f</i>,<i>v</i>)</dt> <dd>Prints out the subtable for which field <i>f</i> has
+value <i>v</i>.</dd>
+</dl>
+
+<h3 id="5.3">Parser</h3>
+<p>
+A <tt>Parser</tt> instance digests the information in the tables.</p>
+
+<h3 id="5.4">Compiler</h3>
+<p>
+The value of <tt>compile</tt> is a <tt>Compiler</tt> instance.  It is used
+to create digested files.  If called with no arguments, it creates the
+files </p>
+
+<h3 id="5.5">Utility functions</h3>
+<p>
+The function <tt>attribute_entries()</tt> iterates over the records for
+a given subject type or a given subject-relation pair.  For example:</p>
+<pre class="source">
+>>> i = attribute_entries('expression', 'label')
+>>> i.next()
+(('expression', 'label', 'string'), '3990756' u'!')
+</pre>
+<p>
+The entries are of form <i>(t, v_1, v_2),</i> where <i>t</i> is of form
+<i>(t_1, r, t_2)</i>.</p>
+<p>
+<b>Collect variety languages.</b>
+The function <tt>collect_variety_languages()</tt> iterates over the
+variety-language records, and constructs a table indexed by variety ID
+(an int), whose value is the variety's language.  E.g.:</p>
+<pre class="source">
+>>> vlangs = collect_variety_languages()
+>>> vlangs[187]
+'eng'
+</pre>
+<p>
+<b>Collect approvers.</b>
+The function <tt>collect_approvers()</tt> returns a table indexed by
+approver ID, in which the values are lists of form [lang, variety,
+quality, title].</p>
+<p>
+<b>Extracting bilexicons.</b>
+A bilexicon is represented in Python by the class <tt>Bilex</tt>:</p>
+<pre class="source">
+>>> b = Bilex('spa','eng')
+</pre>
+<p>
+<b>Create raw.</b>
+The first step is to create the raw bilexicon:</p>
+<pre class="source">
+>>> b.create_raw()
+</pre>
+<p>
+This takes about 25 minutes to run.  The output (in this example) is
+the file <tt>spa-eng-raw.txt</tt> in the directory <tt>/cl/data/panlex/lex</tt>.</p>
+<p>
+The <tt>create_raw()</tt> method starts by loading the variety-language table, which maps varieties
+to their languages.</p>
+<p>
+Then it goes through the expression-variety records, creating a table
+of expressions.  The keys are expressions (ints) and the values are
+lists of form [variety, label, degraded text].  An entry is created
+only for expressions whose variety's language is one of the two
+languages of interest.  Label and degraded
+text are initially set to the empty string.</p>
+<p>
+Next it goes through the expression-label and expression-degraded-text
+records, filling in the other fields of the expression entries.</p>
+<p>
+Next it creates a denotations table.  It
+goes through the denotation-expression records.  If the expression has
+an entry in the expressions table, then a new entry is created in the
+denotations table.  The key is the denotation (an int), and the value
+is a list of form [expression, part of speech, meaning].  Initially
+only the expression is set.  Part of speech is initialized to the
+empty string and meaning is initialized to 0.</p>
+<p>
+Next it goes through the denotation-pos records and the
+denotation-meaning records, filling in the remaining fields in the
+denotation entries.</p>
+<p>
+By that point, memory is pretty much full.  Output is written to
+<tt><i>lang1</tt>-<i>lang2</i>-raw.txt</i>.
+We pass through the denotations table.  Each denotation entry contains
+an expression ID, we use it to fetch the expression entry.  The
+expression entry contains a variety ID; we use it to look up the
+language.  Each denotation generates one line of output, of form:</p>
+<blockquote>
+m lang v expr degraded pos d e
+</blockquote>
+<p>
+The single letters represent integer IDs: meaning (m), variety (v),
+denotation (d), expression (e).  The denotation and expression IDs are
+included only for debugging purposes.</p>
+<p>
+<b>Sort raw.</b>
+The method <tt>sort_raw()</tt> calls Unix <tt>sort</tt> to sort the raw
+file by meaning, language, variety, and label.  The output is written
+to <tt><i>lang1</tt>-<i>lang2</i>-m1.txt</i>.  It takes a couple minutes
+to run.</p>
+<p>
+<b>Create m2.</b>
+The method <tt>create_m2()</tt> adds approvers, and also filters out
+monolingual meanings.  (I tried adding approvers when creating the raw
+file, but Python runs out of memory.)</p>
+<pre class="source">
+>>> b.create_m2()
+</pre>
+<p>
+The method scans through the <tt>m1.txt</tt> file, collecting a table of
+meanings.  For each block of meanings, note is kept of whether both
+languages are seen.  If so, an entry is created in the meanings table,
+and otherwise no entry is created.  The meanings table is indexed by
+meaning ID, and the value is the approver ID (initialized to 0).</p>
+<p>
+After creating the meanings table, the method passes through the
+meaning-approver records and sets the values (approvers) for the
+meanings.</p>
+<p>
+Next it calls <tt>collect_approvers()</tt> to get the quality
+information for each approver.</p>
+<p>
+Finally, it passes a second time through the <tt>m1.txt</tt> file.  Each
+time it encounters a new meaning, it looks in the meanings table to
+see whether it should be kept or not.  If the meaning is a keeper, the
+quality of the approver is looked up in the approvers table.  Each
+line from <tt>m1.txt</tt> that is to be kept is copied to <tt>m2.txt</tt>,
+and two new fields are added at the end: approver ID and quality.
+Hence the lines in <tt>m2.txt</tt> are of form:</p>
+<blockquote>
+m lang v expr degraded pos d e a q
+</blockquote>
+<p>
+where "a" is approver and "q" is quality (both are ints).</p>
+<p>
+<b>Create sources.</b>
+The method <tt>create_sources()</tt> extracts detailed information about
+each of the approvers.  It writes the file <tt><i>lang1</i>-<i>lang2</i>-sources.txt</tt>.
+The line format is:</p>
+<pre class="source">
+a rel value
+</pre>
+<p>
+where "a" is the approver ID.  The relations (attributes) are:
+<tt>lang</tt>, <tt>variety</tt>, <tt>regdate</tt>, <tt>label</tt>, <tt>creator</tt>,
+<tt>isbn</tt>, <tt>lic_id</tt>, <tt>license</tt>, <tt>year</tt>, <tt>publ</tt>,
+<tt>title</tt>, and <tt>url</tt>.  An empty line is inserted before each
+block of records sharing a common value for "a."</p>
+<p>
+<b>By word.</b>
+The method <tt>by_word()</tt> creates a file containing lines of form</p>
+<pre class="source">
+word-lang1 quality word-lang2
+</pre>
+<p>
+The method <tt>sort_by_word()</tt> then sorts that file.</p>
+<p>
+It turns out that the quality scores for the approvers are not very
+informative about whether the entries are actually good.  For example,
+the top quality source (quality 7) for the Spanish word "a" includes
+meanings "crazy," "missionary," and "physical" - completely
+bogus.  A much better gauge appears to be the number of sources in
+which the translation occurs.</p>
+<p>
+
+
+</body>
+</html>

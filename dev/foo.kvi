@@ -1,0 +1,9 @@
+# A comment
+lex |lexicon.lx
+texts list:
+  dict:
+    ti | Hi: My #|@\ "Adventures"
+    pgs 238
+  dict:
+    au |J. Smith
+    ti |Bar

@@ -1,0 +1,1017 @@
+<html>
+<head>
+<title>Corpora and treebanks</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../default.css"/>
+</head>
+<body>
+<h1>Corpora and treebanks</h1>
+
+<h2 id="1">The Brown corpus</h2>
+<p>
+The module <tt>seal.data.brown</tt> behaves like an NLTK corpus, and
+indeed it dispatches to <tt>nltk.corpus.brown</tt> in most cases.
+However, it provides an alternative reduced tagset.</p>
+<pre class="python">
+>>> from seal.data import brown
+>>> brown.tagged_words(tagset='base')[:3]
+[('The', 'AT'), ('Fulton', 'NP'), ('County', 'NN')]
+</pre>
+<p>
+Contrast this with the default tagset:</p>
+<pre class="python">
+>>> brown.tagged_words()[:3]
+[('The', 'AT'), ('Fulton', 'NP-TL'), ('County', 'NN-TL')]
+</pre>
+
+<h3 id="1.1">Functionality</h3>
+<p>
+NLTK provides the Brown corpus, though the version in <tt>seal.brown</tt>
+is tweaked.  The two basic functions are:
+<pre class="source">
+>>> brown.words()
+>>> brown.tagged_words()
+</pre>
+The latter takes an optional argument <tt>tagset</tt>.  If absent or
+equal to "original," the full Brown tags are returned.  If equal to
+"base," the prefix <tt>FW-</tt> and the
+suffixes (<tt>-NC</tt>, <tt>-TL</tt>, and <tt>-HL</tt>) are removed from the tags.
+There are a few places where <tt>-T</tt> occurs in the original as an
+error for <tt>-TL</tt>; these are also stripped.</p>
+<p>
+One can also call the function <tt>brown.base()</tt> on a tag to strip
+its prefixes and suffixes, if any.  In addition, the function
+<tt>brown.ispunct()</tt> indicates whether a tag is a punctuation tag or
+not, and <tt>brown.isproper()</tt> indicates whether a tag is a proper
+name tag or not.</p>
+<p>
+Both <tt>brown.words()</tt> and <tt>brown.tagged_words()</tt> can be called
+with optional parameters <tt>categories</tt> or <tt>fileids</tt>, with the
+same interpretation as in NLTK.</p>
+
+<h3 id="1.2">The Brown tagset</h3>
+<p>
+There are 188 base tags, which break down as follows:</p>
+<table class="display">
+<tr><td>1</td> <td colspan="3"><tt>NIL</tt></td></tr>
+<tr><td>96</td> <td colspan="3">compound tags</td></tr>
+<tr><td rowspan="7">91</td> <td colspan="3">simple tags</td></tr>
+<tr><td>9</td> <td colspan="2">punctuation tags</td></tr>
+<tr><td>4</td> <td colspan="2">proper-noun tags</td></tr>
+<tr><td rowspan="4">78</td> <td colspan="2">regular word tags</td></tr>
+<tr><td>21</td> <td>tags for unique lexical items</td></tr>
+<tr><td>39</td> <td>closed-class tags</td></tr>
+<tr><td>18</td> <td>open-class tags</td></tr>
+</table>
+<p>
+<b>NIL.</b>
+There are 157 tokens in the original that are tagged "<tt>NIL</tt>."
+This appears to be simply a gap in the tagging.  They are not removed
+from the output of <tt>stripped()</tt>.</p>
+<p>
+<b>Compound tags.</b>
+The compound tags are for contracted word pairs; four of them are
+actually contracted word triples.  They exclude possessives, inasmuch
+as the possessive marker is not an independent word.  The majority of
+contractions involve either the combination of a verb tag with
+<tt>*</tt>, which represents the contraction "n't";
+or the combination of a noun or pronoun tag with a
+verb or auxiliary tag.  There are, however, a fair number of other cases
+as well.  The simple tags making up compound tags all occur
+independently, with the exception of "<tt>PP</tt>," which occurs in a
+compound tag but not standing alone.  It is probable that this is an
+error for <tt>PPS</tt> or <tt>PPO</tt>, particularly since it occurs at the
+end of a long tag that may have gotten truncated.</p>
+<p>
+<b>Punctuation tags.</b>
+Of the 91 simple tags, nine are punctuation tags:</p>
+<pre class="source">
+' '' ( ) , -- . : ``
+</pre>
+<p>
+<b>Proper-noun tags.</b>
+Four tags represent proper nouns:</p>
+<pre class="source">
+NP NP$ NPS NPS$
+</pre>
+<p>
+The tag <tt>NP</tt> includes titles such as "Mr." and "Jr.," as well
+as place names, month names, and the like.  <tt>NPS</tt> includes
+words like "Republicans."</p>
+<p>
+<b>Unique lexical items.</b>
+There are 21 tags that represent unique lexical items.  We ignore
+spelling variation, nonstandard dialect forms, and foreign words.
+A few of the possessive tags, namely <tt>DT$</tt>, <tt>JJ$</tt>,
+<tt>AP$</tt>, <tt>CD$</tt>, <tt>RB$</tt>, appear on only one word each, but
+those represent rare constructions or questionable tagging decisions,
+and are listed elsewhere.</p>
+<table class="tabbing">
+<tr style="vertical-align:top"><td>
+<table class="display">
+<tr><td><tt>*</tt></td> <td><i>not</i></td></tr>
+<tr><td><tt>ABX</tt></td> <td><i>both</i></td></tr>
+<tr><td><tt>BE</tt></td> <td><i>be</i></td></tr>
+<tr><td><tt>BED</tt></td> <td><i>were</i></td></tr>
+<tr><td><tt>BEDZ</tt></td> <td><i>was</i></td></tr>
+</table>
+</td><td>
+<table class="display">
+<tr><td><tt>BEG</tt></td> <td><i>being</i></td></tr>
+<tr><td><tt>BEM</tt></td> <td><i>am</i></td></tr>
+<tr><td><tt>BEN</tt></td> <td><i>been</i></td></tr>
+<tr><td><tt>BER</tt></td> <td><i>are</i></td></tr>
+<tr><td><tt>BEZ</tt></td> <td><i>is</i></td></tr>
+</table>
+</td><td>
+<table class="display">
+<tr><td><tt>DO</tt></td> <td><i>do</i></td></tr>
+<tr><td><tt>DOD</tt></td> <td><i>did</i></td></tr>
+<tr><td><tt>DOZ</tt></td> <td><i>does</i></td></tr>
+<tr><td><tt>EX</tt></td> <td><i>there</i></td></tr>
+<tr><td><tt>HV</tt></td> <td><i>have</i></td></tr>
+</table>
+</td><td>
+<table class="display">
+<tr><td><tt>HVD</tt></td> <td><i>had</i></td></tr>
+<tr><td><tt>HVG</tt></td> <td><i>having</i></td></tr>
+<tr><td><tt>HVN</tt></td> <td><i>had</i></td></tr>
+<tr><td><tt>HVZ</tt></td> <td><i>has</i></td></tr>
+<tr><td><tt>TO</tt></td> <td><i>to</i></td></tr>
+<tr><td><tt>WQL</tt></td> <td><i>how, however</i></td></tr>
+</table>
+</td></tr>
+</table>
+
+<p><b>Closed-class tags.</b>
+There are 39 closed-class tags:</p>
+
+<table class="display">
+<tr><th colspan="2">Conjunctions</th></tr>
+<tr><td><tt>CC</tt></td> <td><i>and, but, or, nor, either, yet, neither, plus, minus, though</i></td></tr>
+<tr><td><tt>CS</tt></td> <td>complementizers</td></tr>
+<tr><th colspan="2">Specifiers</th></tr>
+<tr><td><tt>ABL</tt></td> <td><i>such, quite, rather</i></td></tr>
+<tr><td><tt>ABN</tt></td> <td><i>all, half, many, nary</i></td></tr>
+<tr><td><tt>AP</tt></td> <td><i>other, many, more, same, ...</i></td></tr>
+<tr><td><tt>AP$</tt></td> <td><i>other's</i></td></tr>
+<tr><td><tt>AT</tt></td> <td><i>the, a(n), no, every</i></td></tr>
+<tr><td><tt>DTI</tt></td> <td><i>some, any</i></td></tr>
+<tr><td><tt>DTS</tt></td> <td><i>these, those</i></td></tr>
+<tr><td><tt>DTX</tt></td> <td><i>either, neither, one</i></td></tr>
+<tr><td><tt>DT</tt></td> <td><i>this, that, each, another</i></td></tr>
+<tr><td><tt>DT$</tt></td> <td><i>another's</i></td></tr>
+<tr><td><tt>QLP</tt></td> <td><i>enough, indeed, still</i></td></tr>
+<tr><th colspan="2">Numbers</th></tr>
+<tr><td><tt>CD</tt></td> <td>cardinal numbers</td></tr>
+<tr><td><tt>CD$</tt></td> <td><i>1960's, 1961's</i></td></tr>
+<tr><td><tt>OD</tt></td> <td>ordinal numbers</td></tr>
+<tr><th colspan="2">Pronouns</th></tr>
+<tr><td><tt>PPS</tt></td> <td><i>he, it, she</i></td></tr>
+<tr><td><tt>PPSS</tt></td> <td><i>I, they, we, you</i></td></tr>
+<tr><td><tt>PPO</tt></td> <td><i>it, him, them, me, her, you, us</i></td></tr>
+<tr><td><tt>PP$</tt></td> <td><i>his, their, her, its, my, our, your</i></td></tr>
+<tr><td><tt>PP$$</tt></td> <td><i>his, mine, ours, yours, theirs, hers</i></td></tr>
+<tr><td><tt>PPL</tt></td> <td><i>himself, itself, myself, herself, yourself, oneself</i></td></tr>
+<tr><td><tt>PPLS</tt></td> <td><i>themselves, ourselves, yourselves</i></td></tr>
+<tr><td><tt>PN</tt></td> <td><i>one; (some-, no-, any-, every-) + (-thing, -body)</i></td></tr>
+<tr><td><tt>PN$</tt></td> <td><i>one's, anyone's, everybody's, ...</i></td></tr>
+<tr><td><tt>RN</tt></td> <td><i>here, then, afar</i></td></tr>
+<tr><th colspan="2">Interrogatives</th></tr>
+<tr><td><tt>WDT</tt></td> <td><i>which, what, whichever, whatever</i></td></tr>
+<tr><td><tt>WPS</tt></td> <td><i>who, that, whoever, what, whatsoever, whosoever</i></td></tr>
+<tr><td><tt>WPO</tt></td> <td><i>whom, that, what, who</i></td></tr>
+<tr><td><tt>WP$</tt></td> <td><i>whose, whosever</i></td></tr>
+<tr><td><tt>WRB</tt></td> <td><i>when, where, how, why,</i> plus many variants</td></tr>
+<tr><th colspan="2">Other Closed Classes</th></tr>
+<tr><td><tt>MD</tt></td> <td>modals</td></tr>
+<tr><td><tt>NR</tt></td> <td>adverbial nouns: days of the week, cardinal directions, etc.</td></tr>
+<tr><td><tt>NRS</tt></td> <td>plural adverbial nouns</td></tr>
+<tr><td><tt>NR$</tt></td> <td>possessive adverbial nouns</td></tr>
+<tr><td><tt>QL</tt></td> <td>qualifiers (adverbs that modify quantifiers)</td></tr>
+<tr><td><tt>IN</tt></td> <td>prepositions</td></tr>
+<tr><td><tt>RP</tt></td> <td>particles</td></tr>
+<tr><td><tt>UH</tt></td> <td>interjections</td></tr>
+</table>
+<p>
+<b>Open-class tags.</b></td></tr>
+There are 18 open-class tags, of which two (<tt>JJ$</tt> and <tt>RB$</tt>)</td></tr>
+appear to be the result of phrasal use of the possessive, and should</td></tr>
+probably be placed in the class of compound tags.</p>
+<table class="display">
+<tr><th colspan="2">Nouns</th></tr>
+<tr><td><tt>NN</tt></td> <td>singular</td></tr>
+<tr><td><tt>NNS</tt></td> <td>plural</td></tr>
+<tr><td><tt>NN$</tt></td> <td>possessive</td></tr>
+<tr><td><tt>NNS$</tt></td> <td>possessive plural</td></tr>
+<tr><th colspan="2">Verbs</th></tr>
+<tr><td><tt>VBZ</tt></td> <td>third-person singular</td></tr>
+<tr><td><tt>VBD</tt></td> <td>past tense</td></tr>
+<tr><td><tt>VB</tt></td> <td>uninflected form</td></tr>
+<tr><td><tt>VBG</tt></td> <td>present participle</td></tr>
+<tr><td><tt>VBN</tt></td> <td>past participle</td></tr>
+<tr><th colspan="2">Adjectives</th></tr>
+<tr><td><tt>JJ</tt></td> <td>positive</td></tr>
+<tr><td><tt>JJR</tt></td> <td>comparative</td></tr>
+<tr><td><tt>JJS</tt></td> <td>intrinsically superlative</td></tr>
+<tr><td><tt>JJT</tt></td> <td>morphologically superlative</td></tr>
+<tr><td><tt>JJ$</tt></td> <td><i>Great's</i></td></tr>
+<tr><th colspan="2">Adverbs</th></tr>
+<tr><td><tt>RB</tt></td> <td>adverb</td></tr>
+<tr><td><tt>RBR</tt></td> <td>comparative</td></tr>
+<tr><td><tt>RBT</tt></td> <td>superlative</td></tr>
+<tr><td><tt>RB$</tt></td> <td><i>else's</i></td></tr>
+</table>
+
+<h2 id="2">The Penn Treebank</h2>
+<p>
+Another source of trees is the Penn treebank, represented by the module
+<tt>ptb</tt>.  It contains functions to access the Penn Treebank and
+its parts.</p>
+<p>
+One may specify in the <a href="../../seal/config.html">Seal configuration</a>
+the pathname for the contents of LDC99T42.</p>
+
+<h3 id="2.1">Fileids and categories</h3>
+<p>
+The treebank consists of 2312 files divided into 25 sections.
+There is a traditional division into train, test, dev
+train, dev test, and reserve test parts:</p>
+<table class="display">
+<tr><th>Division</th> <th>Sections</th> <th>Files</th></tr>
+<tr><td>dev_train</td> <td>00-01</td> <td>0-198</td></tr>
+<tr><td>train</td> <td>02-21</td> <td>199-2073</td></tr>
+<tr><td>reserve_test</td> <td>22</td> <td>2074-2156</td></tr>
+<tr><td>test</td> <td>23</td> <td>2157-2256</td></tr>
+<tr><td>dev_test</td> <td>24</td> <td>2257-2311</td></tr>
+</table>
+<p>
+The functions follow the conventions of the NLTK corpus readers.  The
+function <tt>fileids()</tt> returns a list of file identifiers, which are
+actually numbers in the range [0,2312).  One can also specify one or
+more categories.  Category names are either WSJ section names, in the
+form <tt>'00'</tt>, <tt>'01'</tt>, up to <tt>'24'</tt>, or one of the
+following: <tt>'train'</tt>, <tt>'test'</tt>, <tt>'dev_train'</tt>,
+<tt>'dev_test'</tt>, <tt>'reserve_test'</tt>.  One can get a list of the
+fileids in a given category, or the categories that a given file
+belongs to:</p>
+<pre class="python">
+>>> from seal.data import ptb
+>>> len(ptb.fileids())
+2312
+>>> len(ptb.fileids(categories='train'))
+1875
+>>> ptb.fileids('dev_train')[-5:]
+[194, 195, 196, 197, 198]
+>>> ptb.categories(0)
+['00', 'dev_train']
+>>> ptb.categories(2311)
+['24', 'dev_test']
+>>> for c in sorted(ptb.categories()):
+...     if c.islower():
+...         print(c, len(ptb.fileids(c)))
+... 
+dev_test 55
+dev_train 199
+reserve_test 83
+test 100
+train 1875
+</pre>
+
+<h3 id="2.2">Filenames</h3>
+<p>
+One can obtain the filename for a given fileid:</p>
+<pre class="python">
+>>> ptb.orig_filename(199)[-15:]
+'02/wsj_0200.mrg'
+</pre>
+<p>
+Reverse look-up is also possible:</p>
+<pre class="python">
+>>> ptb.orig_to_fileid('0200')
+199
+</pre>
+<p>
+The reverse look-up table is loaded the first time that
+<tt>orig_to_fileid()</tt> is called.</p>
+
+<h3 id="2.3">Trees</h3>
+<p>
+The method <tt>trees()</tt> returns a list of all the individual
+trees in the treebank or a slice of it:</p>
+<pre class="python">
+>>> trees = ptb.trees(0)
+>>> print(trees[0])
+0   (
+1      (S
+2         (NP:SBJ
+3            (NP
+4               (NNP Pierre)
+5               (NNP Vinken))
+6            (, ,)
+...
+>>> len(ptb.trees(categories='dev_test'))
+1346
+</pre>
+<p>
+There is also a function <tt>iter_trees()</tt> that returns
+iterations rather than lists.</p>
+
+<h3 id="2.4">Empty nodes</h3>
+<p>
+In the original treebank, typical empty nodes look like this:
+<pre class="source">
+(NP-SBJ (-NONE- *-1) )
+(SBAR (-NONE- 0) 
+   (S (-NONE- *T*-1) ))
+</pre>
+<p>
+We omit "<tt>-NONE-</tt>" and treat "<tt>*</tt>," "<tt>0</tt>," or
+"<tt>*T*</tt>" as the category.  The word and children are both <tt>None</tt>.
+For example:</p>
+<pre class="python">
+>>> trees = ptb.trees(categories='dev_test')
+>>> tree = trees[30]
+>>> np = tree[18]
+>>> print(np)
+0   (NP:SBJ
+1      (*T* &amp;1))
+>>> t = np.children[0]
+>>> t.cat
+'*T*'
+>>> t.word
+''
+>>> tree = trees[86]
+>>> s1 = tree[36]
+>>> print(s1)
+0    (SBAR
+1       (0)
+2       (S
+3          (*T* &amp;1)))
+>>> s1.children[0].cat
+'0'
+>>> s = s1.children[1]
+>>> s.children[0].cat
+'*T*'
+</pre>
+
+<h3 id="2.5">Methods</h3>
+<p>
+The module <tt>ptb</tt> is summarized in the following table.
+The optional <i>f</i> and <i>c</i> are optional and can also be
+provided by keyword: <tt>fileids</tt> and <tt>categories,</tt>
+respectively.</p>
+<table class="display">
+<tr><td><tt>fileids(c)</tt></td> <td>The file IDs in categories <i>c</i></td></tr>
+<tr><td><tt>categories(f)</tt></td> <td>The categories for fileids <i>f</i></td></tr>
+<tr><td><tt>trees(f,c)</tt></td> <td>The trees in the given files/categories</td></tr>
+<tr><td><tt>words(f,c)</tt></td> <td>The words</td></tr>
+<tr><td><tt>sents(f,c)</tt></td> <td>Sentences (lists of words)</td></tr>
+<tr><td><tt>raw_sents(f,c)</tt></td> <td>Sentence strings</td></tr>
+<tr><td><tt>abspath(f)</tt></td> <td>The absolute pathname for the fileid</td></tr>
+<tr><td><tt>text_filename(f)</tt></td> <td>Pathname for the text file</td></tr>
+<tr><td><tt>orig_filename(f)</tt></td> <td>The original pathname</td></tr>
+<tr><td><tt>fileid_from_orig(o)</tt></td> <td>Convert original ID (4 digits)</td></tr>
+<tr><td><tt>text_files(f,c)</tt></td> <td>List of text filenames</td></tr>
+<tr><td><tt>orig_files(f,c)</tt></td> <td>List of original filenames</td></tr>
+</table>
+<p>
+The function <tt>fileid_from_orig()</tt> takes an original file
+identifier.  It strips a trailing file suffix, if any, and then
+ignores everything except the last four characters, which should be
+digits, such as "0904," which represents file 04 in WSJ section 09.
+Accordingly, "<tt>parsed/mrg/wsj/09/wsj_0904.mrg</tt>,"
+"<tt>wsj_0904.mrg</tt>," and simply "<tt>0904</tt>" are
+treated as synonymous.</p>
+
+<h3 id="2.6">Statistics</h3>
+<p>
+Bikel [2767] reports a number of statistics for the standard
+training slice (sections 02--21) of the Penn Treebank.
+We can compute our own statistics and compare, as follows.  (Be warned, the calls that iterate
+over trees take on the order of minutes to return.)</p>
+<p>
+<b>Number of sentences.</b>
+Bikel counts 39,832 sentences.  Our count agrees:
+<!-- don't actually want to test this; too time-consuming -->
+<pre class="source">
+>>> count(ptb.trees(categories='train'))
+39832
+</pre>
+<p>
+<b>Number of word tokens.</b>
+Bikel counts 950,028 word tokens (not including null elements).  Our
+count agrees:
+<pre class="source">
+>>> count(n for t in ptb.trees(categories='train')
+...             for n in t.nodes()
+...                 if n.isword())
+950028
+>>> count(ptb.words(categories='train'))
+950028
+</pre>
+<p>
+<b>Number of word types.</b>
+Bikel counts 44,114 unique words (not including null elements).  Our
+count is slightly higher.  I do not know why there is a discrepancy.
+<pre class="source">
+>>> len(set(n.word for t in ptb.trees(categories='train')
+...                    for n in t.nodes()
+...                        if n.isword()))
+44389
+>>> len(set(ptb.words(categories='train')))
+44389
+</pre>
+<p>
+<b>Number of words with a count greater than 5.</b>
+Bikel reports that 10,437 word types occur 6 times or more.  Our count
+is again a little higher:
+<pre class="source">
+>>> count(w for w in wcts if wcts[w] >= 6)
+10530
+</pre>
+<p>
+<b>Number of interior nodes.</b>
+Bikel reports 904,748 brackets.  Our count is quite a bit lower:
+<pre class="source">
+>>> count(n for t in ptb.trees(categories='train')
+...             for n in t.nodes()
+...                 if n.isinterior())
+792794
+</pre>
+<p>
+<b>Number of nonterminal categories.</b>
+Bikel reports 28 basic nonterminals, excluding roles ("function
+tags," in his terms) and indices.
+Including roles and indices, he reports 1184 full nonterm labels.
+<pre class="source">
+>>> ntcats = set(n.cat for t in ptb.trees(categories='train')
+...                        for n in t.nodes()
+...                            if n.isinterior())
+>>> len(ntcats)
+27
+>>> sorted(ntcats)
+[ADJP, ADVP, CONJP, FRAG, INTJ, LST, NAC, NP, NX, PP, PRN, PRT,
+PRT|ADVP, QP, RRC, S, SBAR, SBARQ, SINV, SQ, UCP, VP, WHADJP, WHADVP,
+WHNP, WHPP, X]
+</pre>
+It is not clear what Bikel's extra category is.  Possibly he went
+beyond the training data.</p>
+<p>
+Actually, we should probably replace "\verb.PRT|ADVP." with either <tt>PRT</tt>
+or <tt>ADVP</tt>.  That would leave only 26 categories.</p>
+<p>
+<b>Number of terminal categories.</b>
+Bikel reports 42 unique part of speech tags.  We count 55.
+<pre class="source">
+>>> parts = set(n.cat for t in ptb.trees(categories='train')
+...                       for n in t.nodes()
+...                           if n.isleaf())
+>>> len(parts)
+55
+>>> sorted(parts)
+[#, $, '', *, *?*, *EXP*, *ICH*, *NOT*, *PPA*, *RNR*, *T*, *U*, ,,
+  -LRB-, -RRB-, ., 0, :, CC, CD, DT, EX, FW, IN, JJ, JJR, JJS, LS, MD,
+  NN, NNP, NNPS, NNS, PDT, POS, PRP, PRP$, RB, RBR, RBS, RP, SYM, TO,
+  UH, VB, VBD, VBG, VBN, VBP, VBZ, WDT, WP, WP$, WRB, ``]
+</pre>
+Eliminating empty leaves reduces the number of parts of speech to 45:
+<pre class="source">
+>>> parts = set(n.cat for t in ptb.trees(categories='train')
+...                       for n in t.nodes()
+...                           if n.isleaf() and not n.isempty())
+>>> len(parts)
+45
+>>> sorted(parts)
+[#, $, '', ,, -LRB-, -RRB-, ., :, CC, CD, DT, EX, FW, IN, JJ, JJR,
+  JJS, LS, MD, NN, NNP, NNPS, NNS, PDT, POS, PRP, PRP$, RB, RBR, RBS,
+  RP, SYM, TO, UH, VB, VBD, VBG, VBN, VBP, VBZ, WDT, WP, WP$, WRB, ``]
+</pre>
+<p>
+<b>Number of roles.</b>
+Bikel does not count roles separately.  We can:
+<pre class="source">
+>>> roles = set(imap(Node.role, trn.nodes()))
+>>> roles
+set([TMP, DIR, PRP-CLR, SBJ-TTL, LOC-HLN, TPC, CLR-TPC, CLF,
+CLF-TPC, PUT-TPC, PRD-TPC, NOM-TPC, LGS, PRP-TPC, PRD-TTL,
+TPC-TMP, MNR, TPC-PRD, LOC-PRD-TPC, DIR-PRD, LOC-TMP, SBJ,
+TMP-TPC, MNR-PRD, HLN, MNR-CLR, BNF, LOC-MNR, PRD-LOC-TPC,
+LOC-CLR, TTL, NOM-SBJ, CLR-LOC, NOM, DIR-TPC, TPC-CLR, PRD-TMP,
+CLR, TTL-PRD, TMP-CLR, TMP-HLN, LOC-TPC-PRD, PRP-PRD, LOC-TPC,
+None, LOC-CLR-TPC, VOC, EXT, MNR-TMP, PRD, NOM-LGS, CLR-TMP,
+TMP-PRD, ADV, DTV, NOM-PRD, TTL-SBJ, TPC-LOC-PRD, LOC-PRD,
+PRD-LOC, ADV-TPC, CLR-MNR, DIR-CLR, PUT, TTL-TPC, PRP, LOC,
+CLR-ADV, MNR-TPC])
+>>> len(roles)
+69
+</pre>
+<p>
+
+<h3 id="2.7">Categories</h3>
+<p>
+The categories occurring in the treebank can be divided into three
+groups: nonterminal categories, parts of speech, and empty categories.</p>
+<p>
+<b>Nonterminal categories</b> label interior nodes, that is,
+nodes that have children.  (In the treebank, no interior nodes are
+labeled with words.)
+There are 28 nonterminal categories, as follows.</p>
+<p>
+<table class="tabbing">
+<tr><td><table class="display">
+<tr><td><tt>ADJP</tt></td> <td>Adjective phrase</td></tr>
+<tr><td><tt>ADVP</tt></td> <td>Adverb phrase</td></tr>
+<tr><td><tt>ADVP|PRT</tt></td> <td>Indecision </td></tr>
+<tr><td><tt>CONJP</tt></td> <td>Conjunction phrase</td></tr>
+<tr><td><tt>FRAG</tt></td> <td>Fragment</td></tr>
+<tr><td><tt>INTJ</tt></td> <td>Interjection</td></tr>
+<tr><td><tt>LST</tt></td> <td>List enumerator</td></tr>
+<tr><td><tt>NAC</tt></td> <td>Not a constituent</td></tr>
+<tr><td><tt>NP</tt></td> <td>Noun phrase</td></tr>
+<tr><td><tt>NX</tt></td> <td>NP head fragment</td></tr>
+<tr><td><tt>PP</tt></td> <td>Prepositional phrase</td></tr>
+<tr><td><tt>PRN</tt></td> <td>Parenthetical</td></tr>
+<tr><td><tt>PRT</tt></td> <td>Particle </td></tr>
+<tr><td><tt>PRT|ADVP</tt></td> <td>Indecision</td></tr>
+</table></td></p>
+<p>
+<td><table class="display">
+<tr><td><tt>QP</tt></td> <td>Quantifier phrase</td></tr>
+<tr><td><tt>RRC</tt></td> <td>Reduced relative clause</td></tr>
+<tr><td><tt>S</tt></td> <td>Sentence</td></tr>
+<tr><td><tt>SBAR</tt></td> <td>Subordinate clause</td></tr>
+<tr><td><tt>SBARQ</tt></td> <td>Interrogative clause</td></tr>
+<tr><td><tt>SINV</tt></td> <td>Inverted sentence</td></tr>
+<tr><td><tt>SQ</tt></td> <td>Interrogative sentence</td></tr>
+<tr><td><tt>UCP</tt></td> <td>Unlike coord'd phrase </td></tr>
+<tr><td><tt>VP</tt></td> <td>Verb phrase</td></tr>
+<tr><td><tt>WHADJP</tt></td> <td>Wh adjective phrase</td></tr>
+<tr><td><tt>WHADVP</tt></td> <td>Wh adverb phrase</td></tr>
+<tr><td><tt>WHNP</tt></td> <td>Wh noun phrase</td></tr>
+<tr><td><tt>WHPP</tt></td> <td>Wh prepositional phrase</td></tr>
+<tr><td><tt>X</tt></td> <td>Unknown, unbracketable</td></tr>
+</table></td>
+</tr></table></p>
+<p>
+<b>Parts of speech</b> label nodes that have words.  There are 45 parts
+of speech, as follows.</p>
+<p>
+<table class="tabbing">
+<tr><td>
+<table class="display">
+<tr><td><tt>#</tt></td> <td>Monetary sign</td></tr>
+<tr><td><tt>$</tt></td> <td>U.S. dollars</td></tr>
+<tr><td><tt>''</td> <td>Close quotes</td></tr>
+<tr><td><tt>,</tt></td> <td>Comma</td></tr>
+<tr><td><tt>-LRB-</tt></td> <td>Left parenthesis</td></tr>
+<tr><td><tt>-RRB-</tt></td> <td>Right parenthesis</td></tr>
+<tr><td><tt>.</tt></td> <td>Period</td></tr>
+<tr><td><tt>:</tt></td> <td>Colon</td></tr>
+<tr><td><tt>CC</tt></td> <td>Coordinator</td></tr>
+<tr><td><tt>CD</tt></td> <td>Number</td></tr>
+<tr><td><tt>DT</tt></td> <td>Determiner</td></tr>
+<tr><td><tt>EX</tt></td> <td>Existential <i>there</i></td></tr>
+<tr><td><tt>FW</tt></td> <td>Foreign word</td></tr>
+<tr><td><tt>IN</tt></td> <td>Preposition</td></tr>
+<tr><td><tt>JJ</tt></td> <td>Adjective</td></tr>
+<tr><td><tt>JJR</tt></td> <td>Comparative adjective</td></tr>
+<tr><td><tt>JJS</tt></td> <td>Superlative adjective</td></tr>
+<tr><td><tt>LS</tt></td> <td>List enumerator</td></tr>
+<tr><td><tt>MD</tt></td> <td>Modal</td></tr>
+<tr><td><tt>NN</tt></td> <td>Common noun</td></tr>
+<tr><td><tt>NNP</tt></td> <td>Proper noun</td></tr>
+<tr><td><tt>NNPS</tt></td> <td>Plural proper noun</td></tr>
+<tr><td><tt>NNS</tt></td> <td>Plural common noun</td></tr>
+</table>
+</td><td>
+<table class="display">
+<tr><td><tt>PDT</tt></td> <td>?</td></tr>
+<tr><td><tt>POS</tt></td> <td>Possessive marker</td></tr>
+<tr><td><tt>PRP</tt></td> <td>Personal pronoun</td></tr>
+<tr><td><tt>PRP$</tt></td> <td>Possessive pronoun</td></tr>
+<tr><td><tt>RB</tt></td> <td>Adverb</td></tr>
+<tr><td><tt>RBR</tt></td> <td>Comparative adverb</td></tr>
+<tr><td><tt>RBS</tt></td> <td>Superlative adverb</td></tr>
+<tr><td><tt>RP</tt></td> <td>Particle</td></tr>
+<tr><td><tt>SYM</tt></td> <td>Symbol</td></tr>
+<tr><td><tt>TO</tt></td> <td>Infinitival <i>to</i></td></tr>
+<tr><td><tt>UH</tt></td> <td>Interjection</td></tr>
+<tr><td><tt>VB</tt></td> <td>Uninflected verb</td></tr>
+<tr><td><tt>VBD</tt></td> <td>Verb + <i>ed</i></td></tr>
+<tr><td><tt>VBG</tt></td> <td>Verb + <i>ing</i></td></tr>
+<tr><td><tt>VBN</tt></td> <td>Verb + <i>ed/en</i></td></tr>
+<tr><td><tt>VBP</tt></td> <td>Plural verb</td></tr>
+<tr><td><tt>VBZ</tt></td> <td>Verb + <i>-s</i></td></tr>
+<tr><td><tt>WDT</tt></td> <td>Wh determiner</td></tr>
+<tr><td><tt>WP</tt></td> <td>Wh pronoun</td></tr>
+<tr><td><tt>WP$</tt></td> <td><i>whose</i></td></tr>
+<tr><td><tt>WRB</tt></td> <td>Wh adverb</td></tr>
+<tr><td><tt>``</tt></td> <td>Open quotes</td></tr>
+<tr><td>&nbsp;</td> <td></td></tr>
+</table>
+</td></tr>
+</table>
+<p>
+<b>Empty categories</b> label empty leaf nodes, that is, nodes that
+have neither children nor words.  There are 10 empty categories,
+listed in the following table.</p>
+<p>
+<table class="display">
+<tr><td><tt>*</tt></td> <td>PRO or trace of NP-movement; preterminal cat is NP</td></tr>
+<tr><td><tt>*?*</tt></td> <td>Elipsis </td></tr>
+<tr><td><tt>*EXP*</tt></td> <td>Pseudo-attachment: extraposition</td></tr>
+<tr><td><tt>*ICH*</tt></td> <td>Pseudo-attachment: "interpret constituent
+    here" (discontinuous dependency)</td></tr>
+<tr><td><tt>*NOT*</tt></td> <td>"Anti-placeholder" in template gapping</td></tr>
+<tr><td><tt>*PPA*</tt></td> <td>Pseudo-attachment: "permanent predictable ambiguity" </td></tr>
+<tr><td><tt>*RNR*</tt></td> <td>Pseudo-attachment: right-node raising</td></tr>
+<tr><td><tt>*T*</tt></td> <td>Trace of wh-movement </td></tr>
+<tr><td><tt>*U*</tt></td> <td>Unit </td></tr>
+<tr><td><tt>0</tt></td> <td>Null complementizer</td></tr>
+</table>
+<p>
+NX is generally
+used in coordinate structures.  It may be used for N-bar
+coordination: "the [<sub><tt>NX</tt></sub> red book] and
+[<sub><tt>NX</tt></sub> yellow pencils]."  It is also
+used in non-constituent coordination structures such as "20 thin
+[<sub><tt>NX</tt></sub>] and 10 fat [<sub><tt>NX</tt></sub>]
+[<sub><tt>NX</tt></sub> dogs],"
+where "dogs" is treated as a right-node raised node.  It is
+also used for book/movie titles that have premodifiers.</p>
+<p>
+Lists of the categories are found in the following variables.</p>
+<pre class="python">
+>>> len(ptb.nonterminal_categories)
+28
+>>> len(ptb.parts_of_speech)
+45
+>>> len(ptb.empty_categories)
+10
+</pre>
+<p>
+These lists were constructed using
+the function <tt>collect_categories()</tt>.
+It returns a list containing three sets: nonterminal categories, parts
+of speech, and empty categories.  A category is defined to be
+nonterminal if it appears on a node with children, a part of speech if
+it appears on a node with a word, and an empty category otherwise.
+Note that the empty string is included as an extra nonterminal category: there
+are some nonterminal nodes (root nodes) without a category.</p>
+
+<h3 id="2.8">Roles</h3>
+<p>
+The roles that occur in the PTB are listed in the following table.</p>
+<p>
+<table class="display">
+<tr><td><tt>ADV</tt></td> <td>Adverbial</td> <td>form vs function</td> <td>Used on NP or SBAR, but not ADVP or PP.  Subsumes
+  more-specific adverbial tags.</td></tr>
+<tr><td><tt>BNF</tt></td> <td>Benefactive</td> <td>adverbial</td> <td>May be used on indirect object.</td></tr>
+<tr><td><tt>CLF</tt></td> <td>Cleft</td> <td>misc</td> <td><i>It</i> clefts.  Marks the whole sentence; not
+  actually a role.</td></tr>
+<tr><td><tt>CLR</tt></td> <td>Closely related</td> <td>misc</td> <td>Intermediate between argument and modifier.</td></tr>
+<tr><td><tt>DIR</tt></td> <td>Direction</td> <td>adverbial</td> <td>May be multiple: <i>from, to.</i></td></tr>
+<tr><td><tt>DTV</tt></td> <td>Dative</td> <td>grammatical role</td> <td>Only used if
+  there is a double-object variant.  Also ablative meaning: ask a question [of X].  But anything
+  with <i>for</i> is BNF.  Not used on indirect object!  </td></tr>
+<tr><td><tt>EXT</tt></td> <td>Extent</td> <td>adverbial</td> <td>Distance, amount.  Not for obligatory
+  complements, e.g. of <i>weigh.</i></td></tr>
+<tr><td><tt>HLN</tt></td> <td>Headline</td> <td>misc</td> <td>Marks the whole phrase; not actually a role.</td></tr>
+<tr><td><tt>LGS</tt></td> <td>Logical subject</td> <td>grammatical role</td> <td>The NP in a passive by-phrase.</td></tr>
+<tr><td><tt>LOC</tt></td> <td>Locative</td> <td>adverbial</td> <td></td></tr>
+<tr><td><tt>MNR</tt></td> <td>Manner</td> <td>adverbial</td> <td></td></tr>
+<tr><td><tt>NOM</tt></td> <td>Nominal</td> <td>form vs function</td> <td>Marks headless relatives behaving as
+  substantives.  Not actually a role.  Co-occurs with SBJ and other argument roles.</td></tr>
+<tr><td><tt>PRD</tt></td> <td>Predicate</td> <td>grammatical role</td> <td>Any predicate that is not a
+VP.  Also, the <i>so</i> in <i>do so.</i></td></tr>
+<tr><td><tt>PRP</tt></td> <td>Purpose or reason</td> <td>adverbial</td> <td></td></tr>
+<tr><td><tt>PUT</tt></td> <td>Locative of <i>put</i></td> <td>grammatical
+    role</td> <td></td></tr>
+<tr><td><tt>SBJ</tt></td> <td>Subject</td> <td>grammatical role</td> <td></td></tr>
+<tr><td><tt>TMP</tt></td> <td>Temporal</td> <td>adverbial</td> <td></td></tr>
+<tr><td><tt>TPC</tt></td> <td>Topicalized</td> <td>grammatical role</td> <td>Only if there is a trace or resumptive
+  pronoun after the subject.</td></tr>
+<tr><td><tt>TTL</tt></td> <td>Title</td> <td>misc</td> <td>The title of a work, implies NOM.  Marks the
+  whole phrase; not actually a role.</td></tr>
+<tr><td><tt>VOC</tt></td> <td>Vocative</td> <td>grammatical
+    role</td> <td></td></tr>
+</table>
+
+<h2 id="3">Perseus Latin and Greek Treebanks</h2>
+<p>
+The module <tt>perseus</tt> contains small Latin and Greek treebanks from
+Project Perseus.  The main method for these treebanks is <tt>stemmas()</tt>,
+which returns an iterator over the stemmas in the treebank.
+(Yes, "stemmata" is the correct plural, but it seems excessively
+pedantic, so we have anglicized.)
+<pre class="python">
+>>> from seal.data import perseus
+>>> stemmas = list(perseus.latin.stemmas())
+>>> len(stemmas)
+3473
+>>> print(stemmas[0])
+0 *root*  _         _       _    _
+1 In      r-------- in1     AuxP 4
+2 nova    a-p---na- novus1  ATR  7
+3 fert    v3spia--- fero1   PRED 8
+4 animus  n-s---mn- animus1 SBJ  2
+5 mutatas t-prppfa- muto1   ATR  6
+6 dicere  v--pna--- dico2   OBJ  2
+7 formas  n-p---fa- forma1  OBJ  5
+8 corpora n-p---na- corpus1 OBJ  0
+</pre>
+
+<h2 id="4">Dependency treebanks</h2>
+
+<h3 id="4.1">Accessing datasets</h3>
+<p>
+A dataset has a <b>language</b> and a <b>version</b>.
+Languages are specified as ISO 639-3 codes.
+There are currently four different versions, as follows.
+The original CoNLL treebanks from
+the 2006 shared task have version <tt>orig</tt>.  
+Datasets converted to the Das-Petrov universal tagset (DPU) have version
+<tt>umap</tt>.
+The Universal Dependency Treebank (UDT) with standard encoding has version <tt>uni</tt>.
+The Universal Dependency Treebank with content-head encoding (<tt>ch</tt>).
+The Penn Treebank (PTB) converted to dependencies using my adaptation of the
+Magerman-Collins (MC) rules has version <tt>dep</tt>.  The same converted
+to the Das-Petrov tagset has version <tt>umap</tt>.
+The following table lists the currently available datasets.
+(DPU = Das-Petrov Universal tagset;
+UDT = Universal Dependency Treebank.}</p>
+<p>
+<table class="display">
+<tr><th>Name</th> <th>Lg</th> <th>Ver</th> <th>Description</th></tr>
+<tr><td><tt>arb.orig</tt></td> <td><tt>arb</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Arabic</td></tr>
+<tr><td><tt>arb.umap</tt></td> <td><tt>arb</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Arabic</td></tr>
+<tr><td><tt>bul.orig</tt></td> <td><tt>bul</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Bulgarian</td></tr>
+<tr><td><tt>bul.umap</tt></td> <td><tt>bul</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Bulgarian</td></tr>
+<tr><td><tt>ces.orig</tt></td> <td><tt>ces</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Czech</td></tr>
+<tr><td><tt>ces.umap</tt></td> <td><tt>ces</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Czech</td></tr>
+<tr><td><tt>dan.orig</tt></td> <td><tt>dan</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Danish</td></tr>
+<tr><td><tt>dan.umap</tt></td> <td><tt>dan</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Danish</td></tr>
+<tr><td><tt>deu.ch</tt></td> <td><tt>deu</tt></td> <td><tt>ch</tt></td> <td>UDT, content-head, German</td></tr>
+<tr><td><tt>deu.orig</tt></td> <td><tt>deu</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 German</td></tr>
+<tr><td><tt>deu.umap</tt></td> <td><tt>deu</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, German</td></tr>
+<tr><td><tt>deu.uni</tt></td> <td><tt>deu</tt></td> <td><tt>uni</tt></td> <td>UDT, German</td></tr>
+<tr><td><tt>eng.dep</tt></td> <td><tt>eng</tt></td> <td><tt>dep</tt></td> <td>Penn Treebank, MC heads</td></tr>
+<tr><td><tt>eng.umap</tt></td> <td><tt>eng</tt></td> <td><tt>umap</tt></td> <td>Penn Treebank, MC heads + DPU</td></tr>
+<tr><td><tt>fin.ch</tt></td> <td><tt>fin</tt></td> <td><tt>ch</tt></td> <td>UDT, content-head, Finnish</td></tr>
+<tr><td><tt>fra.ch</tt></td> <td><tt>fra</tt></td> <td><tt>ch</tt></td> <td>UDT, content-head, French</td></tr>
+<tr><td><tt>fra.uni</tt></td> <td><tt>fra</tt></td> <td><tt>uni</tt></td> <td>UDT, French</td></tr>
+<tr><td><tt>ind.uni</tt></td> <td><tt>ind</tt></td> <td><tt>uni</tt></td> <td>UDT, Indonesian</td></tr>
+<tr><td><tt>ita.uni</tt></td> <td><tt>ita</tt></td> <td><tt>uni</tt></td> <td>UDT, Italian</td></tr>
+<tr><td><tt>jpn.uni</tt></td> <td><tt>jpn</tt></td> <td><tt>uni</tt></td> <td>UDT, Japanese</td></tr>
+<tr><td><tt>kor.uni</tt></td> <td><tt>kor</tt></td> <td><tt>uni</tt></td> <td>UDT, Korean</td></tr>
+<tr><td><tt>nld.orig</tt></td> <td><tt>nld</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Dutch</td></tr>
+<tr><td><tt>nld.umap</tt></td> <td><tt>nld</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Dutch</td></tr>
+<tr><td><tt>por.orig</tt></td> <td><tt>por</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Portuguese</td></tr>
+<tr><td><tt>por.umap</tt></td> <td><tt>por</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Portuguese</td></tr>
+<tr><td><tt>por.uni</tt></td> <td><tt>por</tt></td> <td><tt>uni</tt></td> <td>UDT, Portuguese</td></tr>
+<tr><td><tt>slv.orig</tt></td> <td><tt>slv</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Slovenian</td></tr>
+<tr><td><tt>slv.umap</tt></td> <td><tt>slv</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Slovenian</td></tr>
+<tr><td><tt>spa.ch</tt></td> <td><tt>spa</tt></td> <td><tt>ch</tt></td> <td>UDT, content-head, Spanish</td></tr>
+<tr><td><tt>spa.orig</tt></td> <td><tt>spa</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Spanish</td></tr>
+<tr><td><tt>spa.umap</tt></td> <td><tt>spa</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Spanish</td></tr>
+<tr><td><tt>spa.uni</tt></td> <td><tt>spa</tt></td> <td><tt>uni</tt></td> <td>UDT, Spanish</td></tr>
+<tr><td><tt>swe.ch</tt></td> <td><tt>swe</tt></td> <td><tt>ch</tt></td> <td>UDT, content-head, Swedish</td></tr>
+<tr><td><tt>swe.orig</tt></td> <td><tt>swe</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Swedish</td></tr>
+<tr><td><tt>swe.umap</tt></td> <td><tt>swe</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Swedish</td></tr>
+<tr><td><tt>swe.uni</tt></td> <td><tt>swe</tt></td> <td><tt>uni</tt></td> <td>UDT, Swedish</td></tr>
+<tr><td><tt>tur.orig</tt></td> <td><tt>tur</tt></td> <td><tt>orig</tt></td> <td>CoNLL-2006 Turkish</td></tr>
+<tr><td><tt>tur.umap</tt></td> <td><tt>tur</tt></td> <td><tt>umap</tt></td> <td>CoNLL-2006 + DPU, Turkish</td></tr>
+</table>
+<p>
+The <b>name</b> of a dataset is language-dot-version, for example <tt>dan.orig</tt>.
+The function <tt>dataset()</tt> gives access to a dataset by name:</p>
+<pre class="python">
+>>> from seal.data import dep
+>>> dep.dataset('dan.orig')
+&lt;Dataset dan.orig>
+</pre>
+<p>
+The function <tt>datasets()</tt> gives access to sets of datasets.
+Language or version may be specified:</p>
+<pre class="python">
+>>> dep.datasets(lang='dan')
+[&lt;Dataset dan.orig>, &lt;Dataset dan.umap>]
+>>> len(dep.datasets(version='orig'))
+18
+>>> len(dep.datasets())
+52
+</pre>
+
+<h3 id="4.2">Dataset instances</h3>
+<p>
+The class <tt>Dataset</tt> represents a treebank.  There are two
+specializations, <tt>UMappedDataset</tt> and <tt>FilterDataset</tt>.
+Each dataset has a name, a description, a language represented as an ISO 639-3 code,
+and a version.</p>
+<pre class="python">
+>>> ds = dep.dataset('dan.orig')
+>>> ds.name
+'dan.orig'
+>>> ds.desc
+'Danish, CoNLL-2006'
+>>> ds.lang
+'dan'
+>>> ds.version
+'orig'
+</pre>
+<p>
+Simple datasets also have
+a training file pathname, a test file pathname, and (sometimes) a dev
+file pathname.  (To be precise, datasets in the <tt>uni</tt>
+and <tt>ch</tt> collections have a dev file pathname, but <tt>orig</tt>
+datasets do not.)  The pathnames are also available for umapped
+datasets, but the files contain the original (unmapped) trees.
+Filter datasets do not have pathnames.</p>
+<pre class="python">
+>>> ds.train[ds.train.find('conll'):]
+'conll/2006/danish/ddt/train/danish_ddt_train.conll'
+>>> ds.test[ds.test.find('conll'):]
+'conll/2006/danish/ddt/test/danish_ddt_test.conll'
+>>> ds.dev
+>>>
+</pre>
+
+<h3 id="4.3">Sentences</h3>
+<p>
+A dataset instance has a <tt>sents()</tt> method that generates
+sentences for a specified <b>section</b> of the treebank.
+All treebanks have <tt>'train'</tt> and <tt>'test'</tt> sections.
+In addition, <tt>uni</tt> and <tt>ch</tt> datasets have a <tt>'dev'</tt> section,
+and the English datasets have <tt>'dev_train'</tt>, <tt>'dev_test'</tt>,
+and <tt>'reserve_test'</tt> sections.</p>
+<pre class="python">
+>>> sents = list(ds.sents('train'))
+>>> len(sents[0])
+14
+</pre>
+<p>
+A convenience function called <tt>sents()</tt> is also available to retrieve the sentences for
+a particular segment of a dataset directly:</p>
+<pre class="python">
+>>> sents = list(dep.sents('dan.orig', 'train'))
+</pre>
+<p>
+A sentence can be viewed as a list of records.  Word~0 is 
+always the root pseudo-word.  "Real" words start at position 1.
+The length of the sentence includes the root, so the last valid index
+is the length minus one.</p>
+<pre class="python">
+>>> s = sents[0]
+>>> s[0]
+&lt;Word 0 *root*>
+>>> s[1]
+&lt;Word 1 Samme/AN:ROOT (/A.degree=po...) govr=0>
+>>> s[13]
+&lt;Word 13 ./XP:pnct (/X) govr=1>
+</pre>
+<p>
+The <tt>Sentence</tt> and <tt>Word</tt> classes were discussed earlier.
+Each record is represented by a <tt>Word</tt> instance, with ten
+fields: <tt>i</tt>, <tt>form</tt>, <tt>lemma</tt>, <tt>cpos</tt>,
+<tt>cat</tt>, <tt>morph</tt>, <tt>govr</tt>, <tt>role</tt>, <tt>pgovr</tt>, and <tt>prole</tt>.
+The field <tt>cpos</tt> represents the coarse part of speech, and
+<tt>cat</tt> represents the fine part of speech.  The fields <tt>pgovr</tt>
+and <tt>prole</tt> represent the word's governor and role in the
+projective stemma.  They may not be available.  The fields <tt>govr</tt>
+and <tt>role</tt> are always available, but they are not guaranteed to be
+projective.</p>
+<p>
+All fields except <tt>i</tt>, <tt>govr</tt>, and <tt>pgovr</tt> are
+string-valued.  If not available, their value is the empty string.
+The values for <tt>i</tt>, <tt>govr</tt>, and <tt>pgovr</tt> are integers.  If
+they are not available, their value is <tt>None</tt>.
+The fields <tt>i</tt> and <tt>govr</tt> are always available, except that
+word 0 has no govr.</p>
+<p>
+The values for <tt>govr</tt> and <tt>pgovr</tt> can be used used as
+an index into the sentence, with the value 0 representing the root.</p>
+<p>
+One can get just a list of word forms (strings) using the method
+<tt>words()</tt>.  This provides suitable input for a standard parser.
+The root pseudo-word is not included.
+The method <tt>nwords()</tt> returns the number of words excluding the root.</p>
+<pre class="python">
+>>> ws = s.words()
+>>> ws[:3]
+['Samme', 'cifre', ',']
+>>> len(ws)
+13
+>>> s.nwords()
+13
+</pre>
+
+<h3 id="4.4">Column-major view</h3>
+<p>
+A sentence provides separate methods for each of the word attributes,
+indexed by the word number, with 0 being the root pseudo-word.</p>
+<pre class="python">
+>>> s.form(0)
+'*root*'
+>>> s.form(1)
+'Samme'
+>>> s.form(13)
+'.'
+</pre>
+<p>
+The attributes are as listed above: <tt>form</tt>, <tt>lemma</tt>, <tt>cpos</tt>,
+<tt>cat</tt>, <tt>morph</tt>, <tt>govr</tt>, <tt>role</tt>, <tt>pgovr</tt>, and <tt>prole</tt>.</p>
+<pre class="python">
+>>> s.form(2)
+'cifre'
+>>> s.lemma(2)
+''
+>>> s.cpos(2)
+'N'
+>>> s.cat(2)
+'NC'
+>>> s.morph(2)
+'gender=neuter|number=plur|case=unmarked|def=indef'
+>>> s.govr(2)
+1
+>>> s.role(2)
+'nobj'
+</pre>
+<p>
+Word forms need not be ascii.</p>
+<pre class="python">
+>>> from seal.core.misc import as_ascii
+>>> as_ascii(s.form(12))
+'v{e6}rtsnation'
+</pre>
+<p>
+Without <tt>as_ascii</tt>, the form would print as "v&aelig;rtsnation."</p>
+<p>
+One can fetch a column as a tuple using the method <tt>column()</tt>.</p>
+<pre class="python">
+>>> g = s.column('govr')
+>>> g[:5]
+(None, 0, 1, 1, 7)
+</pre>
+
+<h3 id="4.5">Creating a sentence</h3>
+<p>
+If desired, one can create a Sentence as follows.</p>
+<pre class="python">
+>>> from seal.nlp.dep import Sentence, Word
+>>> s = Sentence()
+>>> s.append(Word(1, 'This', ('PRON', 'PRON'), 'this', '', 2, 'subj'))
+>>> s.append(Word(2, 'is', ('VB', 'VB'), 'be', '', 0, 'mv'))
+>>> s.append(Word(3, 'a', ('DT', 'DT'), 'a', '', 4, 'det'))
+>>> s.append(Word(4, 'test', ('N', 'N'), 'test', '', 2, 'prednom'))
+</pre>
+<p>
+The numbers must be sequential from 1; they provide a quality check.</p>
+<p>
+
+<h3 id="4.6">Dependency files</h3>
+<p>
+On disk, the training and test files are in CoNLL dependency format.
+The <tt>sents()</tt> method uses <tt>seal.dep.conll_sents()</tt> to read them:</p>
+<pre class="python">
+>>> from seal.nlp.dep import conll_sents
+>>> f = conll_sents(ds.train)
+>>> s = next(f)
+>>> len(s)
+14
+</pre>
+<p>
+The file <tt>seal.ex.depsent1</tt> provides an example of the file
+format:</p>
+<pre class="source">
+1       This    this    pron    pron    _       2       subj    2       subj
+2       is      is      vb      vb      _       0       mv      0       mv
+3       a       a       dt      dt      _       4       det     4       det
+4       test    test    n       n       _       2       prednom 2       prednom
+</pre>
+<p>
+Each sentence is (obligatorily) terminated by an empty line.  Fields
+are separated by single tab characters.  There are ten fields:
+<i>id, form, lemma, cpos, fpos, morph, govr, role, pgovr, prole.</i></p>
+
+<h3 id="4.7">Universal Pos Tags</h3>
+<p>
+The <tt>'umap'</tt> versions of the treebanks are mapped from the <tt>'orig'</tt>
+versions using the tag tables of Petrov, Das &amp; McDonald [3300].
+They are instances of <tt>UMappedDataset</tt>, which uses
+<tt>UMappedDepFile</tt>.</p>
+<pre class="python">
+>>> ds = dep.dataset('dan.umap')
+>>> s = next(ds.sents('train'))
+>>> s[1].form
+'Samme'
+>>> s[1].cat
+'ADJ'
+</pre>
+
+<h2 id="5">BioNLP</h2>
+<p>
+The BioNLP dataset contains biomedical texts with annotations.</p>
+
+</body>
+</html>

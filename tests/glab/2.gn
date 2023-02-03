@@ -1,0 +1,12 @@
+a <- Det[sg]
+bark <- V[pl]
+barks <- V[sg]
+big <- Adj
+cat <- N[sg]
+cats <- N[pl]
+chase <- V[pl]
+chases <- V[sg]
+dog <- N[sg]
+dogs <- N[pl]
+Fido <- Name
+the <- Det[_]
