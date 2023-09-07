@@ -12,3 +12,4 @@ Contents
 .. toctree::
 
    intro
+   corpus/rom

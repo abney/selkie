@@ -63,12 +63,13 @@
 #
 
 import os, codecs
+from os.path import exists
 from io import StringIO
 from codecs import CodecInfo
 from .io import ispathlike, byte_infile, byte_outfile, contents, FileFormat
 from .com import shift
-from .data import path
-
+from .data import path as datapath
+from . import config
 
 default_registry = None
 
@@ -485,25 +486,38 @@ class Registry (object):
 
     ##  Constructor.
 
-    def __init__ (self, dir):
-        assert ispathlike(dir)
+    def __init__ (self, path):
+        # backwards compatibility
+        if isinstance(path, str):
+            path = [path]
 
-        ##  The directory.
-        self.dir = dir
+        for d in path:
+            assert ispathlike(d)
+
+        ##  A list of directory filenames to search for rom files.
+        self.path = path
 
         ##  Cache romanizations that have been loaded.
         #   A 'default' romanization is always available.
         self.cache = {'default': Romanization('default')}
 
-    ##  Convert a name to a '.rom' filename.
+    ##  Convert a name to a '.rom' filename that exists in one of the
+    #   path directories.  Returns None if no existing rom file is found.
 
-    def filename (self, name):
-        return os.path.join(self.dir, name + '.rom')
+    def find_filename (self, name):
+        for d in self.path:
+            fn = os.path.join(d, name + '.rom')
+            if exists(fn):
+                return fn
 
-    ##  Load a named romanization.
+    ##  Load a named romanization, ignoring the cache.
 
     def load (self, name):
-        return Romanization(name, self.filename(name))
+        fn = self.find_filename(name)
+        if fn:
+            return Romanization(name, fn)
+        else:
+            raise Exception(f'No such rom file: {name}')
 
     ##  Get the romanization with the given name, loading it from file
     #   if it exists and is not already cached.
@@ -512,8 +526,8 @@ class Registry (object):
         if name in self.cache:
             return self.cache[name]
         else:
-            fn = self.filename(name)
-            if os.path.exists(fn):
+            fn = self.find_filename(name)
+            if fn:
                 rom = Romanization(name, fn)
                 self.cache[name] = rom
                 return rom
@@ -530,19 +544,29 @@ class Registry (object):
     ##  Whether the named romanization exists.
 
     def __contains__ (self, name):
-        return name in self.cache or os.path.exists(self.filename(name))
+        return name in self.cache or self.find_filename(name)
 
     ##  Iterate over all valid romanization names.  Does not load them.
 
     def __iter__ (self):
-        if os.path.exists(self.dir):
-            for name in os.listdir(self.dir):
-                if name.endswith('.rom'):
-                    yield name[:-4]
+        for d in self.path:
+            if os.path.exists(d):
+                for name in os.listdir(d):
+                    if name.endswith('.rom'):
+                        yield name[:-4]
 
 
+def _create_default_registry ():
+    path = ['.']
+    try:
+        path = config['data']['rompath']
+    except:
+        pass
+    path.append(datapath('roms'))
+    return Registry(path)
+    
 ##  The seal registry.
-default_registry = Registry(path('roms'))
+default_registry = _create_default_registry()
 
 ##  Backwards compatibility.
 
