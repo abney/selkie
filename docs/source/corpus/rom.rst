@@ -61,10 +61,6 @@ form ``&#dddd;`` for non-ascii characters:
 >>> to_html(s2)
 b'&#225;&#254;o&#772;'
 
-To see the graph::
-
-   >>> student.print_graph()
-
 Decoder
 -------
 
@@ -154,6 +150,12 @@ some cases, lookahead is required to determine what the output sequence should b
 If the output sequence is still ambiguous, but no further input remains, one can
 force all pending output to be produced by calling ``flush()``.
 
+Defining a new romanization
+---------------------------
+
+TODO
+
+
 Catalog
 -------
 
@@ -169,7 +171,8 @@ To get the romanization itself, access the registry like a dict:
 
 The file in which the romanization resides is ``salish.filename``.
 Calling ``print(salish)`` prints its contents.  One can also use
-``salish.items()`` to get an iteration over the pairs.
+``salish.items()`` to get an iteration over the pairs, and
+``salish.print_graph()`` to see the finite-state graph.
 
 API
 ---

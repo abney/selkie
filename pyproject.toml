@@ -1,8 +1,22 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = [ "hatchling" ]
+build-backend = "hatchling.build"
 
 [project]
-name = "lumache"
-authors = [{name = "Graziella", email = "graziella@lumache"}]
-dynamic = ["version", "description"]
+name = "selkie"
+version = "0.23"
+authors = [
+  { name="Steven Abney", email="abney@umich.edu" },
+]
+description = "Natural language processing and digital language description"
+readme = "README.rst"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/abney/selkie"
+"Bug Tracker" = "https://github.com/abney/selkie/issues"
