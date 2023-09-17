@@ -1,6 +1,5 @@
 
-all:
-	python run_tests.py local
+# First do: conda activate selkie_dev
 
-inst:
+all:
 	python run_tests.py

@@ -150,12 +150,6 @@ some cases, lookahead is required to determine what the output sequence should b
 If the output sequence is still ambiguous, but no further input remains, one can
 force all pending output to be produced by calling ``flush()``.
 
-Defining a new romanization
----------------------------
-
-TODO
-
-
 Catalog
 -------
 
@@ -173,6 +167,33 @@ The file in which the romanization resides is ``salish.filename``.
 Calling ``print(salish)`` prints its contents.  One can also use
 ``salish.items()`` to get an iteration over the pairs, and
 ``salish.print_graph()`` to see the finite-state graph.
+
+Defining a new romanization
+---------------------------
+
+Here is an example of a romanization definition::
+
+    a'	\(00e1)
+    N	\(004b)
+    L-	\(019b)
+    l-	\(026c)
+    ?	\(02c1)
+
+Nota bene: the columns are separated by a single tab, not spaces.
+
+If the preceding is the contents of ``romtest.rom`` in the current
+directory, it is immediately available as encoding ``romtest``.  If it resides in directory
+DIR, one may make it available by adding DIR to the default registry's
+path:
+
+>>> import selkie
+>>> from os.path import join
+>>> srcdir = selkie.__file__[:-len('/__init__.py')]
+>>> examples = join(srcdir, 'data', 'examples')
+>>> default_registry.path[0:1] = [examples]
+>>> b"l-a'L-e ?u".decode('romtest')
+'ɬáƛe ˁu'
+
 
 API
 ---

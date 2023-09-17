@@ -1,3 +1,7 @@
+##
+##  This tests the version of Selkie installed in the prevailing environment.
+##  To test *this* version, run it in the selkie_dev environment.
+##
 
 import sys, unittest, doctest
 from os import walk
@@ -12,16 +16,7 @@ def rst_files ():
                 yield join(root, name)
 
 
-# if 'local', make sure I'm getting the local selkie module
-
-if len(sys.argv) > 1 and sys.argv[1] == 'local':
-    src = abspath('../src')
-    sys.path[0:0] = [src]
-    import selkie
-    assert selkie.__file__ == join(src, 'selkie', '__init__.py')
-else:
-    import selkie
-
+import selkie
 print('Testing:', selkie.__file__)
 
 # Run unit tests
