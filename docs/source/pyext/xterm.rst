@@ -4,8 +4,14 @@
 
 .. automodule:: selkie.xterm
 
-.. autodata:: fg
-.. autodata:: bg
+.. py:data:: fg
+
+   Dict mapping color names to escape strings for foreground colors.
+
+.. py:data:: bg
+
+   Dict mapping color names to escape strings for background colors.
+
 .. autofunction:: black
 .. autofunction:: red
 .. autofunction:: green

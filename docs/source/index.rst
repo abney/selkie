@@ -16,9 +16,8 @@ Contents
    :maxdepth: 2
    :titlesonly:
 
-   intro
    pyext/index
-   corpus/rom
+   corpus/index
 
 Credits
 -------
