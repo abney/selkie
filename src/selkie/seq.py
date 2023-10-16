@@ -5,43 +5,78 @@ from itertools import islice
 
 #--  Lists  --------------------------------------------------------------------
 
-##  Converts x to a list.
-
 def as_list (x):
-    if x == None: return []
+    '''
+    Converts x to a list.
+
+     * None becomes the empty list.
+     * Tuples, sets, frozensets, ranges, dicts, and iterables are passed to list().
+       (An iterable is anything with method ``__next__()``.)
+     * Anything else is wrapped in a (single-element) list.
+
+    '''
+    if x is None: return []
     elif isinstance(x, list): return x
     elif isinstance(x, (tuple, set, frozenset, range, dict)): return list(x)
     elif hasattr(x, '__next__'): return list(x)
     else: return [x]
 
-##  Returns an iterable.
+
+def single (x):
+    '''
+    Takes an iterable and returns its sole element.
+    Signals an error if the iterable does not contain exactly one element.
+    '''
+    it = iter(x)
+    first = next(it)
+    try:
+        next(it)
+        raise Exception('Multiple items in iterator')
+    except StopIteration:
+        return first
+
 
 def repeatable (x):
+    '''
+    The return value is something that has method ``__iter__()``.
+    
+     * If *x* is None: returns the empty list.
+     * If *x* already has method ``__iter__()``, it is returned.
+     * If *x* has method ``__next__()``, then ``iter(x)`` is returned.
+     * Otherwise an error is signalled.
+
+    '''
     if x == None: return []
-    elif hasattr(x, '__next__'): return iter(x)
     elif hasattr(x, '__iter__'): return x
+    elif hasattr(x, '__next__'): return iter(x)
     else: raise Exception('Does not appear to be iterable: %s' % repr(x))
 
-##  Concatenates multiple lists.
 
 def concat (lists):
+    '''
+    Concatenates multiple lists.
+    '''
     out = []
     for list in lists:
         out.extend(list)
     return out
 
-##  Eliminates duplicates from a list.  Otherwise preserves order.
 
 def unique (elts):
+    '''
+    Eliminates duplicates from a list.  Otherwise preserves order.
+    '''
     out = []
     for elt in elts:
         if elt not in out:
             out.append(elt)
     return out
 
-##  Cross product.
 
 def cross_product (lists):
+    '''
+    Cross product.
+    '''
     if len(lists) == 1:
         return [(x,) for x in lists[0]]
     else:
@@ -81,6 +116,13 @@ def simple_cost (x, y):
 
 
 class EditDistance (object):
+    '''
+    One optionally provides a loss function when instantiating EditDistance.
+    The loss function should take two items and return 0 if they are identical
+    and a number greater than 0 if not. The default is 0-1 loss.
+    An instance of EditDistance is a function that returns the edit distance
+    between two sequences.
+    '''
 
     def __init__ (self, cost=simple_cost):
         self.cost_function = cost
@@ -138,19 +180,22 @@ class EditDistance (object):
 
 #--  Sorted lists  -------------------------------------------------------------
 
-##  Eliminates duplicates, assuming that the list is sorted.
-
 def uniq (sortedlst):
+    '''
+    Eliminates duplicates, assuming that the list is sorted.
+    '''
     out = []
     for elt in sortedlst:
         if len(out) == 0 or elt != out[-1]:
             out.append(elt)
     return out
 
-##  Intersects two sorted lists.  Unpredictable results if the lists are not
-#   sorted.
 
 def intersect (list1, list2):
+    '''
+    Intersects two sorted lists.  Unpredictable results if the lists are not
+    sorted.
+    '''
     out = []
     i1 = 0
     i2 = 0
@@ -167,10 +212,12 @@ def intersect (list1, list2):
             i2 += 1
     return out
 
-##  Takes the union of two sorted lists.  Unpredictable results if the lists
-#   are not sorted.
 
 def union (list1, list2):
+    '''
+    Takes the union of two sorted lists.  Unpredictable results if the lists
+    are not sorted.
+    '''
     out = []
     i1 = 0
     i2 = 0
@@ -196,10 +243,12 @@ def union (list1, list2):
         i2 += 1
     return out
 
-##  Returns the set difference of two sorted lists.  Unpredictable results if
-#   the lists are not sorted.
 
 def difference (list1, list2):
+    '''
+    Returns the set difference of two sorted lists.  Unpredictable results if
+    the lists are not sorted.
+    '''
     out = []
     i1 = 0
     i2 = 0
@@ -222,9 +271,12 @@ def difference (list1, list2):
 
 #--  Queue  --------------------------------------------------------------------
 
-##  A queue.  It uses a circular buffer.
-
 class Queue (object):
+    '''
+    A queue.  It uses a circular buffer.
+    The ``write()`` method adds an object to the end of the queue.
+    The ``read()`` method takes an object from the head of the queue.
+    '''
 
     ##  Constructor.
 
@@ -294,34 +346,39 @@ class Queue (object):
 
 #--  Iterables  ----------------------------------------------------------------
 
-##  Returns the n-th item of iterable g, counting from 0, and counting from the
-#   current position of the iterator's "read head."  For example:
-#
-#       >>> import itertools
-#       >>> c = itertools.count(0)
-#       >>> nth(c, 3)
-#       3
-#       >>> nth(c, 3)
-#       7
-#
-#   The iterator I{c} generates the natural numbers, beginning with 0.  The
-#   first call to C{nth} returns the fourth item, which is the number 3.
-#   The second call begins where the first left off, and returns the
-#   fourth item, which is the number 7.
-#
-#   Note that one can achieve the same functionality this way:
-#
-#       >>> itertools.islice(c, 3, 4).next()
-#
-#   One use of nth is to jump to problematic cases in a large
-#   iteration.  An idiom for finding such cases in the first place is the
-#   following:
-#    
-#       for i, x in enumerate(myiteration):
-#           if isproblematic(x):
-#               return i
-
 def nth (iter, n):
+    '''
+    Returns the n-th item of iterable g, counting from 0, and counting from the
+    current position of the iterator's "read head."  For example:
+
+    >>> from selkie.seq import nth
+    >>> import itertools
+    >>> c = itertools.count(0)
+    >>> nth(c, 3)
+    3
+    >>> nth(c, 3)
+    7
+
+    The iterator I{c} generates the natural numbers, beginning with 0.  The
+    first call to C{nth} returns the fourth item, which is the number 3.
+    The second call begins where the first left off, and returns the
+    fourth item, which is the number 7.
+
+    Note that one can achieve the same functionality this way:
+
+    >>> c = itertools.count(0)
+    >>> next(itertools.islice(c, 3, 4))
+    3
+
+    One use of nth is to jump to problematic cases in a large
+    iteration.  An idiom for finding such cases in the first place is the
+    following:
+
+        for i, x in enumerate(myiteration):
+            if isproblematic(x):
+                return i
+
+    '''
     try:
         count = 0
         while count < n:
@@ -331,14 +388,18 @@ def nth (iter, n):
     except StopIteration:
         return None
 
-##  Returns a list containing the first n elements from the iteration.
 
 def head (iter, n=5):
+    '''
+    Returns a list containing the first *n* elements from the iteration.
+    '''
     return list(islice(iter, n))
 
-##  Returns a list containing the last n elements from the iteration.
 
 def tail (iter, n=5):
+    '''
+    Returns a list containing the last *n* elements from the iteration.
+    '''
     out = []
     ptr = 0
     for elt in iter:
@@ -355,49 +416,30 @@ def tail (iter, n=5):
         return out[ptr:] + out[:ptr]
 
 
-##  A pager.
-class _Pager (object):
-
-    ##  Constructor.
-    def __init__ (self, pagesize=40):
-        ##  The page size, in lines.
-        self.pagesize = pagesize
-
-    ##  Call it.
-    def __call__ (self, iter):
-        for i,x in enumerate(iter):
-            if i > 0 and i % self.pagesize == 0:
-                if input() == 'q': break
-            print(x)
-
-##  Prints a "page" at a time and waits for space bar or 'q'.
-more = _Pager()
-
-##  The product of a list of numbers.
-
 def product (nums):
+    '''
+    The product of a list of numbers.
+    '''
     prod = 1
     for num in nums:
         prod *= num
     return prod
 
-##  Counts up how many items are contained in
-#   (or remain in) the given iterable.  It calls C{next()} repeatedly
-#   until the iteration is "used up."  If the iterable is infinite, it
-#   never returns.  It is defined as: python::
-#
-#       sum(1 for x in g)
-#
 
 def count (iter):
+    '''
+    Counts up how many items are contained in
+    (or remain in) the given iterable.
+    '''
     return sum(1 for x in iter)
 
 
-##  Creates a map whose keys are items in the given iterable, and whose value for
-#   a given item is the frequency of occurrence of that item in the iteration.
-#   All items are consumed.
-
 def counts (iterable):
+    '''
+    Creates a map whose keys are items in the given iterable, and whose value for
+    a given item is the frequency of occurrence of that item in the iteration.
+    All items are consumed.
+    '''
     dict = {}
     for item in iterable:
         if item in dict:
@@ -406,12 +448,110 @@ def counts (iterable):
             dict[item] = 1
     return dict
 
-def dups (items):
-    counts = {}
-    for item in items:
-        if item in counts:
-            if counts[item] == 1:
-                yield item
-            counts[item] += 1
+
+#--  ListProxy, MapProxy  ------------------------------------------------------
+
+class ListProxy (object):
+    '''
+    A mixin class. The implementing class should have a ``__list__()`` method
+    that returns the object contents as a list. Provides implementations of the
+    following methods:
+
+     * ``__iter__()``
+     * ``__contains__(v)``
+     * ``__getitem__(i)``
+     * ``__len__()``
+     * ``__repr__()``
+    
+    '''
+
+    def __iter__ (self):
+        return self.__list__().__iter__()
+        
+    def __contains__ (self, k):
+        return self.__list__().__contains__(k)
+
+    def __getitem__ (self, k):
+        return self.__list__().__getitem__(k)
+
+    def __len__ (self):
+        return self.__list__().__len__()
+
+    def __repr__ (self):
+        return self.__list__().__repr__()
+
+
+class MapProxy (object):
+    '''
+    A mixin class. The implementing class should have a ``__map__()`` method
+    that returns the object contents as a map. Provides implementations of
+    the following methods:
+
+     * ``__iter__()``
+     * ``__len__()``
+     * ``__contains__(k)``
+     * ``__getitem__(k)``
+     * ``get(k)``
+     * ``keys()``
+     * ``values()``
+     * ``items()``
+     * ``__repr__()``
+
+    '''
+
+    def __iter__ (self):
+        return iter(self.__map__())
+        
+    def __len__ (self):
+        return len(self.__map__())
+
+    def __contains__ (self, k):
+        return k in self.__map__()
+
+    def __getitem__ (self, k):
+        return self.__map__()[k]
+
+    def get (self, k, dflt=None):
+        return self.__map__().get(k, dflt)
+
+    def keys (self):
+        return self.__map__().keys()
+
+    def values (self):
+        return self.__map__().values()
+    
+    def items (self):
+        return self.__map__().items()
+
+    def __repr__ (self):
+        return self.__map__().__repr__()
+
+
+class LazyList (ListProxy):
+    '''
+    A mixin class. Its ``__init__()`` method requires a function that
+    returns an iteration. The function should return the same iteration
+    each time it is called. This mixin provides a ``__list__()`` method,
+    plus all methods provided by ListProxy.
+    '''
+
+    def __init__ (self, iterf):
+        self.__expanded = None
+        self.__iterf = iterf
+
+    def __list__ (self):
+        if self.__expanded is None:
+            self.__expanded = list(self.__iterf())
+        return self.__expanded
+
+    def __iter__ (self):
+        if self.__expanded is None:
+            return self.__iterf()
         else:
-            counts[item] = 1
+            return iter(self.__expanded)
+
+    def __repr__ (self):
+        if self.__expanded is None:
+            return '[...]'
+        else:
+            return repr(self.__expanded)

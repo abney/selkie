@@ -66,7 +66,7 @@ import os, codecs
 from os.path import exists
 from io import StringIO
 from codecs import CodecInfo
-from .io import ispathlike, byte_infile, byte_outfile, contents, FileFormat
+from .io import ispathlike, Format
 from .com import shift
 from .data import path as datapath
 from . import config
@@ -164,7 +164,8 @@ class Romanization (object):
         return load_romfile(self.filename)
 
     def __str__ (self):
-        return contents(self.filename)
+        with open(self.filename) as f:
+            return f.read()
 
     ##  Print out the state graph.
 
@@ -610,7 +611,7 @@ codecs.register(find_codec)
 
 #--  RomFormat  ----------------------------------------------------------------
 
-RomFormat = FileFormat('rom', read_romfile, encoding=False)
+RomFormat = Format(read_romfile, None)
 
 
 #--  Main  ---------------------------------------------------------------------
@@ -650,13 +651,12 @@ def main ():
     shift.done()
 
     decoder = Decoder(rom=rom, registry=registry)
-    instream = byte_infile(infile)
-    outstream = byte_outfile(outfile)
-    for line in instream:
-        line = decoder(line)
-        line = line.encode(outenc)
-        outstream.write(line)
-    outstream.close()
+    f = File(infile, binary=True)
+    with File(outfile, binary=True).writer() as write:
+        for b in f:
+            line = decoder(b)
+            o = line.encode(outenc)
+            write(o)
 
 if __name__ == '__main__':
     main()

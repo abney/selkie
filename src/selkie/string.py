@@ -1,3 +1,6 @@
+'''
+The selkie.string module contains general string-related functionality.
+'''
 
 import datetime, unicodedata
 from io import StringIO
@@ -6,24 +9,19 @@ from time import time as now
 
 #--  Strings  ------------------------------------------------------------------
 
-##  Describe each character in a unicode string.
-
 def unidescribe (s):
+    '''Prints out a description of each (Unicode) character in a string.'''
     for (i,c) in enumerate(s):
         print(i, hex(ord(c)), unicodedata.name(c))
 
 
-##  A <b>word</b> consists only of alphanumerics and underscore, and
-#   is not the empty string.
-
 def isword (s):
+    '''A *word* consists only of alphanumerics and underscore, and is not the empty string.'''
     return len(s) > 0 and all(c.isalnum() or c == '_' for c in s)
 
 
-##  Break the string into its lines.  The lines do not include carriage return
-#   and newline.
-
 def lines (s):
+    '''Iterates over the lines in a string. The lines do not include carriage return and newline.'''
     if isinstance(s, (bytes, bytearray)):
         cr = 13
         nl = 10
@@ -42,6 +40,8 @@ def lines (s):
 
 
 #--  as_ascii  -------------------------
+
+# The "objectionable" codepoints are non-printable characters, plus the braces.
 
 def _objectionable_codepoint (x):
     return (x < 32 or x == 123 or x == 125 or x >= 127)
@@ -105,9 +105,22 @@ def _write_hex (c, x, out):
             out.write('0')
         out.write(s)
 
-##  Convert a string to ASCII.
 
-def as_ascii (s, use='hex'):
+def as_ascii (s, use='alts'):
+    '''
+    Convert a string to ASCII. Characters that are not printable ASCII characters are treated as follows.
+
+     * If *use* is None, they are deleted.
+     * If *use* is 'alts' (the default), they are replaced with ASCII equivalents if possible, and otherwise deleted.
+       The printable characters lie in the range from space (inclusive) to DEL (exclusive).
+       Tab is replaced with a single space.
+       Newline, vertical tab, and form feed are replaced with newline.
+       "Smart quotes" (left and right, single and double) are replaced with the ASCII
+       single or double quote. Em- and en-dash are replaced with hyphen.
+     * If *use* is 'hex', non-printable characters are replaced with hex codes.
+     * If *use* is 'names', they are replaced with their names, wrapped in braces.
+
+    '''
     if not isinstance(s, str):
         return as_ascii(str(s), use)
     elif _is_unobjectionable(s):
@@ -139,9 +152,9 @@ def as_ascii (s, use='hex'):
                     out.write(c)
             return out.getvalue()
 
-##  Undo as_ascii().
-
 def from_ascii (s):
+    '''This undoes the effects of ``as_ascii()``.'''
+
     global _my_names_inv
     if '{' in s:
         out = StringIO()
@@ -174,31 +187,15 @@ def from_ascii (s):
         return s
 
 
-##  Convert a string to printable ASCII characters.  Here, a "printable"
-#   character is a character in the range U+0020 (space) to U+007e inclusive,
-#   or newline (U+000a).  That is, space and newline are considered printable,
-#   all other whitespace and control characters are not; nor is DEL (U+007f).
-#   Use substitutions for "smart quotes" and related characters.  Replace tab
-#   with space; replace vertical tab, and formfeed with newline.  Delete all
-#   other characters that are not printable ASCII.  Returns an iteration over
-#   characters.
-
+# Backwards compatibility only
 def ascii_chars (s):
-    for c in s:
-        n = ord(c)
-        if n in _substitutions:
-            yield _substitutions[n]
-        elif n >= 0x20 and n <= 0x7e:
-            yield c
-        elif n == 0x0a:
-            yield c
+    '''
+    Deprecated. Backwards compatibility only.
+    '''
+    return as_ascii(s, use='alts')
 
-##  Convert a single character to a (possibly escaped) form that is safe for
-#   inclusion between double quotes.  Double quotes and backslashes are escaped
-#   with backslashes, and newline is replaced with backslash-en.  Returns an
-#   iteration over strings.
 
-def quotable_chars (s):
+def _quotable_chars (s):
     for c in s:
         if c == '"':
             yield '\\"'
@@ -209,13 +206,14 @@ def quotable_chars (s):
         else:
             yield c
 
-##  Like repr(), but always returns a double-quoted string.  May be called as:
-#   quote(ascii_chars(s)).
-
 def quoted (s):
+    '''
+    Like ``repr()``, but always returns a double-quoted string.  May be called as:
+    ``quoted(as_ascii(s))``.
+    '''
     with StringIO() as f:
         f.write('"')
-        for c in quotable_chars(s):
+        for c in _quotable_chars(s):
             f.write(c)
         f.write('"')
         return f.getvalue()
@@ -242,9 +240,10 @@ _deaccent_map = [
     'dh', 'n', 'o', 'o', 'o', 'o', 'o', '/', 'o', 'u', 'u', 'u', 'u', 'y', 'th', 'y'
     ]
 
-##  Map accented characters to their unaccented form.
-
 def deaccent (s):
+    '''
+    Maps accented characters to their unaccented form.
+    '''
     asc = []
     for u in s:
         i = ord(u)
@@ -255,44 +254,20 @@ def deaccent (s):
     return ''.join(asc)
 
 
-##  Interpret an ASCII string as UTF8.
-
-def utf8 (s, fn=None):
-    if fn is None:
-        print(' '.join(hex(c)[2:] for c in s.encode('utf8')))
-    else:
-        with open(fn, 'w', encoding='utf8') as f:
-            print(s, file=f)
-
-##  Convert to a boolean value.
-
-def as_boolean (s):
-    if s == 'False': return False
-    elif s == 'True': return True
-    else: raise Exception('Not a boolean: ' + str(s))
-
-##  Convert the string to ASCII and trim it to fit in a field with
-#   fixed width w.
-
-def trim (w, s=None):
-    if s is None:
-        s = w
-        w = 0
-    s = as_ascii(s, use='hex')
-    if w > 0 and len(s) > w: return s[:w]
-    else: return s
-
-
 #--  Date-Time string, Size string  --------------------------------------------
 
-##  Print out a timestamp readably.
-
 def dtstr (timestamp):
+    '''
+    Returns a string that renders a timestamp readably.
+    '''
     return datetime.datetime.fromtimestamp(timestamp).isoformat().replace('T',' ')
 
 ##  Print out a file size readably.
 
 def sizestr (nbytes):
+    '''
+    Returns a string representing a file size readably.
+    '''
     if nbytes >= 1000000000000000:
         return '%5.3f PB' % (nbytes/1000000000000000)
     elif nbytes >= 1000000000000:
@@ -306,19 +281,20 @@ def sizestr (nbytes):
     else:
         return '%d B' % nbytes
 
-
-##  Time difference, in human-readable form.
-
 def elapsed_time_str (start, end):
+    '''
+    Returns a readable string showing a time difference.
+    '''
     sign = ''
     if end < start:
         sign = '-'
         (start, end) = (end, start)
     return sign + timestr(end - start)
 
-##  Readable string showing an amount of time.
-
 def timestr (nsec):
+    '''
+    Returns a readable string showing an amount of time.
+    '''
     nhr = 0
     nmin = 0
     if nsec < 1:
@@ -334,23 +310,13 @@ def timestr (nsec):
     fraction = nsec - intsec
     return '%d:%02d:%02d%s' % (nhr, nmin, intsec, ('%.4f' % fraction)[1:])
 
-
-class Time (object):
-
-    def __init__ (self):
-        self.t0 = None
-
-    def __enter__ (self):
-        self.t0 = now()
-
-    def __exit__ (self, t, v, tb):
-        t1 = now()
-        print('Time elapsed (h:mm:ss):', timestr(t1 - self.t0))
-
-
 #--  Expand environment variables  ---------------------------------------------
 
 def expand_envvars (s):
+    '''
+    Expands out environment variables. Environment variables begin with dollar
+    sign and are optionally enclosed in braces.
+    '''
     out = []
     i = 0
     while True:
@@ -387,23 +353,3 @@ def expand_envvars (s):
         else:
             raise Exception('Illegal character after $')
     return ''.join(out)
-
-
-#--  Reflection  ---------------------------------------------------------------
-
-##  Returns a module given its name.
-#   May raise ModuleNotFoundError
-
-def string_to_module (s):
-    if not s:
-        raise Exception('Require nonempty name')
-    return import_module(s)
-
-##  Takes a fully-qualified name and gets the object.
-
-def string_to_object (s):
-    j = s.rfind('.')
-    if j < 0:
-        raise Exception('Require fully qualified name')
-    m = string_to_module(s[:j])
-    return m.__dict__[s[j+1:]]

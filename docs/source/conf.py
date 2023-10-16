@@ -1,5 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
 
+import selkie
+print('SELKIE:', selkie.__file__)
+
 # -- Project information
 
 project = 'Selkie'
