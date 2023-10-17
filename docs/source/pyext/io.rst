@@ -150,6 +150,43 @@ Records
 Simples
 .......
 
+A Simple is an object that consists of a mix of strings, pairs whose first                                
+element is a string, list-like objects, and dict-like objects.  A dict-like                               
+object is anything that has an items() method, and a list-like object is                                  
+anything that has an __iter__() method but is not dict-like.                                              
+
+When loading, the original objects are not reconstructed.  The value consists                             
+of strings, pairs, lists and dicts.
+
+The format on disk is line-based:
+
+ * A line starting with ``|`` constitutes a string, sans vertical bar
+   and newline.
+ * A line starting with ``:`` represents a key (sans colon and
+   newline). The next simple that is read constitutes the value.
+ * A line consisting of ``[`` starts a list. The elements are all
+   simples read until a matching line consisting of ``]`` is found.
+ * A line consisting of ``{`` starts a dict. The elements are all
+   key-value pairs read until a matching line consisting of ``}`` is
+   found. An error is encountered if a simple without a key is
+   encountered.
+
+For example:
+
+    >>> from selkie.io import File, Simples
+    >>> f = File(contents='')
+    >>> with f.writer() as out:
+    ...     print(':foo', file=out)
+    ...     print('{', file=out)
+    ...     print(':bar', file=out)
+    ...     print('|baz', file=out)
+    ...     print('}', file=out)
+    ... 
+    >>> list(Simples(f))
+    [('foo', {'bar': 'baz'})]
+
+In that example, there is one top-level item, which is a key-value pair.
+
 .. autofunction:: lines_to_simples
 .. autofunction:: simples_to_lines
 .. autodata:: Simples

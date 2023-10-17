@@ -985,6 +985,9 @@ class Writer (object):
     def __call__ (self, elt):
         self._contents.append(elt)
 
+    def write (self, s):
+        self.__call__(s)
+
     def __exit__ (self, t, v, tb):
         self._file.store(self._contents, self._mode)
 
