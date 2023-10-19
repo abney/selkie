@@ -187,10 +187,7 @@ DIR, one may make it available by adding DIR to the default registry's
 path:
 
 >>> import selkie
->>> from os.path import join
->>> srcdir = selkie.__file__[:-len('/__init__.py')]
->>> examples = join(srcdir, 'data', 'examples')
->>> default_registry.path[0:1] = [examples]
+>>> default_registry.path.insert(0, selkie.data.path('examples'))
 >>> b"l-a'L-e ?u".decode('romtest')
 'ɬáƛe ˁu'
 

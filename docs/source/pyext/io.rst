@@ -88,12 +88,24 @@ There are currently five implementations of BaseFile. These are the
    ... 
    >>> list(f)
    ['Test\n', '123\n']
+   >>> str(f)
+   'Test\n123\n'
 
    Here is an example in which one specifies contents:
     
    >>> f = File(contents='hi\nthere\n')
    >>> list(f)
    ['hi\n', 'there\n']
+
+   One can print to a string this way:
+
+   >>> f = File(contents='')
+   >>> with f.writer() as out:
+   ...     print('foo', file=out)
+   ...     print('bar', file=out)
+   ...
+   >>> str(f)
+   'foo\nbar\n'
 
 .. autoclass:: Buffered
 

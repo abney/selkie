@@ -133,7 +133,7 @@ class Syntax (object):
             # everything is special except alphanum and underscore
             self.special = True
         else:
-            self.special = special + QuoteChars + self.comments
+            self.special = (special or '') + self.QuoteChars + self.comments
 
         self.multi = multi
         if multi:
@@ -498,6 +498,9 @@ class Syntax (object):
             if not self.stack: raise Exception('Empty stack')
             self.syntax = self.stack.pop()
             self.__retreat()
+
+
+DefaultSyntax = Syntax()
 
 
 #--  pprint  -------------------------------------------------------------------

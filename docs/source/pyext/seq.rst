@@ -26,10 +26,11 @@ Sorted lists
 .. autofunction:: union
 .. autofunction:: difference
 
-Queue
------		  
+Queue and Index
+---------------	  
 
 .. autoclass:: Queue
+.. autoclass:: Index
 
 Data processing
 ---------------
