@@ -1,6 +1,6 @@
 
-``selkie.io`` — Input/output functionality
-==========================================
+``selkie.io`` — Input/output, formatted files
+=============================================
 
 .. automodule:: selkie.io
 
