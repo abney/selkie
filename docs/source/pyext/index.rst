@@ -9,6 +9,9 @@ Python extensions
    seq
    xterm
    io
+   formats
+   persist
+   disk
    reflect
    com
    data

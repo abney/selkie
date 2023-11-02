@@ -1,5 +1,5 @@
 
 import os
-from .io import Container
+from .persist import Container
 
 config = Container(os.environ.get('SELKIE_CONFIG') or '~/.selkie')

@@ -66,7 +66,8 @@ import os, codecs
 from os.path import exists
 from io import StringIO
 from codecs import CodecInfo
-from .io import ispathlike, Format
+from .io import ispathlike
+from .formats import Format
 from .com import shift
 from .data import path as datapath
 from . import config
