@@ -1,0 +1,314 @@
+alibis	alibi -s
+alkalis	alkali -s
+asbestos	asbestos
+bikinis	bikini -s
+chis	chi -s
+martinis	martini -s
+skis	ski -s
+skies	sky -s
+taxis	taxi -s
+tipis	tipi -s
+done	do -en
+did	do -ed
+hers	hers
+its	its
+ours	ours
+yours	yours
+left	leave -ed
+began	begin -ed
+begun	begin -en
+brought	bring -ed
+corpora	corpus -s
+flew	fly -ed
+flown	fly -en
+lay	lie -ed
+lain	lie -en
+laid	lay -ed
+Peking	Peking
+abed	abed
+agreed	agree -ed
+am	be +1s
+andruses	andrus -s
+anything	anything
+apaches	apache -s
+are	be +pl
+arisen	arise -en
+arose	arise -ed
+as	as
+ate	eat -ed
+bade	bid -ed
+beaten	beat -en
+been	be -en
+begot	beget -ed
+begotten	beget -en
+bestselling	bestselling
+bidden	bid -en
+bit	bite -ed
+bitten	bite -en
+bled	bleed -ed
+bloodshed	bloodshed
+boeing	boeing
+bore	bear -ed
+born	bear -en
+bred	breed -ed
+britches	britches
+broke	break -ed
+broken	break -en
+bugeyed	bugeye -ed
+calories	calorie -s
+canvases	canvas -s
+catastrophes	catastrophe -s
+ceiling	ceiling
+channing	channing
+children	child -s
+chose	choose -ed
+chosen	choose -en
+clothes	clothes
+cockeyed	cockeye -ed
+coed	coed
+commies	commie -s
+made	make -ed
+met	meet -ed
+ran	run -ed
+sat	sit -ed
+slid	slide -ed
+sold	sell -ed
+sought	seek -ed
+fought	fight -ed
+wrought	wreak -ed
+caught	catch -ed
+cookies	cookie -s
+cunning	cunning
+daises	dais -s
+darkling	darkling
+darling	darling
+daybed	daybed
+deathbed	deathbed
+decreed	decree -ed
+dove	dive -ed
+found	find -ed
+gone	go -en
+went	go -ed
+grew	grow -ed
+grown	grow -ed
+shown	show -en
+shew	show -ed
+lit	light -ed
+drank	drink -ed
+dreamt	dream -ed
+driven	drive -en
+drunk	drink -en
+during	during
+dyed	dye -ed
+eaten	eat -en
+emphases	emphasis -s
+evening	evening
+everything	everything
+fallen	fall -en
+featherbed	featherbed
+fed	feed -ed
+fell	fall -ed
+fled	flee -ed
+fledgling	fledgling
+foci	focus -s
+forbad	forbid -ed
+forbade	forbid -ed
+forbidden	forbid -en
+foresaw	foresee -ed
+foreseen	foresee -en
+forgot	forget -ed
+forgotten	forget -en
+forsaken	forsake -en
+forsook	forsake -ed
+forswore	forswear -ed
+forsworn	forswear -en
+foundling	foundling
+fracases	fracas -s
+froze	freeze -ed
+frozen	freeze -en
+gangling	gangling
+gases	gas -s
+gave	give -ed
+given	give -en
+got	get -ed
+gotten	get -en
+grandchildren	grandchild -s
+greatgrandchildren	greatgrandchild -s
+guaranteed	guarantee -ed
+had	have -ed
+has	have -s
+hawkinses	hawkins -s
+heard	hear -ed
+heinzes	heinz -s
+held	hold -ed
+hid	hide -ed
+hidden	hide -en
+hotbed	hotbed
+housebroke	housebreak -ed
+housebroken	housebreak -en
+hughes	hughes
+hypotheses	hypothesis -s
+infrared	infrared
+inkling	inkling
+interspecies	interspecies
+interwove	interweave -ed
+interwoven	interweave -en
+is	be -s
+joneses	jones -s
+kept	keep -ed
+kipling	kipling
+laden	load -en
+lalauries	lalaurie -s
+led	lead -ed
+lept	leap -ed
+lost	loose -ed
+lying	lie G
+magpies	magpie -s
+massacred	massacre -ed
+matisses	matisse -s
+melies	melies
+menarches	menarche -s
+misled	mislead -ed
+missaid	missay -ed
+misspoke	misspeak -ed
+misspoken	misspeak -en
+mistaken	mistake -en
+mistook	mistake -ed
+took	take -ed
+taken	take -en
+threw	throw -ed
+thrown	throw -en
+stood	stand -ed
+miswritten	miswrite -en
+miswrote	miswrite -ed
+mohammed	mohammed
+molasses	molasses
+monies	money -s
+morning	morning
+moses	moses
+movies	movie -s
+naked	naked
+neuroses	neurosis -s
+newlywed	newlywed
+nibelungenlied	nibelungenlied
+nothing	nothing
+notwithstanding	notwithstanding
+oases	oasis -s
+obsequies	obsequies
+oersted	oersted
+overridden	override -en
+overrode	override -ed
+overtaken	overtake -en
+overtook	overtake -ed
+parentheses	parenthesis -s
+patisseries	patisserie -s
+pedigreed	pedigree -ed
+peed	pee -ed
+piddling	piddling
+pies	pie -s
+pils	pils
+pixies	pixie -s
+plainclothes	plainclothes
+prognoses	prognosis -s
+proven	prove -en
+rabies	rabies
+recherches	recherche -s
+herring	herring
+rewritten	rewrite -en
+rewrote	rewrite -ed
+ridden	ride -en
+riefling	riefling
+risen	rise -en
+roadbed	roadbed
+rode	ride -ed
+rookies	rookie -s
+rose	rise -ed
+said	say -ed
+sank	sink -ed
+sapling	sapling
+saw	see -ed
+schelling	schelling
+schilling	schilling
+seedbed	seedbed
+seen	see -en
+sepulchred	sepulchre -ed
+series	series
+shaken	shake -en
+shaven	shave -en
+shook	shake -ed
+shorn	shear -en
+shrank	shrink -ed
+shrunk	shrink -en
+sibling	sibling
+siegfried	siegfried
+singed	singe -ed
+singing	sing G
+slept	sleep -ed
+snelling	snelling
+something	something
+spake	speak -ed
+sparling	sparling
+spat	spit -ed
+species	species
+sped	speed -ed
+spoke	speak -ed
+spoken	speak -en
+stank	stink -ed
+sterling	sterling
+stirling	stirling
+stole	steal -ed
+told	tell -ed
+retold	retell -ed
+stolen	steal -en
+stricken	strike -en
+striven	strive -en
+strove	strive -ed
+struck	strike -ed
+stunk	stink -en
+stuck	stick -ed
+subspecies	subspecies
+sunk	sink -en
+swollen	swell -en
+swore	swear -ed
+sworn	swear -en
+taught	teach -ed
+these	this +pl
+theses	thesis -s
+thing	thing
+those	that +pl
+thought	think -ed
+trellises	trellis -s
+trod	tread -ed
+trodden	tread -en
+unbidden	unbid -en
+unbroken	unbreak -en
+underclothes	underclothes
+underlies	underlie -s
+underling	underling
+undertaken	undertake -en
+undertook	undertake -ed
+unforeseen	unforesee -en
+unfroze	unfreeze -ed
+unfrozen	unfreeze -en
+unshaven	unshave -en
+unshed	unshed
+unspoken	unspeak -en
+unwed	unwed
+unwilling	unwilling
+was	be -ed
+watershed	watershed
+watling	watling
+wept	weep -ed
+were	be -ed
+wicked	wicked
+won	win -ed
+woodshed	woodshed
+wore	wear -ed
+worn	wear -en
+worsted	worsted
+wove	weave -ed
+woven	weave -en
+written	write -en
+wrote	write -ed
+yalies	yalie -s
+zombies	zombie -s

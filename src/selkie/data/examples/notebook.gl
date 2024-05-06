@@ -1,0 +1,3 @@
+#T My Notebook
+_x := <a,b,c>
+_x . <b,a>

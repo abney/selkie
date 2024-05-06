@@ -1,0 +1,238 @@
+I	rom	roms	salish		
+R	A*	\(c1)
+R	a*	\(e1)
+R	C'	C\(0313)
+R	c'	c\(0313)
+R	C*	\(010c)
+R	c*	\(010d)
+R	C*'	\(010c 0313)
+R	c*'	\(010d 0313)
+R	E*	\(c9)
+R	e*	\(e9)
+R	I*	\(cd)
+R	i*	\(ed)
+R	Kw	K\(02b7)
+R	kw	k\(02b7)
+R	K'w	K\(0313 02b7)
+R	k'w	k\(0313 02b7)
+R	L'	L\(0313)
+R	l'	l\(0313)
+R	L*	\(2c62)
+R	l*	\(026b)
+R	l**	\(019b 0313)
+R	M'	M\(0313)
+R	m'	m\(0313)
+R	N'	N\(0313)
+R	n'	n\(0313)
+R	O*	\(00d3)
+R	o*	\(00f3)
+R	P'	P\(0313)
+R	p'	p\(0313)
+R	Q'	Q\(0313)
+R	q'	q\(0313)
+R	Qw	Q\(02b7)
+R	qw	q\(02b7)
+R	Q'w	Q\(0313 02b7)
+R	q'w	q\(0313 02b7)
+R	S*	\(0160)
+R	s*	\(0161)
+R	T'	T\(0313)
+R	t'	t\(0313)
+R	U*	\(da)
+R	u*	\(fa)
+R	W'	W\(0313)
+R	w'	w\(0313)
+R	Xw	X\(02b7)
+R	xw	x\(02b7)
+R	X	X\(0323)
+R	x	x\(0323)
+R	Xw*	X\(0323 02b7)
+R	xw*	x\(0323 02b7)
+R	Y'	Y\(0313)
+R	y'	y\(0313)
+R	|	\(0295)
+R	|'	\(0295 0313)
+R	|w	\(0295 02b7)
+R	|'w	\(0295 02b7 0313)
+R	J	\(0294)
+R	j	\(0294)
+R	@	\(0259)
+I	rom	roms	foo		
+R	a*	\(e1)
+R	ch	\(f2 e2 e3)
+I	notebook	glab	_root_/1		
+N	#T Scratch
+N	'hi'
+I	language	fla	language		
+M	orthographies	salish
+I	lexicon	fla	lexicon		
+F	0	gloss
+F	1	=
+F	2	morph
+F	3	variety
+F	4	source
+F	5	variants
+F	6	derived
+L	L*u	0
+L	t	0
+L	sq'si*	0
+L	pu*ti	0
+L	sc*a*ce	0
+I	text	fla	1	orig	1
+P	author	
+P	title	
+P	orthography	
+P	type	
+P	subtype	
+S
+T	L*u	0		
+T	t	0		
+T	sq'si*	0		
+T	pu*ti	0		
+T	sc*a*ce	0		
+E	asdf asdf asdf
+I	language	deu	language		
+M	orthographies	
+I	lexicon	deu	lexicon		
+F	0	gloss
+F	1	=
+F	2	morph
+F	3	variety
+F	4	source
+F	5	variants
+F	6	derived
+L	Beispiel	0	0=example
+L	das	0	0=this
+L	ist	0	0=is
+L	ein	0	0=a
+L	zweites	0
+L	der	0
+L	hund	0
+L	bellte	0
+L	er	0
+L	jagte	0
+L	eine	0
+L	katze	0
+I	text	deu	1	toc	1
+P	author	John Doe
+P	title	Blah Blah
+P	orthography	default
+P	type	toc
+P	subtype	
+I	text	deu	2	orig	1/2
+P	author	
+P	title	
+P	orthography	
+P	type	
+P	subtype	
+S
+T	das	0		
+T	ist	0		
+T	ein	0		
+T	Beispiel	0		
+S
+T	ein	0		
+T	zweites	0		
+T	Beispiel	0		
+E	this is an example
+E	a second example
+I	text	deu	3	orig	1/3
+P	author	John Doe
+P	title	A B C
+P	orthography	default
+P	type	page
+P	subtype	
+S
+T	der	0		
+T	hund	0		
+T	bellte	0		
+S
+T	er	0		
+T	jagte	0		
+T	eine	0		
+T	katze	0		.
+E	The dog barked.
+E	It chased a cat.
+I	text	deu	4	stub	1/4
+P	author	
+P	title	Lesson 2
+P	orthography	default
+P	type	page
+P	subtype	
+I	language	oji	language		
+M	orthographies	
+I	lexicon	oji	lexicon		
+F	0	gloss
+F	1	=
+F	2	morph
+F	3	variety
+F	4	source
+F	5	variants
+F	6	derived
+L	anishinaabe	0
+L	namadabi	0
+L	mazina'igan	0
+L	gaawiin	0
+L	maajtaadaa	0
+L	waabamaa	0
+L	epiichi	0
+L	giiwedin	0
+L	biindige	0
+L	ikido	0
+L	mawi	0
+L	aaniin	0
+L	biindigen	0
+L	googii	0
+I	text	oji	1	media	1
+P	author	Margaret Noodin
+P	title	Gidinwewininaan / The Sound of Our Language
+P	orthography	
+P	type	
+P	subtype	regular
+A	mp3	abney	tuebingen.mp3
+A	__default__	mp3
+C	0.0	2.99263	True
+C	2.99263	5.95043	False
+C	5.95043	9.465509	False
+C	9.465509	12.643899	True
+C	12.643899	16.042878	False
+C	16.042878	19.279317	False
+C	19.279317	22.898886	True
+C	22.898886	26.390745	False
+C	26.390745	29.569135	False
+C	29.569135	32.724305	True
+C	32.724305	35.171266	False
+C	35.171266	38.384485	True
+C	38.384485	41.411945	False
+C	41.411945	46.676332	False
+C	46.676332	47.176332	False
+S
+T	anishinaabe	0		
+S
+T	namadabi	0		
+S
+T	mazina'igan	0		
+S
+T	gaawiin	0		
+S
+T	maajtaadaa	0		
+S
+T	waabamaa	0		
+S
+T	epiichi	0		
+S
+T	giiwedin	0		
+S
+T	biindige	0		
+S
+T	ikido	0		
+S
+T	mawi	0		
+S
+T	aaniin	0		
+S
+T	biindigen	0		
+S
+T	googii	0		
+S
+Z	End of export

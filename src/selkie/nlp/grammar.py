@@ -2,8 +2,8 @@
 #   Feature grammar.
 
 import os
-from .seq import Index
-from .io import Syntax, StringIO
+from .map import Index
+from .io import lines_to_tokens, Fn, Syntax, StringIO
 from .features import Category, join, subsumes, scan_category, Declarations, \
                           Parameter, basecat, arity
 from .avs import scan_avs, scan_avstate, Copier
@@ -438,6 +438,13 @@ class GrammarLoader (object):
     ##  Load a file.
 
     def load (self, fn, dir=None):
+        '''
+        Load a file. If dir is provided and fn is not an absolute pathname, dir
+        is prefixed to fn. If fn ends in .g, then ``load_generic()`` is called on it.
+        Otherwise, ``load_generic()`` is called on fn + .g and ``load_lex()`` is
+        called on fn + .lex.
+        '''
+
         if dir and not os.path.isabs(fn):
             fn = os.path.join(dir, fn)
         if os.path.isdir(fn):
@@ -462,28 +469,44 @@ class GrammarLoader (object):
     ##  Load a generic grammar file.
 
     def load_generic (self, fn):
-        tokens = iter_tokens(fn, syntax=GrammarSyntax)
-        while tokens.accept('%'):
-            what = tokens.require('word').lower()
-            if not self.handle_section(what, tokens):
-                tokens.error('Unrecognized header: ' + what)
+        '''
+        The file is opened and converted to a token stream using ``lines_to_tokens()``.
+        Until the end of file, the next two tokens are consumed. The first must be a percent
+        sign, and the second must be a word. (Otherwise, an error is signalled.)
+        The word (lowercased) is passed to ``handle_section()``, along with the rest of
+        the token stream.
+        '''
 
-        if not tokens.has_next('eof'):
-            tokens.error('Unparseable material')
+        with open(fn) as f:
+            tokens = lines_to_tokens(f, syntax=GrammarSyntax)
+            while tokens.accept('%'):
+                what = tokens.require('word').lower()
+                if not self.handle_section(what, tokens):
+                    tokens.error('Unrecognized header: ' + what)
 
-    ##  Specializations may wrap this.  If the section is handled,
-    #   it should return True.  Example:
-    #
-    #       def handle_section (self, what, tokens):
-    #           if GrammarLoader.handle_section(self, what tokens):
-    #               return True
-    #           elif what == 'foo':
-    #               self.scan_foo(tokens)
-    #               return True
-    #           else:
-    #               return False
+            if not tokens.has_next('eof'):
+                tokens.error('Unparseable material')
     
     def handle_section (self, what, tokens):
+        '''
+        This method processes one section. The argument *what* indicates the
+        type of section. If the section type is not known, handle_section() should
+        immediately return False. If the section is successfully processed, it
+        should return True and leave the token stream pointing at the percent
+        sign that begins the next section (or EOF).
+
+        This method may be overridden by specializations of GrammarLoader.
+        For example::
+
+            class FooLoader (GrammarLoader):
+                def handle_section (self, what, tokens):
+                    if what == 'foo':
+                        self.scan_foo(tokens)
+                        return True
+                    else:
+                        return GrammarLoader.handle_section(self, what, tokens)
+        '''
+
         if what == 'start':
             self.grammar.start = self.scan_category(tokens)
             tokens.require('\n')
@@ -533,18 +556,20 @@ class GrammarLoader (object):
     ##  Load a '.g' file.
 
     def load_g (self, fn):
-        tokens = iter_tokens(fn, syntax=GrammarSyntax)
-        self.scan_rules(tokens)
-        if not tokens.has_next('eof'):
-            tokens.warning('Expecting eof, unparsed material')
+        with open(fn) as f:
+            tokens = lines_to_tokens(f, syntax=GrammarSyntax)
+            self.scan_rules(tokens)
+            if not tokens.has_next('eof'):
+                tokens.warning('Expecting eof, unparsed material')
 
     ##  Load a '.lex' file.
 
     def load_lex (self, fn):
-        tokens = iter_tokens(fn, syntax=GrammarSyntax)
-        self.scan_lexicon(tokens)
-        if not tokens.has_next('eof'):
-            tokens.warning('Expecting eof, unparsed material')
+        with open(fn) as f:
+            tokens = lines_to_tokens(f, syntax=GrammarSyntax)
+            self.scan_lexicon(tokens)
+            if not tokens.has_next('eof'):
+                tokens.warning('Expecting eof, unparsed material')
 
     ##  Scan an atomset.
 

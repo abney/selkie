@@ -1,0 +1,447 @@
+
+#
+#  If using Firefox, you'll have to confirm a security exception
+#  (Because the certificate is self-signed, entering the certificate
+#  under Servers won't help.)
+#
+
+import sys, cgi, os, ssl, hashlib, subprocess
+from base64 import standard_b64decode
+from urllib.parse import urlparse, parse_qs, unquote_plus
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from os.path import dirname, join, normpath
+from seal.sh import touch
+from seal.io import data, load_dict
+from seal.misc import run_main
+
+from seal.app.request import Request, Pathname
+from seal.app.response import Response
+from seal.app.item import RawFile, Redirect, PageNotFound
+from seal.app.auth import Authenticator
+
+
+#--  Session Manager  ----------------------------------------------------------
+
+class SessionManager (object):
+
+    def __init__ (self):
+        self.sessions = {}
+
+    def intern (self, user):
+        if user in self.sessions:
+            return self.sessions[user]
+        else:
+            s = Session(user)
+            self.sessions[user] = s
+            return s
+
+    # TODO: check expiration, check client address, check referer
+
+    def get (self, user, digest=None):
+        if user in self.sessions:
+            s = self.sessions[user]
+            if digest is None:
+                return s
+            else:
+                return s.decode_pathname(digest)
+
+    def login (self, user):
+        s = self.intern(user)
+        s.advance()
+
+
+class Session (object):
+
+    def __init__ (self, user):
+        self.timestep = 0
+        self.user = user
+        self.permissions = None
+        self.addr = None
+        self.hash = hashlib.sha256()
+        self.hash.update(os.urandom(32))
+
+    def advance (self):
+        self.permissions = None
+        self.timestep += 1
+        print('NewTimestep', repr(self.user), self.timestep)
+
+    def encode_pathname (self, path):
+        if self.permissions is None:
+            self.permissions = {}
+        self.hash.update(path.encode('ascii'))
+        digest = self.hash.hexdigest()
+        self.permissions[digest] = path
+        print('    Stored', path, digest)
+        return '/.S/' + self.user + '/' + digest
+
+    def encode_response (self, response, path):
+        dir = dirname(path)
+        for item in response:
+            if isinstance(item, Pathname):
+                # join is sensitive to relative vs abs pathnames
+                item = self.encode_pathname(normpath(join(dir, item)))
+                yield item.encode('ascii')
+            elif isinstance(item, str):
+                yield item.encode('ascii')
+            elif isinstance(item, bytes):
+                yield item
+            else:
+                raise Exception('Bad item in response:', repr(item))
+
+    def decode_pathname (self, digest):
+        if digest in self.permissions:
+            return self.permissions[digest]
+
+
+#--  ServerRequest  ------------------------------------------------------------
+#
+#  A digested version of the request
+#
+
+class ServerRequest (object):
+
+    def __init__ (self, rh):
+
+        self.type = None
+        self.command = rh.command
+        self.orig_path = rh.path
+        self.path = rh.path
+        self.user = None
+        self.digest = None
+        self.form = None
+
+        r = urlparse(rh.path)
+        self.path = r.path
+        self.query = r.query
+        self.form = self._extract_form(rh)
+
+        if self.path.startswith('/.S/'):
+            (self.user, self.digest) = self.path[4:].split('/')
+            self.path = rh.server.sessions.get(self.user, self.digest)
+            if self.path is None:
+                self.path = ''
+                self.type = 'unauthorized'
+            else:
+                self.type = 'encoded'
+        elif self.path.startswith('/.lib/'):
+            self.type = 'lib'
+            self.path = self.path[6:]
+        elif self.path == '/login':
+            self.type = 'login'
+
+
+    def _extract_form (self, rh):
+
+        if self.command == 'GET':
+            return self._decode_form(parse_qs(self.query))
+
+        elif self.command == 'POST':
+            (ctype, pdict) = cgi.parse_header(rh.headers['Content-Type'])
+
+            if ctype == 'application/x-www-form-urlencoded':
+                nb = int(rh.headers['Content-Length'])
+                body = rh.rfile.read(nb)
+                return self._decode_form(parse_qs(body))
+
+            elif ctype == 'multipart/form-data':
+                pdict['boundary'] = bytes(pdict['boundary'], 'ascii')
+                bform = cgi.parse_multipart(rh.rfile, pdict)
+                # cgi.parse_multipart produces str keys but bytes values
+                return self._decode_form(bform, keytype=str)
+            else:
+                raise Exception('Unexpected content-type: %s' % ctype)
+
+    def _decode_form (self, bform, keytype=bytes):
+        form = {}
+        for (k,vs) in bform.items():
+            if keytype is bytes: key = k.decode('ascii')
+            else: key = k
+            if key.startswith('*'):
+                key = key[1:]
+                form[key] = [v.decode('ascii') for v in vs]
+            else:
+                if key in form:
+                    raise Exception('Cannot have both %s and *%s as names' % (key, key))
+                if len(vs) > 1:
+                    raise Exception('Multiple values for key: %s' % key)
+                form[key] = vs[0].decode('ascii')
+        return form
+
+    def app_request (self):
+        return Request(self.path, self.form, self.user)
+
+    def describe (self):
+        print('    ServerRequest:')
+        print('        type:', repr(self.type))
+        print('        path:', repr(self.path))
+        print('        user:', repr(self.user))
+        print('        digest:', repr(self.digest))
+        if self.form:
+            print('        form:')
+            for (k,v) in self.form.items():
+                print('            %s:' % repr(k), repr(v))
+
+
+#--  RequestHandler  -----------------------------------------------------------
+#
+#  The RequestHandler methods do_GET, do_POST, etc. are called when
+#  the server receives an HTTP request.
+#
+
+class RequestHandler (BaseHTTPRequestHandler):
+
+    def print_info (self):
+        print('    Client:')
+        print('        client_address:', repr(self.client_address))
+        print('    Server:')
+        print('        server.server_address:', repr(self.server.server_address))
+        print('        server.server_name:', repr(self.server.server_name))
+        #print('Cipher:', repr(self.connection.cipher()))
+        print('    Request:')
+        print('        requestline:', repr(self.requestline))
+        print('        command:', repr(self.command))
+        print('        path:', repr(self.path))
+        print('        request_version:', repr(self.request_version))
+        print('    Headers:')
+        for key in self.headers:
+            print("       headers['%s']:" % key, repr(self.headers[key]))
+        
+        if hasattr(self, 'form'):
+            print('        Form:')
+            for key in self.form:
+                print("            '%s':" % key, repr(self.form.getlist(key)))
+
+    def do_GET (self): self.doit()
+    def do_POST (self): self.doit()
+
+    def doit (self):
+        sreq = ServerRequest(self)
+
+        print(sreq.command, sreq.orig_path)
+        self.print_info()
+
+        if sreq.type == 'encoded':
+            req = sreq.app_request()
+            req.describe()
+            self.exec_application(req)
+
+        elif sreq.type == 'lib':
+            if os.path.exists(sreq.path):
+                self.write_file(sreq.path)
+            else:
+                fn = join(data, 'seal', sreq.path)
+                if os.path.exists(fn):
+                    self.write_file(fn)
+                else:
+                    self.page_not_found()
+
+        elif sreq.type == 'login':
+            print('LOGIN')
+            req = sreq.app_request()
+            req.describe()
+
+            user = req.form.get('user')
+            password = req.form.get('pass')
+
+            if user and password and self.server.auth.check(user, password):
+                self.server.sessions.login(user)
+                # new root request
+                self.exec_application(Request(user=user))
+
+            else:
+                print('Bad password')
+                self.write_unauthorized()
+
+        else:
+            self.write_file(join(data, 'seal', 'login.html'))
+
+
+    def exec_application (self, req):
+        app = self.server.app
+        session = self.server.sessions.intern(req.user)
+        page = None
+
+        try:
+            page = app(req)
+            n = 0
+            while isinstance(page, Redirect):
+                oldpath = req.pathname
+                dir = dirname(oldpath)
+                n += 1
+                if n > 10: raise Exception('Too many redirects')
+                newpath = normpath(join(dir, page.uri))
+                # normpath deletes trailing slashes
+                if page.uri.endswith('/'):
+                    newpath += '/'
+                req = req.copy(pathname=newpath)
+                print('Redirect', repr(oldpath), repr(newpath))
+                page = app(req)
+
+        except PageNotFound as e:
+            page = e
+
+        dir = dirname(req.pathname)
+        f = lambda p: session.encode_pathname(normpath(join(dir,p)))
+        self.write_response(Response(page, f))
+
+    def write_response (self, r):
+        self.send_response(r.code, r.message)
+        if r.encoding: enc = '; charset=' + r.encoding
+        else: enc = ''
+        self.send_header('Content-Type', r.mime_type + enc)
+        self.send_header('Content-Length', str(r.nbytes))
+        self.end_headers()
+        for b in r.contents: self.wfile.write(b)
+
+    def write_file (self, fn):
+        self.write_response(Response(RawFile(fn)))
+
+
+#--  ServerResponse  -----------------------------------------------------------
+#
+#  A ServerResponse is a function-like object that applies to a RequestHandler
+#
+#   - AppResponse wraps a Response from an Application
+#   - FileResponse wraps a plain-text file (utf-8)
+#   - ErrorResponse sends an error
+#
+#  From HtmlPage:
+#
+#    def http_status (self):
+#        return '200 OK'
+#
+#    def http_headers (self):
+#        length = sum(len(s) for s in self)
+#        return [('Content-Type', 'text/html;charset=utf-8'),
+#                ('Content-Length', str(length))]
+#
+
+class AppResponse (object):
+
+    def __init__ (self, response):
+
+        # 200 OK
+
+        strings = list(response)
+        n = sum(len(bs) for bs in strings)
+        
+        print('WriteResponse', n)
+
+        self.send_response(200, 'OK')
+
+        #self.wfile.write(b'HTTP/1.1 ')
+        #self.wfile.write(type)
+        #self.wfile.write(b'\r\n')
+
+        self.send_header('Content-Type', 'text/html; charset=US-ASCII')
+
+        #self.wfile.write(b'Content-Type: text/html; charset=US-ASCII\r\n')
+
+        self.send_header('Content-Length', str(n))
+
+        #self.wfile.write(b'Content-Length: ')
+        #self.wfile.write(str(n).encode('ascii'))
+        #self.wfile.write(b'\r\n')
+
+        #self.wfile.write(b'Set-Cookie: foo=42&bar=12; Secure\r\n')
+
+        #self.wfile.write(b'Connection: close\r\n')
+
+        self.end_headers()
+
+        #self.wfile.write(b'\r\n')
+
+        # print('Writing')
+        # print('    Content-Length:', n)
+        # written = 0
+        for bs in strings:
+            # the ssl code gets upset by empty byte-strings
+            if bs:
+                # k = len(bs)
+                # print('   ', written, written+k, repr(bs))
+                self.wfile.write(bs)
+                # written += k
+        
+    def write_test_response (self):        
+        self.write_response([b'<html><head><title>Hello</title></head>\r\n',
+                             b'<body>\r\n',
+                             b'Hello, World!\r\n',
+                             b'</body>\r\n',
+                             b'</html>\r\n'])
+
+    def write_unauthorized (self):
+        self.write_response([
+                b'<html>\r\n',
+                b'<head>\r\n',
+                b'<title>Unauthorized</title>\r\n',
+                b'<link rel="stylesheet" href="/.lib/default.css">\r\n',
+                b'</head>\r\n',
+                b'<body>\r\n',
+                b'<h1>Unauthorized</h1>',
+                b'<p>Access is not authorized.</p>',
+                b'</body>\r\n',
+                b'</html>\r\n'])
+
+    def page_not_found (self, pathname=None):
+        if pathname is None: pathname = self.path
+        print('PageNotFound', pathname)
+        msg = 'Page not found: ' + pathname
+        self.send_error(404, 'Not Found', msg)
+
+
+class Server (HTTPServer):
+
+    def __init__ (self, app, port=8003, secure=True, logfile=None):
+        HTTPServer.__init__(self, ('', port), RequestHandler)
+        self.log_filename = logfile
+        self.log = None
+        self.quit = False
+        self.app = app
+        self.auth = Authenticator()
+        self.sessions = SessionManager()
+
+        if logfile:
+            self.log = open(logfile, 'a')
+        
+        if secure:
+            self.socket = ssl.wrap_socket(self.socket,
+                                          certfile='cert.pem',
+                                          keyfile='key.pem',
+                                          server_side=True)
+
+        while not self.quit:
+            print('--  Handle Request  --------------------------------------')
+            self.handle_request()
+
+        if self.log is not None:
+            self.log.close()
+
+    
+run = Server
+
+
+def load_config ():
+    if not os.path.exists('server.cfg'):
+        print('Create a file server.cfg containing:')
+        print('certcfg /path/to/cert.cfg')
+        print('corpus  /path/to/corpus.cld')
+        print('port    (port number)')
+        sys.exit(1)
+    return load_dict('server.cfg')
+
+
+def init ():
+    cfg = load_config()
+    sslcfg = os.path.expanduser(d['certcfg'])
+    print('Creating server private key and certificate')
+    subprocess.check_output(['openssl', 'req', '-x509', '-new',
+                             '-out', 'cert.pem',
+                             '-config', sslcfg,
+                             '-days', '365'])
+    print('Creating password file')
+    make_salt()
+    touch('pass')
+
+
+if __name__ == '__main__':
+    run_main(init)

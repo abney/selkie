@@ -1,0 +1,77 @@
+ a dog barks
+ this dog barks
+*this dogs bark
+ these dogs bark
+ the dog barks
+ the dogs bark
+*these dogs barks
+*these dogs bark the cat
+ these dogs chase the cat
+ the red dog barks
+ fido chases the cat
+ he thinks about the dog
+ she thinks that the dog chases the cat
+*she thinks the dog
+*she tells that the dog chases the cat
+ she tells the dog that the cat barks
+ the cat thinks
+ the cat wants to bark
+ fido is red
+ the cat is happy about the toy
+ we gave the dog a toy
+ we gave a toy to the dog
+ fido chases spot
+ fido has chased spot
+ fido is chasing spot
+ fido will chase spot
+ spot will be chased
+ fido will be chasing spot
+ fido will have been chasing spot
+ spot will have been being chased
+*spot will be having been chased
+*fido having chased
+*fido will chasing spot
+ what did you chase
+ which cat did you chase
+*what did you chase spot
+ what will you give to spot
+ what has fido been giving to spot
+*what has been giving to
+ who will you give a toy to
+ what will you give spot
+ to whom will you give a toy
+*what did you bark
+ did you bark
+ !np the dog that max chased
+ !np the dog that chased max
+ !np those red dogs that max chased
+ !num zero
+ !num one
+*!num a
+ !num six
+ !num ten
+*!num ten and one
+ !num a hundred
+ !num a hundred ninety nine
+ !num a hundred and eleven
+*!num a hundred a
+ !num two thousand nine hundred ninety nine
+*!num two thousand a hundred
+*!num two thousand and a hundred
+ !num nine hundred ninety nine thousand and nine hundred ninety nine
+ !num nine hundred million and six
+ !num nine billion six hundred thirty six million forty two
+*!num nine million six hundred thirty billion
+ !measp six inches
+ !measp sixty one years
+ !measp eight watts
+ !np pierre vinken
+ !adjp sixty one years old
+ !np pierre vinken , sixty one years old ,
+ pierre vinken , sixty one years old , will join the board
+ !np a nonexecutive director
+ !np november twenty nine
+ !vp join the board as a nonexecutive director november twenty nine
+ pierre vinken , sixty one years old , will join the board as a nonexecutive director november twenty nine
+ !np harvey smith
+ !np jessica simpson

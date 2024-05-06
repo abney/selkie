@@ -1,0 +1,13 @@
+id	1
+ty	story
+ti	Eine kleine Geschichte
+ch	2 3
+
+id	2
+ty	page
+ti	p1
+
+id	3
+ty	page
+ti	p2
+audio	3.wav

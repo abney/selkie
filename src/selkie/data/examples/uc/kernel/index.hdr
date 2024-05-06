@@ -1,0 +1,7 @@
+rectype	seal.uc.corpus.KernelItem
+itemid	Immut	Indexed	Unique	-1	20		16
+type	Immut			-1	20		
+langid	Immut	Indexed		-1	20		
+textid		Indexed		-1	20		
+bibid		Indexed		-1	20		
+alignid		Indexed		-1	20		

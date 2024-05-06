@@ -1,0 +1,51 @@
+
+from nell.fg import *
+d1 = Disjunction(['tnsd', 'past'])
+'past' in d1
+conjoin(d1, Any)
+conjoin(d1, None)
+d2 = Disjunction(['past', '3s'])
+conjoin(d1, d2)
+
+v = variable('hi')
+v
+type(v)
+str(v)
+
+b = Binding()
+b['a']
+b = Binding('a', 'hi', b)
+b['a']
+b = Binding('a', 'lo', b)
+b['a']
+
+x = category('S[f:$a]')
+print x
+y1 = category('A[f:$a]')
+c1 = category('A[f:1|2|3]')
+b = y1.match(c1)
+print b
+y2 = Instantiation(category('B[f:$a]'), b)
+c2 = category('B[f:2|3|4]')
+b = y2.match(c2)
+print b
+
+s = Instantiation(x,b)
+print s
+
+s2 = category('S[f:3|4, g:$a]')
+b2 = Binding(variable('a'), Disjunction(['2']))
+print Instantiation(s2,b2).unify(s)
+
+from nell import fg, ex
+lex = fg.Lexicon(ex.lex3)
+for ent in lex:
+    print ent
+
+for pos in lex.parts('dogs'):
+    print pos
+
+lex.words(category('N[agr:sg|foo]'))
+
+g = fg.Grammar(ex.g3)
+print g[0]

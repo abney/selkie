@@ -1,0 +1,6 @@
+:
+  w |in einem kleinen Dorf am Fluss wohnte ein Schuster
+  G |in a little village on a river there lived a cobbler
+:
+  w |der Schuster war sehr arm
+  G |the cobbler was very poor

@@ -1,0 +1,51 @@
+sid	wid	form	lemma	morph	pos	gloss	head	rel
+1	1	In	in		P		5	mod
+1	2	the	the		D		3	det
+1	3	beginning,	beginning		N		1	pcomp
+1	4	God	god		PN		5	sbj
+1	5	created	create	past	V		0	root
+1	6	the	the		D		7	det
+1	7	heaven	heaven		N		5	obj
+1	8	and	and		CC		7	coord
+1	9	the	the		D		10	det
+1	10	earth.	earth		N		8	ccomp
+2	1	And	and		CC		0	root
+2	2	the	the		D		3	det
+2	3	earth	earth		N		4	sbj
+2	4	was	be	past.3s	V		1	ccomp
+2	5	without	without		P		4	pred
+2	6	form,	form		N		5	pcomp
+2	7	and	and		CC		5	coord
+2	8	void;	void		J		7	ccomp
+3	1	and	and		CC		0	root
+3	2	darkness	darkness		N		3	sbj
+3	3	was	be	past.3s	V		1	ccomp
+3	4	upon	upon		P		3	pred
+3	5	the	the		D		6	det
+3	6	face	face		N		4	pcomp
+3	7	of	of		P		6	poss
+3	8	the	the		D		9	det
+3	9	deep.	deep		N		7	pcomp
+4	1	And	and		CC		0	root
+4	2	the	the		D		3	det
+4	3	Spirit	spirit		N		6	sbj
+4	4	of	of		P		3	poss
+4	5	God	god		N		4	pcomp
+4	6	moved	move	Past	V		1	ccomp
+4	7	upon	upon		P		6	loc
+4	8	the	the		D		9	det
+4	9	face	face		N		7	pcomp
+4	10	of	of		P		9	poss
+4	11	the	the		D		12	det
+4	12	waters.	water	pl	N		10	pcomp
+5	1	And	and		CC		0	root
+5	2	God	god		PN		3	sbj
+5	3	said,	say	Past	V		1	ccomp
+5	4	Let	let	Imv	V		3	obj
+5	5	there	there		Ex		6	sbj
+5	6	be	be	Inf	V		4	vcomp
+5	7	light:	light		N		6	xsbj
+6	1	and	and		CC		0	root
+6	2	there	there		Ex		3	sbj
+6	3	was	be	Past.3s	V		1	ccomp
+6	4	light.	light		N		3	xsbj

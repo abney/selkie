@@ -1,23 +1,35 @@
 
-from os.path import join
-from importlib.resources import files
+# Temporary solution until Python 3.9 becomes standard
+
+from os import PathLike
+from os.path import join, dirname
+
+class _Path (PathLike):
+
+    def __init__ (self, fn):
+        self._filename = fn
+        
+    def __enter__ (self):
+        return self
+
+    def __exit__ (self, t, v, tb):
+        return
+
+    def __add__ (self, suffix):
+        return _Path(self._filename + suffix)
+
+    def __str__ (self):
+        return self._filename
+
+    def __repr__ (self):
+        return f'<_Path {self._filename}>'
+
+    def __fspath__ (self):
+        return self._filename
+    
 
 def path (*names):
-    '''
-    Joins the pathname of the directory of the selkie.data module to the *names*.
-    If no *names* are provided, the return value is just the data directory's pathname.
-    '''
-    return join(__spec__.submodule_search_locations[0], *names)
+    return _Path(join(dirname(__file__), *names))
 
 def ex (*names):
-    '''
-    Joins *names* to the pathname of the 'examples' subdirectory of the data directory.
-
-    For example:
-
-    >>> from selkie.data import ex
-    >>> ex('romtest.rom')[-33:]
-    '/selkie/data/examples/romtest.rom'
-
-    '''
     return path('examples', *names)

@@ -1,0 +1,60 @@
+#!/bin/sh
+
+rm -rf /tmp/config
+rm -rf /tmp/my
+rm -rf /tmp/cp
+rm -rf /tmp/inst
+
+
+# Create /tmp/config
+
+cat > /tmp/config <<EOF
+repo	foo	/tmp/my/foo	/tmp/cp/foo	/tmp/inst
+active	foo	my.host.com:/home/me/foo
+EOF
+
+
+# Create /tmp/my
+
+bar=/tmp/my/foo/bar
+baz=/tmp/my/foo/baz
+
+mkdir -p $bar
+mkdir -p $baz
+
+cat > $bar/pkgex-source.txt <<EOF
+Hi there.
+This is a test.
+EOF
+
+cat > $bar/Dest <<EOF
+data
+EOF
+
+cat > $bar/pkgex.pkg.sh <<EOF
+#!/bin/sh -ev
+
+# version: 1
+# desc:    Package Example
+# src:     pkgex-source.txt
+# tgt:     pkgex.txt
+
+mkdir -p \$DEST
+cp \$SRC/pkgex-source.txt \$DEST/pkgex.txt
+EOF
+chmod +x $bar/pkgex.pkg.sh
+
+cat > $baz/file1 <<EOF
+Test 1 2 3
+5 6 7
+eight
+EOF
+
+cat > $baz/file3 <<EOF
+Another test
+EOF
+
+
+# Create /tmp/cp
+
+mkdir -p /tmp/cp

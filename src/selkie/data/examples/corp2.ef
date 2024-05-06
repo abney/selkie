@@ -1,0 +1,296 @@
+I	rom	roms	salish		
+R	A*	\(c1)
+R	a*	\(e1)
+R	C'	C\(0313)
+R	c'	c\(0313)
+R	C*	\(010c)
+R	c*	\(010d)
+R	C*'	\(010c 0313)
+R	c*'	\(010d 0313)
+R	E*	\(c9)
+R	e*	\(e9)
+R	I*	\(cd)
+R	i*	\(ed)
+R	Kw	K\(02b7)
+R	kw	k\(02b7)
+R	K'w	K\(0313 02b7)
+R	k'w	k\(0313 02b7)
+R	L'	L\(0313)
+R	l'	l\(0313)
+R	L*	\(2c62)
+R	l*	\(026b)
+R	l**	\(019b 0313)
+R	M'	M\(0313)
+R	m'	m\(0313)
+R	N'	N\(0313)
+R	n'	n\(0313)
+R	O*	\(00d3)
+R	o*	\(00f3)
+R	P'	P\(0313)
+R	p'	p\(0313)
+R	Q'	Q\(0313)
+R	q'	q\(0313)
+R	Qw	Q\(02b7)
+R	qw	q\(02b7)
+R	Q'w	Q\(0313 02b7)
+R	q'w	q\(0313 02b7)
+R	S*	\(0160)
+R	s*	\(0161)
+R	T'	T\(0313)
+R	t'	t\(0313)
+R	U*	\(da)
+R	u*	\(fa)
+R	W'	W\(0313)
+R	w'	w\(0313)
+R	Xw	X\(02b7)
+R	xw	x\(02b7)
+R	X	X\(0323)
+R	x	x\(0323)
+R	Xw*	X\(0323 02b7)
+R	xw*	x\(0323 02b7)
+R	Y'	Y\(0313)
+R	y'	y\(0313)
+R	|	\(0295)
+R	|'	\(0295 0313)
+R	|w	\(0295 02b7)
+R	|'w	\(0295 02b7 0313)
+R	J	\(0294)
+R	j	\(0294)
+R	@	\(0259)
+I	rom	roms	foo		
+R	a*	\(e1)
+R	ch	\(f2 e2 e3)
+I	rom	roms	deu		
+R	"a	\(00e4)
+R	"o	\(00f6)
+R	"u	\(00fc)
+R	sz	\(00df)
+R	"A	\(00c4)
+R	"O	\(00d6)
+R	"U	\(00dc)
+I	notebook	glab	_root_/1		
+N	#T Scratch
+N	'hi'
+I	language	fla	language		
+M	orthographies	salish
+I	lexicon	fla	lexicon		
+F	0	gloss
+F	1	=
+F	2	morph
+F	3	variety
+F	4	source
+F	5	variants
+F	6	derived
+L	L*u	0
+L	t	0
+L	sq'si*	0
+L	pu*ti	0
+L	sc*a*ce	0
+I	text	fla	1	orig	1
+P	author	
+P	title	Orthography Test
+P	orthography	salish
+P	type	
+P	subtype	regular
+S
+T	L*u	0		
+T	t	0		
+T	sq'si*	0		
+T	pu*ti	0		
+T	sc*a*ce	0		
+E	
+I	language	deu	language		
+M	orthographies	deu
+I	lexicon	deu	lexicon		
+F	0	gloss
+F	1	=
+F	2	morph
+F	3	variety
+F	4	source
+F	5	variants
+F	6	derived
+L	Beispiel	0	0=example
+L	das	0	0=this
+L	ist	0	0=is
+L	ein	0	0=a
+L	zweites	0
+L	der	0
+L	eine	0
+L	von	0
+L	Ann	0
+L	Arbor	0
+L	die	0
+L	am	0
+L	Neckar	0
+L	Stuttgart	0
+L	weiter	0
+L	zum	0
+L	Markt	0
+L	und	0
+L	dann	0
+L	Huegel	0
+L	hoch	0
+L	Schloss	0
+L	deutsche	0
+L	Partnerstadt	0
+L	Hund	0
+L	bellte	0
+L	er	0
+L	jagte	0
+L	Katze	0
+L	Unistadt	0
+L	T"ubingen	0
+L	liegt	0
+L	s"udlich	0
+L	Nordrand	0
+L	schwaebischen	0
+L	Alb	0
+L	Neckarbr"ucke	0
+L	l"auft	0
+L	man	0
+L	an	0
+L	alten	0
+L	Stadtmauer	0
+L	vorbei	0
+L	zu	0
+L	Stiftskirche	0
+L	Rathaus	0
+I	text	deu	1	toc	1
+P	author	John Doe
+P	title	My Document
+P	orthography	
+P	type	toc
+P	subtype	regular
+I	text	deu	2	orig	1/2
+P	author	
+P	title	Page 1: Ein Beispiel
+P	orthography	
+P	type	
+P	subtype	regular
+S
+T	das	0		
+T	ist	0		
+T	ein	0		
+T	Beispiel	0		
+S
+T	ein	0		
+T	zweites	0		
+T	Beispiel	0		
+E	this is an example
+E	a second example
+I	text	deu	3	orig	1/3
+P	author	John Doe
+P	title	Page 2: Hund und Katze
+P	orthography	
+P	type	page
+P	subtype	regular
+S
+T	der	0		
+T	Hund	0		
+T	bellte	0		
+S
+T	er	0		
+T	jagte	0		
+T	eine	0		
+T	Katze	0		.
+E	The dog barked.
+E	It chased a cat.
+I	text	deu	4	stub	1/4
+P	author	
+P	title	Page 3
+P	orthography	
+P	type	page
+P	subtype	regular
+I	text	deu	5	media	5
+P	author	
+P	title	Tuebingen (audio)
+P	orthography	
+P	type	
+P	subtype	regular
+A	mp3	abney	tuebingen.mp3
+A	__default__	mp3
+C	0.0	1.5662349999999998	W
+C	1.5662349999999998	3.069001	W
+C	3.069001	4.536645	W
+C	4.536645	6.824956	W
+C	6.824956	8.670289	S
+C	8.670289	10.010515	W
+C	10.010515	11.048111	W
+C	11.048111	12.705497	W
+C	12.705497	14.114288	S
+C	14.114288	14.635625	W
+C	14.635625	16.80016	W
+C	16.80016	18.934267	W
+C	18.934267	20.312933	W
+C	20.312933	21.621933	W
+C	21.621933	22.094245	W
+C	22.094245	23.142411	W
+C	23.142411	25.573875	W
+S
+S
+T	die	0		
+T	deutsche	0		
+T	Partnerstadt	0		
+S
+T	von	0		
+T	Ann	0		
+T	Arbor	0		
+S
+T	ist	0		
+T	die	0		
+T	Unistadt	0		
+T	T"ubingen	0		
+S
+T	T"ubingen	0		
+T	liegt	0		
+T	am	0		
+T	Neckar	0		
+S
+T	s"udlich	0		
+T	von	0		
+T	Stuttgart	0		
+S
+T	am	0		
+T	Nordrand	0		
+S
+T	der	0		
+T	schwaebischen	0		
+T	Alb	0		
+S
+T	von	0		
+T	der	0		
+T	Neckarbr"ucke	0		
+S
+T	l"auft	0		
+T	man	0		
+S
+T	an	0		
+T	der	0		
+T	alten	0		
+T	Stadtmauer	0		
+T	vorbei	0		,
+S
+T	zu	0		
+T	der	0		
+T	Stiftskirche	0		,
+S
+T	weiter	0		
+T	zum	0		
+T	Markt	0		
+S
+T	und	0		
+T	Rathaus	0		,
+S
+T	und	0		
+T	dann	0		
+S
+T	eine	0		
+T	Huegel	0		
+T	hoch	0		
+S
+T	zum	0		
+T	Schloss	0		
+E	
+E	
+E	
+Z	End of export

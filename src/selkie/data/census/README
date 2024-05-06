@@ -1,0 +1,72 @@
+
+The files in this directory were downloaded in 1998 from
+
+    http://www.census.gov/genealogy/names/
+
+The web page no longer exists, but archival copies can be found at
+archive.org, e.g.
+
+    http://web.archive.org/web/19970617171355/http://www.census.gov/genealogy/names/
+
+Terms of use are not explicitly given, but data produced by the
+U.S. government is generally in the public domain.
+
+
+----------------------------------------------------------------------
+Variables in Names Files:
+  name
+  freq = Frequency in percent  
+  cum.freq = Cumulative Frequency in percent
+  rank
+
+First ten entries in dist.all.last
+
+name           freq   cum.freq  rank
+
+SMITH          1.006  1.006      1
+JOHNSON        0.810  1.816      2
+WILLIAMS       0.699  2.515      3
+JONES          0.621  3.136      4
+BROWN          0.621  3.757      5
+DAVIS          0.480  4.237      6
+MILLER         0.424  4.660      7
+WILSON         0.339  5.000      8
+MOORE          0.312  5.312      9
+TAYLOR         0.311  5.623     10
+
+
+First ten entries in dist.female.first
+
+name           freq   cum.freq  rank
+
+MARY           2.629  2.629      1
+PATRICIA       1.073  3.702      2
+LINDA          1.035  4.736      3
+BARBARA        0.980  5.716      4
+ELIZABETH      0.937  6.653      5
+JENNIFER       0.932  7.586      6
+MARIA          0.828  8.414      7
+SUSAN          0.794  9.209      8
+MARGARET       0.768  9.976      9
+DOROTHY        0.727 10.703     10
+
+
+First ten entries in dist.male.first
+
+name           freq   cum.freq  rank
+
+JAMES          3.318  3.318      1
+JOHN           3.271  6.589      2
+ROBERT         3.143  9.732      3
+MICHAEL        2.629 12.361      4
+WILLIAM        2.451 14.812      5
+DAVID          2.363 17.176      6
+RICHARD        1.703 18.878      7
+CHARLES        1.523 20.401      8
+JOSEPH         1.404 21.805      9
+THOMAS         1.380 23.185     10
+
+
+Source: U.S. Census Bureau 
+
+Last Revised: Wednesday, 16-Oct-96 08:46:19 

@@ -17,11 +17,11 @@ Sequence operations
 .. autofunction:: concat
 .. autofunction:: unique
 .. autofunction:: cross_product
-.. autofunction:: uniq
 .. autoclass:: EditDistance
 
 Sorted lists
 ------------
+.. autofunction:: uniq
 .. autofunction:: intersect
 .. autofunction:: union
 .. autofunction:: difference

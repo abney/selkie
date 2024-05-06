@@ -1,0 +1,19 @@
+
+% Rules
+
+s -> np[F] vp[F]
+np[sg] -> name
+np[N] -> det[N] n[N]
+vp[F] -> v[F,i,0]
+vp[F] -> v[F,t,0] np[*]
+
+% Lexicon
+
+a det[sg]
+barks v[sg,i,0]
+cat n[sg]
+chases v[sg,t,0]
+dog n[sg]
+every det[sg]
+Fido name
+the det[*]

@@ -1,0 +1,12 @@
+S -> NP VP
+NP -> Pron
+NP -> PropN
+NP -> Det Nom
+NP -> NP Conj NP
+Nom -> Adj Nom
+Nom -> N
+VP -> V
+VP -> V NP
+VP -> V NP PP
+VP -> V PP
+PP -> P NP

@@ -1,6 +1,7 @@
 
 from os import unlink, makedirs, listdir, walk
 from os.path import join, normpath, dirname, exists, isdir, expanduser
+from collections.abc import MutableMapping
 from .formats import File, blocks_to_lines, lines_to_blocks
 
 
@@ -8,10 +9,10 @@ from .formats import File, blocks_to_lines, lines_to_blocks
 #     return x if isinstance(x, cls) else cls(x)
 
 
-class BaseDisk (object):
+class BaseDisk (MutableMapping):
     '''
     An abstract class that specifies the methods that all "virtual disks" share.
-    The only current implementation is VDisk. A **disk** is a dict whose keys
+    A **disk** behaves like a dict whose keys
     are (functionally) pathnames with the root at the disk itself, and whose
     values are representations of files.
 
@@ -86,7 +87,7 @@ class BaseDisk (object):
 
     def keys (self):
         '''
-        A synonym for ``__iter__()``.
+        A synonym for ``__iter__().``
         '''
         return self.__iter__()
 
@@ -128,6 +129,17 @@ class BaseDisk (object):
         '''
         self.__delitem__(fn)
 
+
+class VDisk (BaseDisk, MutableMapWrapper):
+    '''
+    An implementation of BaseDisk that contains a dict that serves as the mapping.
+    '''
+    def __init__ (self):
+        self.__dict = {}
+
+    def __map__ (self):
+        return self.__dict
+        
 
 class Directory (object):
     '''

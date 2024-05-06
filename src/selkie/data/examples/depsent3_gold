@@ -1,0 +1,6 @@
+1	This	this	pron	pron	_	2	subj	2	subj
+2	is	be	vb	vb	_	0	mv	0	mv
+3	a	a	dt	dt	_	4	det	4	det
+4	test	test	n	n	_	2	prednom	2	prednom
+5	.	.	punc	punc	_	0	punc	0	punc
+

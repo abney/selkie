@@ -1,0 +1,22 @@
+
+(forall x25
+  (if (forall x21
+        (if (animal x21) (love x25 x21)))
+      (exists x26
+        (love x26 x25))))
+
+(forall x32
+  (if (exists x28
+        (and (animal x28)
+             (kill x32 x28)))
+      (not (exists x33
+             (love x33 x32)))))
+
+(forall x35
+  (if (animal x35) (love Jack x35)))
+
+(or (kill Jack Tuna) (kill Curiosity Tuna))
+
+(cat Tuna)
+
+(forall x39 (if (cat x39) (animal x39)))

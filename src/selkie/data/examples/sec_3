@@ -1,0 +1,46 @@
+
+from nell import ex
+from nell.sh import cat
+cat(ex.t1)
+
+trees = list(treefile(ex.t1))
+trees[0].pprint()
+
+n5.write('/tmp/foo')
+cat('/tmp/foo')
+
+
+### Lexicon
+
+from nell import cf
+index = cf.Index()
+index['hi']
+index['hi'] = 10
+index['hi']
+index['hi'] = 42
+index['hi']
+
+lex2 = cf.Lexicon(ex.lex2)
+lex2.parts('book')
+lex2.words('N')
+
+
+### Grammars
+
+r = cf.Rule('S', ['NP', 'VP'])
+r.lhs
+r.rhs
+
+g2 = cf.Grammar(ex.g2)
+print g2.expansions('VP')
+print g2.continuations('NP')
+
+
+### Random generation
+
+import random
+random.seed(0)
+
+gen = cf.generate(g2, lex2)
+gen.next()
+gen.next()

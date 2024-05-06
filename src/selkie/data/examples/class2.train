@@ -1,0 +1,14 @@
+-	len=S	wid=S
+-	len=S	wid=M
+-	len=S	wid=M
+-	len=M	wid=S
+-	len=L	wid=S
+-	len=S	wid=S
+-	len=S	wid=L
+-	len=S	wid=M
++	len=S	wid=L
++	len=M	wid=L
++	len=M	wid=L
++	len=L	wid=S
++	len=L	wid=L
++	len=L	wid=M

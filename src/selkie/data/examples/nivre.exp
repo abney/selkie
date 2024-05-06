@@ -1,0 +1,12 @@
+command nell.dp.nivre
+dataset spa.orig
+features nivre-2007
+nulls True
+split.feature fpos.input.0
+split.cpt.s 0
+split.cpt.t 1
+split.cpt.d 2
+split.cpt.g 0.2
+split.cpt.c 0.5
+split.cpt.r 0
+split.cpt.e 1.0

@@ -1,0 +1,95 @@
+
+#--  Application  --------------------------------------------------------------
+
+class Application (object):
+
+    # provide config info as keyword args, or else provide config=fn
+
+    def __init__ (self, root=None, **kwargs):
+        self.config = Config(root=root, **kwargs)
+        self.log = self.config.log
+        self.shutdown_trigger = Event()
+
+    def wsgi (self):
+        return WsgiApp(self)
+
+    def cgi (self):
+        CGIHandler().run(WsgiApp(self))
+
+    def run (self):
+        # 'with self.log' doesn't work, because the action is in the server thread
+        self.log.open()
+        if self.log.on('trace'):
+            self.config.describe(self.log)
+
+        server_type = self.config.server_type
+        port = self.config.port
+
+        # must be a daemon, otherwise prevents shutdown
+        thread = Thread(target=self._start_server, args=(server_type, port), daemon=True)
+        thread.start()
+
+        webbrowser.open('http://localhost:%d/' % port)
+
+        # it seems like the main thread doesn't wake up until after the server
+        # thread completes the last reponse
+        self.shutdown_trigger.wait()
+        self.log.close()
+        print('Shutting down')
+        sys.exit(0)
+        #raise KeyboardInterrupt()
+
+    def _start_server (self, server_type, port):
+
+        if server_type == 'wsgi':
+            server = make_server('localhost', port, WsgiApp(self, self.log))
+            server.serve_forever()
+    
+        elif server_module == 'server':
+            seal.server.run(self, port)
+
+        else:
+            raise Exception('Unrecognized server module: %s' % server_type)
+
+    def quit (self):
+        self.shutdown_trigger.set()
+
+    def __call__ (self, request):
+
+        self.request = request
+        self.root = self.config.root(self)
+
+        f = request.path.down
+        if f is not None and f.name == '.lib':
+            f = f.down
+            self.log('path', '    .lib request:', f.pathname)
+            fn = data.seal / f.pathname
+            if os.path.exists(fn):
+                self.log('path', 'RETURN RawFile', fn)
+                return RawFile(self, fn)
+            else:
+                self.log('path', '    RawFile not found:', fn)
+                raise PageNotFound(f.pathname)
+        else:
+            parent = None
+            item = self.root
+
+            # Redirects (e.g.) have __file__ = None
+            while item.__file__ and item.__file__.down is not None:
+                parent = item
+                file = parent.__file__.down
+                self.log('path', '   ', repr(parent), repr(file.name))
+                item = parent.__getpage__(file)
+                self.log('path', '        ->', repr(item))
+
+            if hasattr(item, '__pages__'):
+                print('item=', item)
+                print('file=', item.__file__)
+                self.log('path', 'RETURN Redirect: path terminates in a directory')
+                return Redirect(item.__file__.filename + '/')
+            if not isinstance(item, Page):
+                self.log('path', 'RAISE Not a Page')
+                raise Exception('Not a Page: %s' % item)
+            self.log('path', 'RETURN', repr(item))
+            return item
+

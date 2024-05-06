@@ -1,0 +1,306 @@
+
+#--  File  ---------------------------------------------------------------------
+
+class URLPath (object):
+
+    def __init__ (self, name, pathname, call, up=None, down=None):
+        self.name = name
+        self.pathname = pathname
+        self.call = call
+        self.up = up
+        self.down = down
+
+    def root (self):
+        f = self
+        while f.up is not None: f = f.up
+        return f
+
+    def leaf (self):
+        f = self
+        while f.down is not None: f = f.down
+        return f
+
+    def isdir (self):
+        # root is a directory
+        if self.up is None: return True
+        f = self.down
+        # we assume the end of the request path is not a directory
+        # (if not, a redirect will immediately get generated anyway)
+        if f is None: return False
+        # this is a directory if slash is the separator, when extended
+        n = len(f.name)
+        return f.pathname[-n-1] == '/'
+
+    def directory (self):
+        f = self.up
+        while not (f is None or f.isdir()):
+            f = f.up
+        return f
+
+    def join (self, fn):
+        return self.pathname + '/' + fn
+
+    def extern (self, fn=None):
+        if fn is None:
+            return self.pathname
+        elif fn.startswith('/'):
+            r = self.root()
+            return r.join(fn[1:])
+        else:
+            return self.directory().join(fn)
+
+    def describe (self, file=None):
+        print('URLPath:', file=file)
+        formstr = '{%s}' % ', '.join('%s: %s' % (repr(i[0]), repr(i[1]))
+                                     for i in sorted(self.call[2].items()))
+        callstr = '(%s, %s, %s)' % (repr(self.call[0]),
+                                    repr(self.call[1]),
+                                    formstr)
+        print('    name=', repr(self.name), file=file)
+        print('    pathname=', repr(self.pathname), file=file)
+        print('    call=', callstr, file=file)
+        print('    up=', repr(self.up), file=file)
+        print('    down=', repr(self.down), file=file)
+            
+#     def __iter__ (self):
+#         file = self        
+#         while file is not None:
+#             yield file
+#             file = file.down
+
+    def __iter__ (self):
+        path = self.root()
+        while True:
+            yield path.name
+            if path is self: break
+            path = path.down
+
+    def __repr__ (self):
+        return '(' + ', '.join(repr(name) for name in self) + ')'
+
+    def pprint (self, file=None):
+        for (i,cpt) in enumerate(self):
+            print('[%d]' % i, repr(cpt.name), repr(cpt.pathname), _call_str(cpt.call), file=file)
+
+#    def __repr__ (self):
+#        return '<URLPath name=%s pathname=%s>' % (repr(self.name), repr(self.pathname))
+
+def _call_str (call):
+    if call is None: return ''
+    elif isinstance(call, str): return call
+    else:
+        (name, args, kwargs) = call
+        args = [repr(v) for v in args] + \
+            ['%s=%s' % (k, repr(v)) for (k,v) in sorted(kwargs.items())]
+        return '%s(%s)' % (name, ', '.join(args))
+
+def parse_path (rootprefix, pathname, form):
+    if rootprefix and not rootprefix.startswith('/'):
+        raise Exception('Non-empty rootprefix must start with slash')
+    if rootprefix.endswith('/'):
+        raise Exception('Rootprefix cannot end with slash')
+    n = len(rootprefix)
+    if pathname:
+        if not pathname.startswith('/'):
+            raise Exception('Non-empty path must start with slash')
+        n += 1
+    if form is None:
+        form = {}
+
+    return _parse_tail(None, rootprefix+pathname, n, form)
+    return file
+
+# split cpt at dots, make sure form is a dict
+
+def _parse_call (cpt, form=None):
+    cpt = cpt.split('.')
+    name = cpt[0]
+    args = cpt[1:]
+    if form is None: form = {}
+    return (name, args, form)
+
+def _parse_tail (up, pathname, i, form):
+    j = pathname.find('/', i)
+    # this is the last component
+    if j < 0:
+        j = pathname.find(';', i)
+        # no embedded widgets
+        if j < 0:
+            cpt = pathname[i:]
+            file = URLPath(cpt, pathname, _parse_call(cpt, form), up)
+        # embedded widget found
+        else:
+            cpt = pathname[i:j]
+            file = URLPath(cpt, pathname[:j], _parse_call(cpt), up)
+            file.down = _parse_widgetname(file, pathname, j+1, form)
+    # this is a directory
+    else:
+        cpt = pathname[i:j]
+        file = URLPath(cpt, pathname[:j], _parse_call(cpt), up)
+        file.down = _parse_tail(file, pathname, j+1, form)
+    return file
+
+def _parse_widgetname (up, pathname, i, form):
+    j = pathname.find(';', i)
+    # no method name
+    if j < 0:
+        cpt = pathname[i:]
+        file = URLPath(cpt, pathname, cpt, up)
+        if form:
+            raise HttpException('Widget does not accept data')
+    # method name found
+    else:
+        cpt = pathname[i:j]
+        file = URLPath(cpt, pathname[:j], cpt, up)
+        file.down = _parse_handlername(file, pathname, j+1, form)
+    return file
+
+def _parse_handlername (up, pathname, i, form):
+    cpt = pathname[i:]
+    return URLPath(cpt, pathname, _parse_call(cpt, form), up)
+    
+
+# # 'req' can be None, a Request, a WsgiApp, a File, or anything with a __upc__ member
+# 
+# def Filename (req, fn):
+#     if fn.startswith('/'):
+#         if req is None:
+#             return fn
+#         if not isinstance(req, Request):
+#             if isinstance(req, (WsgiApp, File)):
+#                 req = req.request
+#             elif hasattr(req, '__upc__') and isinstance(req.__upc__, File):
+#                 req = req.__upc__.request
+#             else:
+#                 return fn
+#         if req.rootprefix:
+#             return req.rootprefix + fn
+#     return fn
+
+
+
+
+#--  UIObjects  ----------------------------------------------------------------
+
+class UIObject (object):
+
+    def __init__ (self, parent=None, context=None):
+        if context is None and parent is not None:
+            if not isinstance(parent, UIObject):
+                raise Exception('Parent is not a UIObject: %s' % parent)
+            context = parent.context
+        self.__parent__ = parent
+        self.context = context
+    
+    def log (self, *args): self.context.log(*args)
+    def debug (self, *args): self.context.log.debug(*args)
+
+    def __page__ (self):
+        item = self
+        while not (item is None or isinstance(item, (Page, HtmlDirectory))):
+            item = item.__parent__
+        if item is None:
+            raise Exception('No page!')
+        return item
+
+    def __user__ (self):
+        return self.context.username
+
+    def __quit__ (self):
+        self.context.server.quit()
+
+    def __extern__ (self, s=None):
+        page = self.__page__()
+        if page.__upc__ is None:
+            return s
+        else:
+            return page.__upc__.extern(s)
+
+
+class Requestable (UIObject):
+
+    def __init__ (self, parent=None, file=None, context=None):
+        UIObject.__init__(self, parent, context)
+        if file is None and parent is not None:
+            self.file = parent.file
+        else:
+            self.file = file
+        self.__upc__ = None
+        # gets set by HtmlPage: this is the table of widgets
+        self.__handlers__ = None
+
+        while True:
+            if parent is None:
+                if context is not None:
+                    self.__upc__ = context.request.path
+                break
+            elif isinstance(parent, Requestable):
+                if parent.__upc__ is not None:
+                    self.__upc__ = parent.__upc__.down
+                break
+            else:
+                parent = parent.__parent__
+
+    def __getpage__ (self, file):
+        item = key = args = kwargs = None
+        try:
+            item = self.__dispatch__(file.call)
+            if item is None:
+                self.log('error', 'Called __dispatch__, got no value')
+                self.log('error', '    Self:', self)
+                self.log('error', '    Call:', file.call)
+                raise Exception('__dispatch__ returns None')
+        except HttpException as e:
+            raise e
+        except Exception as e:
+            self.log('error', 'ERROR [HtmlDirectory]:', e)
+            self.log('error', '    Path:', file.pathname)
+            self.log('error', '    Parent:', repr(self))
+            self.log('error', '    Key:', repr(key))
+            self.log('error', '    Args:', repr(args))
+            self.log('error', '    KwArgs:', repr(kwargs))
+            self.log('traceback')
+            raise HttpSystemError()
+        return item
+
+
+#--  HtmlDirectory  ------------------------------------------------------------
+
+# def no_op (*args, **kwargs): pass
+
+
+# The other BaseDirectory is WidgetMixin
+
+class BaseDirectory (Requestable):
+
+    # consulted if no entry is found in instance's __pages__
+    __pages__ = None
+
+    def __dispatch__ (self, call):
+        (name, args, kwargs) = call
+
+        # get the name of the method
+        if self.__pages__ and name in self.__pages__:
+            methodname = self.__pages__[name]
+        elif name in self.__class__.__pages__:
+            methodname = self.__class__.__pages__[name]
+        else:
+            self.log('path', 'ERROR: Page not found')
+            raise PageNotFound('%s in %s' % (repr(name), repr(self)))
+    
+        # get the method
+        if hasattr(self, methodname):
+            method = getattr(self, methodname)
+        else:
+            raise Exception('Dispatch method not defined: ' + methodname)
+
+        # call the method
+        return method(*args, **kwargs)
+
+
+HtmlDirectory = BaseDirectory
+
+class RootDirectory (HtmlDirectory):
+
+    def __init__ (self, file, context):
+        HtmlDirectory.__init__(self, file=file, context=context)

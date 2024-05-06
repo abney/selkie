@@ -1,0 +1,6 @@
+rectype	seal.uc.corpus.Page
+pageid	Immut	Indexed	Unique	6	20		0
+bibid	Immut	Indexed		6	20		
+number	Immut			4	20		
+url				0	20		
+desc				0	20		

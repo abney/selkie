@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>Form</title>
+</head>
+<body>
+<h1>Form</h1>
+
+<form method="POST" action="http://localhost:8000/foo/bar?hi=john%20doe">
+User: <input type="text" name="user" size="20" value="James & Nancy Kirk"></input><br/>
+User2: <input type="text" name="user2" size="20"></input><br/>
+Vote: <input type="radio" checked name="vote" value="Y">Yes</input>
+      <input type="radio" name="vote" value="N">No</input><br/>
+Pets: <input type="checkbox" checked name="pets" value="dog">Dog</input>
+      <input type="checkbox" checked name="pets" value="cat">Cat</input>
+      <input type="checkbox" name="pets" value="iguana">Iguana</input><br/>
+Comments: <textarea name="comments"></textarea><br/>
+<input type="submit" value="OK">
+</form>
+
+</body>
+</html>

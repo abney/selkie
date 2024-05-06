@@ -1,0 +1,41 @@
+
+% Features
+
+numform = sg/pl/cont
+ndigits = 2/3/5/8
+
+
+% Categories
+
+zero         []
+a            []
+and          []
+digit        [form:numform]
+teen         []
+ten          []
+tens         []
+num2         []
+tail2        []
+hundred      []
+hundreds     []
+ne-hundreds  []
+num3         []
+tail3        []
+thousand     []
+thousands    []
+ne-thousands []
+num5         []
+tail5        []
+million      []
+millions     []
+ne-millions  []
+num8         []
+tail8        []
+billion      []
+billions     []
+ne-billions  []
+num11        []
+tail11       []
+trillion     []
+trillions    []
+ne-trillions []

@@ -1,6 +1,7 @@
 
 from math import inf
 from itertools import islice
+from collections.abc import Sequence
 
 
 #--  Lists  --------------------------------------------------------------------
@@ -444,9 +445,9 @@ def nth (iter, n):
 
     One use of nth is to jump to problematic cases in a large
     iteration.  An idiom for finding such cases in the first place is the
-    following:
+    following::
 
-        for i, x in enumerate(myiteration):
+        for (i, x) in enumerate(myiteration):
             if isproblematic(x):
                 return i
 
@@ -521,109 +522,55 @@ def counts (iterable):
     return dict
 
 
-#--  ListProxy, MapProxy  ------------------------------------------------------
+#--  ListWrapper, MapWrapper  --------------------------------------------------
 
-class ListProxy (object):
+class LazyList (Sequence):
     '''
-    A mixin class. The implementing class should have a ``__list__()`` method
-    that returns the object contents as a list. Provides implementations of the
-    following methods:
+    An abstract class. Its ``__init__()`` method requires an iterable. Elements
+    will be fetched from the iterable only on demand, so one should be cautious about
+    changing the underlying element source during the lifetime of the LazyList.
+    '''
 
-     * ``__iter__()``
-     * ``__contains__(v)``
-     * ``__getitem__(i)``
-     * ``__len__()``
-     * ``__repr__()``
-    
-    '''
+    def __init__ (self, iterable):
+        self.__expanded = []
+        self.__iter = iter(iterable)
 
     def __iter__ (self):
-        return self.__list__().__iter__()
-        
-    def __contains__ (self, k):
-        return self.__list__().__contains__(k)
+        return LazyListIterator(self)
 
-    def __getitem__ (self, k):
-        return self.__list__().__getitem__(k)
+    def _fully_expanded (self):
+        return self.__iter is None
+    
+    def _advance (self):
+        if self._fully_expanded():
+            raise IndexError('list index out of range')
+        try:
+            self.__expanded.append(next(self.__iter))
+        except StopIteration:
+            self.__iter = None
+
+    def __getitem__ (self, i):
+        while len(self.__expanded) <= i:
+            self._advance()
+        return self.__expanded[i]
 
     def __len__ (self):
-        return self.__list__().__len__()
+        while not self._fully_expanded():
+            self._advance()
+        return self.__expanded.__len__()
 
     def __repr__ (self):
-        return self.__list__().__repr__()
-
-
-class MapProxy (object):
-    '''
-    A mixin class. The implementing class should have a ``__map__()`` method
-    that returns the object contents as a map. Provides implementations of
-    the following methods:
-
-     * ``__iter__()``
-     * ``__len__()``
-     * ``__contains__(k)``
-     * ``__getitem__(k)``
-     * ``get(k)``
-     * ``keys()``
-     * ``values()``
-     * ``items()``
-     * ``__repr__()``
-
-    '''
-
-    def __iter__ (self):
-        return iter(self.__map__())
-        
-    def __len__ (self):
-        return len(self.__map__())
-
-    def __contains__ (self, k):
-        return k in self.__map__()
-
-    def __getitem__ (self, k):
-        return self.__map__()[k]
-
-    def get (self, k, dflt=None):
-        return self.__map__().get(k, dflt)
-
-    def keys (self):
-        return self.__map__().keys()
-
-    def values (self):
-        return self.__map__().values()
-    
-    def items (self):
-        return self.__map__().items()
-
-    def __repr__ (self):
-        return self.__map__().__repr__()
-
-
-class LazyList (ListProxy):
-    '''
-    A mixin class. Its ``__init__()`` method requires a function that
-    returns an iteration. The function should return the same iteration
-    each time it is called. This mixin provides a ``__list__()`` method,
-    plus all methods provided by ListProxy.
-    '''
-
-    def __init__ (self, iterf):
-        self.__expanded = None
-        self.__iterf = iterf
-
-    def __list__ (self):
-        if self.__expanded is None:
-            self.__expanded = list(self.__iterf())
-        return self.__expanded
-
-    def __iter__ (self):
-        if self.__expanded is None:
-            return self.__iterf()
-        else:
-            return iter(self.__expanded)
-
-    def __repr__ (self):
-        if self.__expanded is None:
-            return '[...]'
-        else:
+        if self._fully_expanded():
             return repr(self.__expanded)
+        else:
+            with StringIO() as f:
+                f.write('[')
+                first = True
+                for item in self.__expanded:
+                    if first: first = False
+                    else: f.write(', ')
+                    f.write(repr(item))
+                if not self._fully_expanded():
+                    f.write(', ...')
+                f.write(']')
+                return f.getvalue()

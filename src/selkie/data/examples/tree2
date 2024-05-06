@@ -1,0 +1,12 @@
+
+# an example of a tree
+
+(S
+   (NP:subj &1 foo
+      (Det the)
+      (N dog))
+   (VP:head &2
+      (V chased)
+      (NP:dobj
+         (Det the)
+         (N cat))))

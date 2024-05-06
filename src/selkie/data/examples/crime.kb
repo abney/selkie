@@ -1,0 +1,25 @@
+
+(forall x7
+  (if (and (American x7)
+           (exists x1
+             (and (weapon x1)
+                  (exists x3
+                    (and (and (hostile x3) (country x3))
+                         (sell x7 x1 x3))))))
+      (criminal x7)))
+
+(forall x11
+  (if (and (missile x11) (own Nono x11))
+      (sell West x11 Nono)))
+
+(forall x14
+  (if (enemy x14 America)
+      (and (hostile x14) (country x14))))
+
+(forall x16 (if (missile x16) (weapon x16)))
+
+(exists x17 (and (missile x17) (own Nono x17)))
+
+(American West)
+
+(enemy Nono America)

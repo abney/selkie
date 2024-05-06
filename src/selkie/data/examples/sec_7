@@ -1,0 +1,79 @@
+
+from nell import fg, ex
+g = fg.compile(ex.g4, ex.lex4)
+p = fg.Parser(g)
+s = 'this cat chases these dogs'.split()
+p.parse(s)
+_[0].pprint()
+
+
+
+ents = list(fg.LexiconFile(ex.lex3))
+for e in ents: print e
+
+
+g = fg.compile(ex.g3, ex.lex3)
+g.dump()
+
+rules = list(fg.GrammarFile(ex.g3))
+for r in rules: print r
+
+
+cat1 = rules[1].lhs
+cat1.type
+cat1.contents
+
+cat2 = ents[0].pos
+cat2.type
+cat2.contents
+
+d1 = fg.Disjunction(['tnsd', 'past'])
+'past' in d1
+fg.conjoin(d1, True)
+fg.conjoin(d1, None)
+d2 = fg.Disjunction(['past', '3s'])
+fg.conjoin(d1, d2)
+
+d = fg.Declarations(rules, ents)
+d.dump()
+
+crules = d.compile_rules(rules)
+for r in crules: print r
+
+cents = d.compile_lexical_entries(ents)
+for e in cents: print e
+
+g.dump()
+a0 = g[1].rhs[0]
+a1 = g[2].pos
+print a0, a1
+a = fg.unify(a0, a1)
+a
+bdgs = fg.bindings(g[1])
+bdgs
+bdgs = fg.update(bdgs, a)
+bdgs
+b0 = g[1].rhs[1]
+b1 = g[3].pos
+print b0, b1
+b = fg.unify(b0, b1)
+b
+bdgs = fg.update(bdgs, b)
+bdgs
+c = g[1].lhs
+fg.instantiate(c, bdgs)
+
+
+g = fg.compile(ex.g3, ex.lex3)
+p = fg.Parser(g)
+s = 'a b d'.split()
+p.tracing = True
+ts = p.parse(s)
+for t in ts: t.pprint()
+
+
+g = fg.compile(ex.g3, ex.lex3)
+g = fg.Generator(g)
+t = g.generate()
+t.pprint()
+

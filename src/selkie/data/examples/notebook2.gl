@@ -1,0 +1,17 @@
+#T Test Notebook
+a
+_a
+*
+type(*)
+set _a hi
+_a
+<hi, there>
+<hi there>
+'hi there'
+'hi'
+{a,b,c}
+<a,b> . <c,d>
+set _S {a,b,c,d,e}
+a in _S
+_S + {d,e,f,g}
+a + b

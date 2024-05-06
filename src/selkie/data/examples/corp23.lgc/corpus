@@ -1,0 +1,8 @@
+langs :
+  id |deu
+  name |German
+  fn |deu/lang
+orths :
+  :
+    id |deu
+    fn |rom/deu.rom

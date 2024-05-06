@@ -1,0 +1,19 @@
+
+% RULES
+
+S -> NP[N] VP[N]        : (!qs ($2 $1))
+NP[sg] -> Name          : $1
+NP[N] -> Det[N] N[N]    : (!q $1 @ ($2 @))
+VP[F] -> V[F,i,0]       : $1
+VP[F] -> V[F,t,0] NP[*] : (lambda @ ($1 @ $2))
+
+% LEXICON
+
+a Det[sg]        : some
+barks V[sg,i,0]  : bark
+cat N[sg]        : cat
+chases V[sg,t,0] : chase
+dog N[sg]        : dog
+every Det[sg]    : every
+Fido Name        : Fido
+the Det[*]       : the
