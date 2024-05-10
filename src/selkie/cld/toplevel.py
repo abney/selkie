@@ -688,3 +688,10 @@ class CLDManager (Manager):
                 cfg['auth_dir'] = join(subject, 'auth')
             if not cfg.get('cert_file'):
                 cfg['cert_file'] = join(subject, 'auth', 'cert.crt')
+
+    def __call__ (self, *args):
+        '''
+        Overrides Manager.__call__. The args must be strings; they are treated
+        as the command-line arguments that follow 'python -m selkie.cld FOO.cld'
+        '''
+        self.__main__(['', self.__subject__, *args])

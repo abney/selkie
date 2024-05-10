@@ -12,8 +12,8 @@ from importlib import import_module
 from inspect import getmembers, isclass, isfunction, signature, getmro, \
     getsourcelines, getfile, getcomments
 
-from seal.core import sh
-from seal.core.misc import shift
+from ..cld.seal import sh
+from ..cld.seal.misc import shift
 
 
 ##  The beginning of the HTML output.

@@ -3,9 +3,9 @@
 
 import os
 from os.path import expanduser, join
-from seal.core import config
-from seal.core.io import data
-from seal.nlp.tree import TreeBuilder
+from ..cld.seal import config
+from ..cld.seal.io import data
+from ..nlp.tree import TreeBuilder
 
 ##  Home directory for the treebank.
 Home = config.ptb

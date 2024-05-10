@@ -15,8 +15,8 @@
 import doctest
 from sys import stdout
 from os.path import basename, abspath, expanduser, join, exists
-from seal.core.io import split_suffix
-from seal.core.misc import Cwd, shift
+from ..cld.seal.io import split_suffix
+from ..cld.seal.misc import Cwd, shift
 
 
 def _unescape_html (s):

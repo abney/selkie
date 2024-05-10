@@ -1,0 +1,30 @@
+
+<p>
+<tt>.mov</tt> files produced by iMovie use a naming scheme that
+has embedded spaces and does not preserve the time order in the
+alphabetic listing.
+The iMovie naming scheme:</p>
+<pre class="source">
+YYYY-MM-DD &lt;space&gt; HH-MM-SS [-N].mov
+</pre>
+<p>
+The disambiguation number -N is optional.  Because hyphen is less than period in
+ASCII order, the first file comes last, in a group of files sharing
+the same date and time.</p>
+<p>
+To fix this, <tt>mvmov</tt> renames all the files in the current
+directory to:</p>
+<pre class="source">
+YYYY-MM-DD-HH-MM-SS-N.mov
+</pre>
+
+<h3>Flags</h3>
+<ul>
+<li><tt>-c</tt> Check that all filenames have either the expected
+  input format or the output format.</li>
+<li><tt>-n</tt> Dry run.</li>
+<li><tt>-b</tt> Make batches.  Filenames are not changed, but
+ numbered subdirectories <tt>000</tt>, <tt>001</tt>, etc., are
+ created, each containing 100 files.  Only as a desperation
+ measure.</li>
+</ul>

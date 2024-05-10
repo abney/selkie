@@ -1,7 +1,7 @@
 ##  @package seal.nlp.avs
 #   Attribute-value structures.
 
-from .io import Syntax
+from ..pyx.io import Syntax
 
 
 ##  Whether tracing is on.

@@ -1,5 +1,6 @@
 
 from .fsa import (Fsa, History)
+from .io import iter_records
 
 
 #--  Fst  ----------------------------------------------------------------------

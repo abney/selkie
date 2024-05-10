@@ -571,8 +571,8 @@ def tree_string (tree, numerate=True, getfeatures=None):
 def __pp_string (x, width, numerate):
     (index, indent, string, sem, children) = x
     if index is None:
-        if numerate: s = '     '
-        else: s = ' '
+        if numerate: s = '    '
+        else: s = ''
         s += (' ' * indent)
         s += string
         return s

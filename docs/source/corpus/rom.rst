@@ -1,6 +1,6 @@
 
-``selkie.rom`` — Romanizations
-==============================
+Romanizations — ``selkie.corpus.rom``
+=====================================
 
 Definition
 ----------
@@ -35,9 +35,9 @@ and ``'salish'``.
 They are enabled when seal.nlp.rom is imported.
 One uses them as one uses any decoder.  For example:
 
->>> import selkie.rom
+>>> import selkie.corpus.rom
 >>> s = b'c*a'.decode('salish')
->>> from selkie.string import unidescribe
+>>> from selkie.pyx.string import unidescribe
 >>> unidescribe(s)
 0 0x10d LATIN SMALL LETTER C WITH CARON
 1 0x61 LATIN SMALL LETTER A
@@ -46,7 +46,7 @@ The string prints out as "ča."
 
 There is also a ``decode()`` function:
 
->>> from selkie.rom import decode
+>>> from selkie.corpus.rom import decode
 >>> s2 = decode("a'tho:", 'gothic-student')
 >>> unidescribe(s2)
 0 0xe1 LATIN SMALL LETTER A WITH ACUTE
@@ -57,7 +57,7 @@ There is also a ``decode()`` function:
 To convert the output to an ascii string containing HTML entities of
 form ``&#dddd;`` for non-ascii characters:
 
->>> from selkie.rom import to_html
+>>> from selkie.corpus.rom import to_html
 >>> to_html(s2)
 b'&#225;&#254;o&#772;'
 
@@ -155,7 +155,7 @@ Catalog
 
 To get a list of the defined romanizations:
 
->>> from selkie.rom import default_registry
+>>> from selkie.corpus.rom import default_registry
 >>> list(default_registry)
 ['korean', 'otw-webkamigad', 'salish', 'gothic', 'gothic-student', 'otw-jones']
 
@@ -190,6 +190,10 @@ path:
 >>> default_registry.path.insert(0, selkie.data.path('examples'))
 >>> b"l-a'L-e ?u".decode('romtest')
 'ɬáƛe ˁu'
+
+.. testcleanup::
+
+   del default_registry.path[0]
 
 
 API

@@ -1,9 +1,8 @@
 ##  @package seal.nlp.dp.eval
 #   Compute accuracy of the parser.
 
-
 import unicodedata
-from seal.core.io import tabular
+from ..cld.seal.io import tabular
 
 
 ##  Value is True just in case

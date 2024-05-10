@@ -4,8 +4,8 @@
 # importing readline magically causes input() to do line-editing
 import readline
 
-from seal.core.misc import shift
-from seal.cld.glab.eval import interpret
+from ..cld.seal.misc import shift
+from ..cld.glab.eval import interpret
 
 ##  Main function.
 

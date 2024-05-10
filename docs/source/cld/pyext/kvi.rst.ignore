@@ -1,0 +1,203 @@
+
+``selkie.kvi`` — Indented key-value format
+==========================================
+
+Overview
+--------
+
+Indented key-value (KVI) format is a format that is (almost) equivalent
+to JSON but is syntactically less cluttered.  It also differs from
+JSON in that, in place of dicts, it uses instances of any class.  Thus
+it can also be used as an ASCII alternative to pickle.
+
+Impressionistically, KVI
+is like markdown compared to XML.  Here is an example; let the
+following be the contents of the file ``foo.kvi``::
+
+   # A comment
+   lex = "lexicon.lx"
+   texts = Obj:
+     Obj:
+       ti = " Hi: My #|@\n \"Adventures\""
+       pgs = 238
+     Obj:
+       au = "J. Smith"
+       ti = "Bar"
+
+An Obj behaves like a dict if its elements are provided with names,
+and it behaves like a list otherwise.  In this example, the first Obj
+behaves like a list containing the following two Objs, and the
+latter two behave like dicts.
+The preceding is equivalent to the following JSON file::
+
+   {
+      "lex": "lexicon.lx",
+      "texts": [
+         {
+            "ti": " Hi: My #|@\\ \"Adventures\"",
+            "pgs": 238,
+         },
+         {
+            "au": "J. Smith",
+            "ti": "Bar"
+         }
+      ]
+   }
+
+An obvious difference is that KVI format marks structure using
+indentation instead of matching delimiters.  A second important
+difference is that one can use any class name in place of Obj.  The
+class is called with positional arguments, if the following elements
+are unnamed, and keyword arguments, if they are named.  (A mixture of
+named and unnamed elements is also permitted.)
+
+One loads the file using ``load_kvi()``::
+
+   >>> cfg = load_kvi('foo.kvi')
+   >>> cfg
+   {'lex': 'lexicon.lx',
+    'texts': [{'ti': ' Hi: My #|@\\ "Adventures"', 'pgs': 238},
+              {'au': 'J. Smith', 'ti': 'Bar'}]}
+
+If the KVI file contains class names other than "Obj", one provides a
+symbol table to map names to the actual classes.  The value
+``globals()`` is suitable::
+
+   >>> cfg = load_kvi('foo.kvi', globals())
+
+If the class name contains a dot, it is interpreted as a
+fully-qualified name, in which case the symbol table is not
+necessary.
+
+The format
+----------
+
+The file is processed line by line.
+Lines containing only whitespace or beginning with ``#`` (with
+optional leading whitespace) are ignored.
+
+Leading whitespace constitutes *indentation*.
+To avoid a situation in which two lines
+appear to have identical indentation but actually have different
+character sequences that constitute their indentation, indentation must
+consist of **space characters only.**
+
+After stripping the indentation, the line is scanned until the first
+equals sign, double-quote, or end of line is encountered.  If an
+equals sign is encountered (before encountering a double quote),
+everything before the equals sign is the *key field*, and everything
+after the equals sign is the *value field*.  If a double quote or end of line is
+encountered before an equals sign, there is no key field, rather, the
+entire line constitutes the value field.
+
+If there is a key field, the key is obtained by stripping trailing
+whitespace.  The key must be a valid Python identifier.
+
+The interpretation of the value field is determined as follows, after
+stripping leading and trailing whitespace.  The **atomic values** are
+the following:
+
+ * ``"`` ... ``"``
+
+   If the value field begins with ``"``, it is parsed as a string
+   using the Python tokenizer.  Multi-line strings are not permitted,
+   but the usual escape characters are permitted, so ``\n`` may be
+   used for an embedded newline.
+
+ * Digit...
+
+   If the value field begins with a digit, possibly preceded by ``+`` or ``-``, it must be
+   parseable as a number.  If it contains ``.`` it is parsed as a
+   float, and otherwise as an int.
+
+ * ``T``, ``True``, ``F``, ``False``, ``-``, ``None``
+
+   The values ``T`` or ``True`` represents True; ``F`` or ``False`` represents False;
+   ``-`` or ``None`` represents None.
+
+In addition, **complex values** take the following form:
+
+ * Identifier ``:``
+
+   If the value field begins with a valid identifier followed by optional
+   whitespace and a colon ``:``, the identifier is interpreted as a
+   class name.  An instance of the class is created from the following
+   block of lines, as described below.
+
+ * Identifier ``:`` atomic-value
+
+   In this form, the portion of the value field following the colon is
+   interpreted as an atomic value, and the class is called on it as
+   sole positional argument.
+
+ * Identifier ``()``
+
+   Whitespace is permitted between the identifer and ``()``.  The
+   class is instantiated with no arguments.
+
+Finally, the following is provided for convenience:
+
+ * ``/``..., ``.``..., ``~``...
+
+   If the value begins ``/`` or ``.`` or ``~``, it is interpreted as a pathname.
+   This is shorthand for ``Filename:``.  That is, the following are
+   equivalent (except that escape characters are not processed in an
+   unquoted filename)::
+
+      foo = ~/bar.txt
+      foo = Filename: "~/bar.txt"
+
+   A legal pathname must be one of ``/`` ``.`` ``..`` ``~`` or must
+   begin with one of ``/`` ``./`` ``../`` ``~/``.
+   If the pathname begins with ``.``, it is interpreted relative to the
+   directory in which the current file is located.
+
+Class instantiation
+-------------------
+
+A group of lines constitutes a **block** at indentation *n* just in case:
+
+ * The first line in the block has an indention of *n*.
+ * The line preceding the block (if any) has an an indentation less
+   than *n*
+ * The line after the end of the block (if any) has an indentation
+   less than *n*.
+
+A block at indentation *n* is converted to an instance of class *C* as
+follows.
+
+ * Process each of the lines to obtain either a value or a key-value
+   pair.  This may involve recursively processing more deeply-embedded
+   blocks.
+ * Call *C* on an argument list in which each
+   value-only line provides a positional argument and each key-value
+   line provides a keyword argument.
+
+If the identifier naming the class is anything other than ``list``,
+``dict``, or ``Object``, a symbol table must be provided to convert
+the string to a class.
+
+The file as a whole is parsed as the contents of an Object.
+
+.. py:function:: load_kvi(fn, [symtab=None], **kwargs)
+
+   Loads a KVI file and returns a dict or list.  The *kwargs* are
+   passed to ``open()``.  A suitable choice for symtab is ``globals()``.
+
+.. py:function:: read_kvi(f, [symtab=None], **kwargs)
+
+   Just like ``load_kvi()``, except it takes an open file instead of a filename.
+
+.. py:function:: save_kvi(x, fn)
+
+   This will round-trip correctly if the object *x* consists entirely
+   of Objects, dicts, lists, strings, numbers, booleans, and None.  If it
+   contains instances of other classes, it will round-trip correctly
+   if their ``__repr__()`` produces KVI format.
+
+Any keyword arguments are passed to ``open()``.
+
+.. py:function:: write_kvi(x, f)
+
+   Just like ``save_kvi()``, except it takes an open file instead of a filename.
+

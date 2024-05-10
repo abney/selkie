@@ -5,9 +5,9 @@ from os.path import expanduser, exists, isdir, join, dirname
 from urllib.request import urlopen
 from io import StringIO
 from bs4 import BeautifulSoup
-from selkie.xml import lines_to_items
-from selkie.com import Main, Progress
-from selkie.newio import Simples
+from ..pyx.xml import lines_to_items
+from ..pyx.com import Main, Progress
+#from ..pyx.newio import Simples
 
 
 #==  WiktDump  =================================================================

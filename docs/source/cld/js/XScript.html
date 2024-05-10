@@ -1,0 +1,479 @@
+<html>
+<head>
+<title>XScript.js</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>XScript.js</h1>
+
+<h2>XScript</h2>
+<p>
+The object representing the transcriber as a whole is XScript.  It is
+initialized with values <i>clip0</i> and <i>clipsPerPage</i>.</p>
+<p>
+The page structure is:</p>
+<ul>
+<li>Media player, represented by a Media object.</li>
+<li>The navigation frame, represented by a NavigationFrame object.  It
+  contains:
+    <ul>
+    <li>a NavCell that allows direct access to nearby pages</li>
+    <li>Up-triangle and down-triangle buttons that go to the immediately
+      preceding and following pages.</li>
+    </ul>
+</li>
+<li>The clip table, which is embedded in the navigation frame.  It is
+  represented by a ClipTable object.
+    <ul>
+    <li>Each row of the table displays one clip, and is represented by a
+      Clip object.</li>
+    </ul>
+</li>
+<li>The TextEditBox, a floating element that is swapped in for a snippet-text paragraph
+  when it is being actively edited.</li>
+</ul>
+<p>
+The members are:</p>
+<ul>
+<li>clip0 - the index of the first clip displayed.</li>
+<li>clipsPerPage - the number of clips displayed in a full page.</li>
+<li>server - a Server instance, to handle calls to the web
+  server.</li>
+<li>media - a Media instance.</li>
+<li>nav - a NavigationFrame instance.</li>
+<li>table - a ClipTable instance.</li>
+<li>editBox - a TextEditBox instance.</li>
+</ul>
+
+<dl>
+
+<dt>new XScript(clip0, clipsPerPage)</dt>
+<dd>Constructor.  Creates all the elements.  Calls _setDuration to the
+  current media duration.</dd>
+
+<dt>_setDuration(duration)</dt>
+<dd>Screens out cases in which the XScript is not yet initialized, or
+  duration is not a genuine value.  Otherwise, passes the duration to
+  table.setDuration.</dd>
+
+</dl>
+
+<h2>Media</h2>
+<p>
+The Media object manages the media player.  Member:</p>
+<ul>
+<li>clip - set by playClip()</li>
+</ul>
+
+<dl>
+
+<dt>new Media(xscript)</dt>
+<dd>
+<p>
+The <i>xscript</i> is the central controller.
+When the media file is loaded, duration-change events are generated;
+they are passed on to the xscript's _setDuration method.</p>
+<p>
+When the media file is playing, time-update events are generated.
+If _stopAt is set and is exceeded, playback is halted, _startAt and
+_stopAt are cleared, and, if there is a clip, it receives an atEnd() call.</p>
+</dd>
+
+<dt>time()</dt>
+<dd>Returns the time in seconds of the current playback position.</dd>    
+
+<dt>duration()</dt>
+<dd>Returns the total length in seconds of the media file.</dd>
+
+<dt>startPlaying(clip)</dt>
+<dd>Starts playing at the beginning of the clip.  Will continue until
+  the user stops it or it reaches the end of the media.</dd>
+
+<dt>stop()</dt>
+<dd>Stops playback.</dd>
+
+<dt>playClip(clip)</dt>
+<dd>Sets _startAt and _stopAt and starts playback.</dd>
+
+<dt>playSpan(start, end)</dt>
+<dd>Implements playClip.  Sets _startAt and _stopAt, moves the
+    playback head to _startAt, and starts playback.  Playback will be
+    halted when the time exceeds _stopAt.</dd>
+
+</dl>
+
+<h2>NavigationFrame</h2>
+<p>
+The NavigationFrame consists of the NavCell, which lets the user jump
+directly to nearby pages, and the up-triangle and down-triangle
+buttons, which jump to the immediately previous and immediately
+following pages.</p>
+
+<dl>
+
+<dt>new NavigationFrame(xscript)</dt>
+<dd>Constructor; just stores <i>xscript</i> as a member.</dd>
+
+<dt>update(start, end, totalNClips)</dt>
+<dd>
+Regenerate the navigation frame.
+It calls NavCell.update to regenerate the NavCell.
+It sets the URLs for the up-triangle and down-triangle buttons to
+'edit.<i>x</i>', where <i>x</i> is <i>start</i> -/+ <i>clipsPerPage</i>.
+(If the current page is first or last, the buttons will be disabled
+instead.)</dd>
+
+</dl>
+
+<h2>NavCell</h2>
+<p>
+NavCell is a variable.  The NavCell is the bar between the media
+controls and the snippet table that allows one to jump to other
+pages.  The value of NavCell is an object.</p>
+
+<dl>
+
+<dt>elt</dt>
+<dd>The navCell element.</dd>
+
+<dt>update(start, clipsPerPage, totalNClips)</dt>
+<dd>
+Regenerate the contents of the element.  Delete all the existing
+children.  The value for <i>start</i> is the index of the starting
+clip.  Do integer division by <i>clipsPerPage</i> to turn that into a
+page number, which is the current page.  Add buttons for the 5 pages
+before and after the current page; fewer if fewer are available.</dd>
+
+<dt>button(i)</dt>
+<dd>
+Add a Button linked to the i-th page of clips.  The URL is 'edit.<i>n</i>'
+where <i>n</i> is a clip number, obtained by multiplying <i>i</i>
+times the <i>clipsPerPage</i>.
+</dd>
+
+<dt>ellipsis()</dt>
+<dd>
+Add an ellipsis; used if there are more than 5 pages before or
+  after the current page.</dd>
+
+<dt>addCurrent(i)</dt>
+<dd>Add a Button for the current page, having index <i>i</i>.  The
+  current page is special because it is not a live link, and it has
+  angle brackets around it.</dd>
+
+</dl>
+
+
+<h2>ClipTable</h2>
+<p>
+The ClipTable contains one row per clip.  Its members are:</p>
+<ul>
+<li>xscript - the XScript object.</li>
+<li>element - the clipTable web page element.</li>
+<li>clips - a list of Clip instances.</li>
+<li>start - the index of the first Clip.</li>
+<li>end - the index of the last Clip plus one.</li>
+<li>totalNClips - in the entire transcription, not just this page.</li>
+</ul>
+
+<dl>
+
+<dt>new ClipTable(xscript)</dt>
+<dd>Constructor.  Clips, start, end, and totalNClips are initially null.</dd>
+
+<dt>getClip(index)</dt>
+<dd>Returns the Clip whose index is <i>index,</i> or null if there is
+  no such Clip.  Note that the index is displayed in the leftmost
+  column; it is the index of the Clip in the clips file, not its
+  position in the table's <i>clips</i> member.  The table only contains
+  clips belonging to the current pageful.</dd>
+
+<dt>setDuration(duration)</dt>
+<dd>Calls server.setDuration.  This is a hack: I do not have
+  code for parsing the contents of MP3 and MP4 files, so I am using
+  the web browser's player to tell me what the duration is.</dd>
+
+<dt>_rebuild(spec)</dt>
+<dd>This is a callback from the server.  It is triggered when a call
+  is issued that may change the number of clips, namely server.set_duration
+  or server.set_clip.  The <i>spec</i> is a JSON list with one element
+  per clip.  Each element has attributes: i, start, end, ascii, unicode.
+  All elements of the clip table are deleted and recreated.
+  Repeated new Clip calls are placed, and finally nav.update is called.</dd>
+
+</dl>
+
+
+<h2>Clip</h2>
+<p>
+A Clip represents one row of the ClipTable.  It has members:</p>
+<ul>
+<li>xscript - the XScript object.</li>
+<li>index - the index of this clip.</li>
+<li>ascii - the romanized text for this clip.</li>
+<li>start - the start position for this clip, in seconds.</li>
+<li>end - the end position for this clip, in seconds.</li>
+<li>para - the new-paragraph flag for this clip, 0 or 1.</li>
+<li>pElt - the 'p' element containing the text of the clip.</li>
+<li>_playControls - a PlayControls instance.</li>
+<li>_boundaryControls - a BoundaryControls instance.</li>
+</ul>
+
+<dl>
+
+<dt>new Clip(table, spec)</dt>
+<dd>
+Not only initializes the clip but also appends it to the <i>table.</i>
+The <i>spec</i> is a JSON object with attributes i, start, end, ascii, unicode.
+A new row is created in the web page table.
+It contains five cells:
+<ul>
+<li>The clip index.</li>
+<li>The play controls, an instance of PlayControls.  It calls methods
+  play() and cut().</li>
+<li>The boundary controls, an instance of BoundaryControls.  It calls
+  methods playHead(), playTail(), and merge().</li>
+<li>The new-paragraph checkbox, which calls clip.setPara(value) when toggled.</li>
+<li>The text paragraph, which displays the unicode text of the clip.
+  It calls clip.editText() when clicked.</li>
+</ul>
+</dd>
+
+<dt>play()</dt>
+<dd>Calls xscript.media.playClip(this).  Also calls _boundaryControls.selectLeftBoundary().</dd>
+
+<dt>playHead()</dt>
+<dd>Plays the first 3/4 second of the clip.</dd>
+
+<dt>playTail()</dt>
+<dd>Plays just the last 3/4 sec of the clip.  Calls xscript.media.playSpan.</dd>
+
+<dt>atEnd()</dt>
+<dd>This method is called by the media player when clip playback
+  completes.  Passes a stopped() notification to the play controls and
+  selectRightBoundary() to the boundary controls.</dd>
+
+<dt>cut(t)</dt>
+<dd>Calls server.cut(this, t).</dd>
+
+<dt>_nudged(boundary, actual)</dt>
+<dd>When server.nudge receives a response, it calls this method, which
+  sets the appropriate start/end position of this clip and the
+  adjacent one, and passes a _nudged(boundary) notification to the
+  boundary controls.  <i>Boundary</i> is either 'left' or 'right'.</dd>
+
+<dt>prevClip()</dt>
+<dd>Returns the previous Clip, or null if the previous clip does not
+  exist or is not displayed.</dd>
+
+<dt>nextClip()</dt>
+<dd>Returns the next Clip, or null if the next clip does not
+  exist or is not displayed.</dd>
+
+<dt>merge(boundary)</dt>
+<dd>This is called by the boundary-delete button in the boundary controls.
+  It calls server.merge(index), where <i>index</i> is this Clip's
+  index, if boundary is 'right', and one less, if boundary is 'left'.</dd>
+
+<dt>setPara(value)</dt>
+<dd>Sets the new-paragraph flag: 0 or 1.  Calls server.setPara(index, value).</dd>
+
+<dt>editText()</dt>
+<dd>Calls editBox.editClip(this).  The edit box calls setText(text)
+  unless editing is canceled.</dd>
+
+<dt>setText(text)</dt>
+<dd>Sets ascii and calls server.setText(this).</dd>
+
+<dt>_updateUnicode(unicode)</dt>
+<dd>When server.setText receives a response, it calls this method to
+  display the unicode version of the new text.</dd>
+
+</dl>
+
+
+<h2>PlayControls</h2>
+<p>
+The play controls include the play button and the cut button.  The
+play button calls togglePlay() when clicked, and the cut button calls
+cut().  Members:</p>
+<ul>
+<li>xscript - the XScript.</li>
+<li>clip - the Clip.</li>
+<li>_playing - whether the play button has been clicked.</li>
+</ul>
+
+<dl>
+
+<dt>togglePlay()</dt>
+<dd>If _playing, call stop(), otherwise call start().</dd>
+
+<dt>start()</dt>
+<dd>Calls clip.play().  Changes the play button symbol to the stop
+  symbol, activates the cut button.</dd>
+
+<dt>stop()</dt>
+<dd>Directly stops the media player.  Changes the play button symbol
+  to the play symbol, deactivates the cut button.</dd>
+
+<dt>stopped()</dt>
+<dd>Called by stop() to change the play button symbol and deactivate
+  the cut button.  Also called by the media player when playback
+  reaches the end of the clip.</dd>
+
+<dt>cut()</dt>
+<dd>If _playing, stop playback and call clip.cut(t), where <i>t</i> is
+  1/2 sec before the cut button was clicked.</dd>
+
+</dl>
+
+<h2>BoundaryControls</h2>
+<p>
+Each Clip has its own BoundaryControls object.  This contains the left
+and right boundary selection buttons,
+the nudge buttons, and the boundary-delete button.  Members:</p>
+<ul>
+<li>clip - the Clip</li>
+<li>boundary - either 'left' or 'right', depending on which boundary
+  has been selected</li>
+</ul>
+
+<dl>
+
+<dt>new BoundaryControls(cell, clip)</dt>
+<dd>Constructor.
+Creates all the buttons.
+When one of the selection buttons is clicked, either
+selectPlayLeftBoundary() or selectPlayRightBoundary() is called.
+When one of the nudge buttons is clicked, nudge(dir) is called.
+When the delete button is clicked, merge() is called.
+</dd>
+
+<dt>selectPlayLeftBoundary()</dt>
+<dd>Calls selectLeftBoundary() and clip.playHead().</dd>
+
+<dt>selectPlayRightBoundary()</dt>
+<dd>Calls selectRightBoundary() and clip.playTail().</dd>
+
+<dt>selectLeftBoundary()</dt>
+<dd>Highlights the left boundary button and activates the nudge and
+  delete buttons.</dd>
+
+<dt>selectRightBoundary()</dt>
+<dd>Highlights the right boundary button and activates the nudge and
+  delete buttons.</dd>
+
+<dt>setDisabled(value)</dt>
+<dd>Does the actual activation or deactivation of the nudge and delete
+  buttons.</dd>
+
+<dt>nudge(dir)</dt>
+<dd>Disables the buttons and calls server.nudge(clip, boundary, delta).
+The <i>boundary</i> is either 'left' or 'right' and the <i>delta</i>
+  is either -0.25 or +0.25, depending on <i>dir.</i>  When the server
+  receives a response, it will call clip._nudged(), which calls this
+  control's _nudged() method.</dd>
+
+<dt>_nudged(boundary)</dt>
+<dd>Callback.  Calls either selectPlayLeftBoundary() or
+  selectPlayRightBoundary(), depending on <i>boundary.</i></dd>
+
+<dt>merge()</dt>
+<dd>Calls clip.merge(boundary).</dd>
+
+</dl>
+
+
+<h2>TextEditBox</h2>
+<p>
+The TextEditBox swaps itself in for the clip text pElt when the clip
+is being edited.  It has two members:</p>
+<ul>
+<li>box - the HTML text input box.</li>
+<li>clip - the Clip that is being edited, initially null.</li>
+</ul>
+
+<dl>
+
+<dt>new TextEditBox(xscript)</dt>
+<dd>Constructor.
+Two event handlers are set up: _keypress receives all key presses, and
+cancelEdit is called if the user clicks away from the box.</dd>
+
+<dt>editClip(clip)</dt>
+<dd>
+Called by Clip.editText.
+If a (different) clip is currently being edited, <i>cancelEdit</i> is called.
+The contents of the box is set to the contents of clip.ascii.
+The clip's pElt is replaced with the box, and focus is directed to the box.</dd>
+
+<dt>_keypress(evt)</dt>
+<dd>
+The enter key calls <i>finishEdit.</i>
+The escape key calls <i>cancelEdit.</i></dd>
+
+<dt>cancelEdit()</dt>
+<dd>
+Put the clip's pElt back in place of the box.</dd>
+
+<dt>finishEdit()</dt>
+<dd>
+Get the ascii contents of the text box.
+Call <i>cancelEdit</i> to hide the text box.
+Call clip.setText(ascii).</dd>
+
+</dl>
+
+
+<h2>Server</h2>
+<p>
+The Server object manages Ajax calls to the web server.
+The calls are received by a Transcriber object on the server side.
+Member:</p>
+<ul>
+<li>xscript - the XScript object.</li>
+</ul>
+
+<dl>
+
+<dt>new Server(xscript)</dt>
+<dd>Constructor.</dd>
+
+<dt>setDuration(duration)</dt>
+<dd>Calls Transcriber.set_duration(clip0, clipsPerPage, duration).
+  The <i>clip0</i> and <i>clipsPerPage</i> values are taken
+  from <i>xscript.</i>
+  The response from the server is a JSON spec for the updated clips, which is
+  passed to <i>xscript.table._rebuild.</i>
+</dd>
+
+<dt>cut(clip, t)</dt>
+<dd>Makes an ajax call to Transcriber.cut.  Passes the response to xscript.table._rebuild.</dd>
+
+<dt>nudge(clip, boundary, delta)</dt>
+<dd>Makes an ajax call to Transcriber.nudge.  Passes the response to
+  clip._nudged.</dd>
+
+<dt>merge(index)</dt>
+<dd>Makes an ajax call to Transcriber.merge.  Passes the response to
+  xscript.table._rebuild.</dd> 
+
+<dt>setPara(index, value)</dt>
+<dd>Calls Transcriber.set_para(index, value).  No response from server.</dd>
+
+<dt>setText(clip)</dt>
+<dd>Calls Transcriber.set_text(index, text).  The response from the
+  server is Unicode text, which is passed to <i>clip._updateUnicode.</i></dd>
+
+</dl>
+
+
+<h2>Utility</h2>
+<dl>
+<dt>removeChildren(elt)</dt>
+<dd>Deletes all children of element <i>elt</i>.</dd>
+</dl>
+
+</body>
+</html>

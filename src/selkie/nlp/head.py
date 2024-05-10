@@ -3,7 +3,7 @@
 
 import os
 from os.path import join
-from .data import path
+from ..data import path
 from .io import iter_records
 from .tree import head_child, is_leaf, getcat, getchildren, getnld, Tree, nodes
 
@@ -241,10 +241,10 @@ class HeadRules(object):
 
 
 ##  The default rules.
-DefaultHeadRules = HeadRules(path('selkie', 'headrules'))
+DefaultHeadRules = HeadRules(path('seal', 'headrules'))
 
 ##  The original Magerman-Collins rules.
-CollinsMagermanRules = HeadRules(path('selkie', 'original_headrules'))
+CollinsMagermanRules = HeadRules(path('seal', 'original_headrules'))
 
 
 #--  Decoordination  -----------------------------------------------------------

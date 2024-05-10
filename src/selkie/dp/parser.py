@@ -1,10 +1,10 @@
 ##  @package seal.nlp.dp.parser
 #   Generic classifier-based dependency parser.
 
-from seal.core.io import tabular
-from seal.core.misc import trim
-from seal.nlp.dep import Sentence, Word
-from seal.ml.instance import Instance
+from ..cld.seal.io import tabular
+from ..cld.seal.misc import trim
+from ..nlp.dep import Sentence, Word
+from .ml.instance import Instance
 
 
 #--  Configuration  ------------------------------------------------------------

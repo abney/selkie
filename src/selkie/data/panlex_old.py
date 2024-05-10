@@ -3,8 +3,8 @@
 
 import os, sys, csv, optparse, zipfile
 from io import StringIO
-from seal.core.io import Data, pprint
-from seal.core.misc import run
+from ..cld.seal.io import Data, pprint
+from ..cld.seal.misc import run
 
 
 ##  Represents the database as a whole.

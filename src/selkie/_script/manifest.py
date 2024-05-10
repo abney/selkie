@@ -2,8 +2,8 @@
 #   Manage manifest files.
 
 import sys
-from seal.core.misc import Shift
-from seal.core.manifest import extract_sizes, list_directories, create, difference, \
+from ..cld.seal.misc import Shift
+from ..pyx.manifest import extract_sizes, list_directories, create, difference, \
     export_delta, import_delta, update_hashes
 
 ##  Main function.

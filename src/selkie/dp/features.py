@@ -1,7 +1,7 @@
 ##  @package seal.nlp.dp.features
 #   Features used by the parser.
 
-from seal.core.io import contents
+from ..cld.seal.io import contents
 
 ##  A list of feature functions.
 

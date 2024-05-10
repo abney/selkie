@@ -2,14 +2,13 @@
 #   The Nivre parser.
 
 import os
-from seal.core import io, sh
-from seal.core.misc import Timer, as_boolean
-from seal.nlp.dp.parser import iterinstances, instances, ClassifierOracle
-from seal.nlp.dp.parser import Parser as DepParser
-from seal.nlp.dp.features import load as load_features
-from seal.ml import sym, split, libsvm, experiment, Problem
-from seal.data import dep
-from seal.nlp.dp.eval import evaluate as dp_evaluate
+from ..cld.seal import io, sh
+from ..cld.seal.misc import Timer, as_boolean
+from .parser import iterinstances, instances, ClassifierOracle, Parser as DepParser
+from .features import load as load_features
+from .ml import sym, split, libsvm, experiment, Problem
+from ..data import dep
+from .eval import evaluate as dp_evaluate
 
 ##  Save a feature function.
 

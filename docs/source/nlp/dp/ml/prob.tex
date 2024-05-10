@@ -1,0 +1,208 @@
+
+\section{Probability: {\tt seal.prob}}
+
+This chapter documents the module {\tt seal.prob}.  The examples
+assume that one has done:
+\begin{python}
+>>> from seal.prob import *
+\end{python}
+
+\subsection{Functions}
+
+The module provides a collection of generally useful functions.  For
+the purposes of these functions, a {\df vector} is any object that
+contains numbers and implements \verb|__iter__()|, \verb|__len__()|,
+and \verb|__getitem__()|.  A {\df distribution} is a vector whose
+elements are non-negative and sum to one.
+
+\paragraph{Base-two log.}  The function {\tt lg()} returns the
+base-two logarithm of a number.
+\begin{python}
+>>> lg(2)
+1.0
+>>> lg(1024)
+10.0
+\end{python}
+Taking {\tt lg(0)} signals an out of domain error.  (Although
+the Python documentation warns that some implementations may return a value
+representing infinity, instead.)
+
+\paragraph{Entropy.}  The function {\tt entropy()} returns the entropy
+of a distribution.  Specifically, {\tt entropy(p)} computes:
+\[ -\sum_{x \in \mbox{\tt p}} x \lg x \]
+For example:
+\begin{python}
+>>> entropy([.5, .5])
+1.0
+>>> entropy([.25, .25, .5])
+1.5
+\end{python}
+Zero values are ignored---they do not cause an error even if
+{\tt lg(0)} signals an error.
+\begin{python}
+>>> entropy([.5, .5, 0])
+1.0
+\end{python}
+
+\paragraph{Dot product.}  The function {\tt dotprod()} returns the dot
+product of two vectors.  It signals an error if the vectors differ in
+length.
+\begin{python}
+>>> dotprod([.2, .5, .3], [0, 1, 1])
+0.8
+\end{python}
+
+\paragraph{Cross entropy.}  The function \verb|cross_entropy()|
+takes two distributions, {\tt p} and {\tt q}, and computes:
+\[ -\sum_i \mbox{\tt p}[i] \cdot \lg \mbox{\tt q}[i] \]
+If any element of {\tt q} is 0, \verb|cross_entropy()|
+may signal an error, {\em unless\/}
+the corresponding element of {\tt p} is also zero.
+\begin{python}
+>>> cross_entropy([.5, .5, 0], [.5, .25, .25])
+1.5
+>>> cross_entropy([.5, .5, 0], [.5, .5, 0])
+1.0
+\end{python}
+
+\paragraph{Divergence.}  The function \verb|divergence()| returns the
+divergence of distributions {\tt p} and {\tt q}.  The divergence is
+simply the cross entropy minus the entropy of {\tt p}.
+\begin{python}
+>>> divergence([.5, .5, 0], [.5, .25, .25])
+0.5
+>>> divergence([.5, .5, 0], [.5, .5, 0])
+0.0
+\end{python}
+
+\paragraph{F-measure.}  The function \verb|f_measure()| returns the
+F-measure given precision and recall.
+\begin{python}
+>>> f_measure(.5, .5)
+0.5
+>>> f_measure(1, .5)
+0.6666666666666666
+>>> f_measure(1, 0)
+0.0
+\end{python}
+
+
+\subsection{Dist}
+
+A distribution (class {\tt Dist}) is essentially a dict whose keys are $n$-tuples.
+For example, consider the following:
+\begin{python}
+>>> d = Dist([('the', 'big', 'cat', 1),
+...           ('the', 'big', 'dog', 3),
+...           ('the', 'fat', 'cat', 2),
+...           ('the', 'fat', 'dog', 1),
+...           ( 'a' , 'big', 'cat', 1),
+...           ( 'a' , 'fat', 'cat', 2)])
+...
+\end{python}
+Each tuple in the initializer is called an {\it item.\/}  In this
+case, each item is a 4-tuple consisting of three strings and a number.
+Each item consists of a {\it key\/} and a {\it value.\/}
+The keys are also called {\it events.\/}
+The last element is always the value, and the elements excluding the
+last constitute the key.  In our example, the keys are 3-tuples of
+strings, and the values are integers.  The resulting Dist is said to
+have dimensionality 3.  That is, the dimensionality of a Dist is the
+dimensionality of its keys.
+
+Unlike with a regular dict, with a Dist one may use partial keys.
+For example, one may do:
+\begin{python}
+>>> sd = d['the','big']
+\end{python}
+The result is a dist of smaller dimensionality, called a subdist.
+In this case, the subdist {\tt sd} represents the mapping:
+\begin{verbatim}
+'cat' => 1
+'dog' => 3
+\end{verbatim}
+For example:
+\begin{python}
+>>> sd['dog']
+3
+\end{python}
+Incidentally, Dists also differ from dicts with respect to the
+treatment of missing keys.  Accessing a nonexistent key yields a value
+of 0 instead of an error:
+\begin{python}
+>>> sd['antelope']
+0
+\end{python}
+
+The values in a dist may be anything, but there are two particularly
+common cases: the values are integers representing counts (as in our
+example), or they are floats representing probabilities.  The process
+of {\it normalization\/} converts the former to the latter.
+
+In simple normalization, all the values in the entire Dist are added
+together, and each value is then divided by the total.  In the case of
+our example, the result would be the following mapping:
+\begin{verbatim}
+('the', 'big', 'cat') => .1
+('the', 'big', 'dog') => .3
+('the', 'fat', 'cat') => .2
+('the', 'fat', 'dog') => .1
+( 'a' , 'big', 'cat') => .1
+( 'a' , 'fat', 'cat') => .2
+\end{verbatim}
+
+Alternatively, one can divide each of the keys into two pieces: a
+{\it condition\/} and an {\it outcome.\/}  That is, when one
+normalizes, one can specify a {\it conditionalization dimension\/}
+that is less than the key dimension.  If we specify that conditions
+are 2-tuples, the result of normalization is as follows:
+\begin{verbatim}
+('the', 'big'): 'cat' => .25
+                'dog' => .75
+('the', 'fat'): 'cat' => .666667
+                'dog' => .333333
+( 'a' , 'big'): 'cat' => 1.00
+( 'a' , 'fat'): 'cat' => 1.00
+\end{verbatim}
+
+To summarize, an item consists of a key and a value, and a key
+consists of a condition and an outcome.  An unconditionalized Dist is
+one in which the condition dimension is 0, and keys are the same as
+outcomes.
+
+
+\subsection{Estimators}
+
+{\it The classes described here are not currently implemented.  I need
+  to determine whether they exist in an older form of Seal.}
+
+A {\df Counts} object is constructed from a sample.  It contains or
+can compute the following information.  The variable $x$ ranges over
+outcome types, the variable $s$ ranges over subsamples, and $\bar{s}$
+represents the complement of subsample $s$.
+\[\begin{array}{ll}
+N(x)            & \mbox{tokens of type $x$}\\
+N = \sum_x N(x) & \mbox{total number of tokens}\\
+T(r) = \sum_x \ldb N(x) = r \rdb & \mbox{types with count $r$}\\
+T = \sum_x 1 & \mbox{total number of types}\\
+N_s(x) & \mbox{tokens of type $x$ in subsample $s$}\\
+T_s(r) = \sum_x \ldb N_a(x) = r \rdb & \mbox{types with
+  count $r$ in subsample $s$}\\
+N_s(r) = \sum_x \ldb N_{\bar{s}}(x) = r \rdb N_s(x) & \mbox{tokens of
+  types with other-sample count $r$}
+\end{array}\]
+
+Estimators are classes with a single method {\df call} that
+returns a {\df Distribution}.
+
+The {\df RelativeFrequencyEstimator} is constructed from a
+{\df Counts} object.  It returns the distribution
+\[ \hat{p}(x) = \frac{N(x)}{N} \]
+
+The {\df LidstoneDistribution} with parameter $\lambda$ returns
+\[ \hat{p}(x) = \frac{N(x) + \lambda}{N + T\lambda} \]
+Special cases are the Laplace estimator ($\lambda = 1$) and the
+Expected Likelihood Estimator (ELE), also known as the Jeffrey-Perks
+law ($\lambda = 1/2$).
+
+The {\df DeletedEstimator} divides its sample into two subsamples.

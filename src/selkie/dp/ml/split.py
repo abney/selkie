@@ -2,10 +2,10 @@
 #   Partition a dataset according to the value of a feature.
 
 import os
-from seal.core import io
-from seal.core.sh import need_dir
-from seal.ml import Problem
-from seal.ml.instance import Instance, get
+from ...cld.seal import io
+from ...cld.seal.sh import need_dir
+from . import Problem
+from .instance import Instance, get
 
 
 def _subfn (fn, v):

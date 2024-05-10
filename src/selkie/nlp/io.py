@@ -57,7 +57,7 @@ def srepr (x):
 ##  The contents of a file, as a string.
 
 def contents (filename, encoding=None):
-    with infile(filename, encoding) as f:
+    with open(filename, encoding=encoding) as f:
         return f.read()
 
 
@@ -987,12 +987,13 @@ class Token (str):
 ##  Tokenize a file, returning a list.
 
 def load_tokens (filename, **kwargs):
-    return list(iter_tokens(filename, **kwargs))
+    with open(filename, **kwargs) as f:
+        return list(lines_to_tokens(f))
 
 ##  Iterate over tokens of a string.
 
-def tokenize (s, syntax=DefaultSyntax, encoding=None):
-    return iter_tokens(StringIO(s), syntax, encoding)
+def tokenize (s, syntax=DefaultSyntax):
+    return lines_to_tokens(StringIO(s), syntax=syntax)
 
 def string_to_tokens (s):
     return lines_to_tokens(string_lines(s))
@@ -1004,6 +1005,7 @@ class lines_to_tokens (object):
     ##  Constructor.
 
     def __init__ (self, lines, filename='(no filename)', syntax=DefaultSyntax):
+        assert isinstance(syntax, Syntax), f'Should be a Syntax: {syntax}'
 
         ##  A Syntax instance.
         self.syntax = syntax
@@ -1322,6 +1324,9 @@ class lines_to_tokens (object):
         if not self.stack: raise Exception('Empty stack')
         self.syntax = self.stack.pop()
         self.__retreat()
+
+
+iter_tokens = lines_to_tokens
 
 
 #--  Indenter  -----------------------------------------------------------------

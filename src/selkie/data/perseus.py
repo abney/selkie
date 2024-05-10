@@ -2,8 +2,8 @@
 #   Perseus Latin and Greek treebanks.
 
 import xml.dom.minidom
-from seal.core.config import perseus as perseus_home
-from seal.nlp.dep import make_sentence
+from ..cld.seal.config import perseus as perseus_home
+from ..nlp.dep import make_sentence
 
 #from seal.stemma import Dependent, Stemma
 

@@ -2,7 +2,7 @@
 #   Predicate-calculus expressions.
 
 import re
-from .io import DefaultSyntax
+from ..pyx.io import DefaultSyntax
 
 
 #--  Expr, Variable  -----------------------------------------------------------

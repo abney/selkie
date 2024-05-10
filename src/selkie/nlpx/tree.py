@@ -3,9 +3,10 @@
 
 import itertools, os, sys
 
-from .io import File, tabular, Records, Syntax
-from .string import as_ascii
-from .seq import as_list, nth
+from ..pyx.io import tabular, Syntax
+from ..pyx.store import File
+from ..pyx.string import as_ascii
+from ..pyx.seq import as_list, nth
 
 
 #--  Tree  ---------------------------------------------------------------------
@@ -663,6 +664,7 @@ def load_tabular_trees (filename=None, morefields=None):
 ##  Iterate over trees in a tabular-format file.
 
 def iter_tabular_trees (filename=None, morefields=None):
+    ### BROKEN ####
     f = Records(filename)
     tree_count = 0
     try:

@@ -2,7 +2,7 @@
 #   Dependency trees.
 
 import os
-from .data import path
+from ..data import path
 from .io import as_ascii, tabular, iter_records, \
     iter_record_blocks, outfile, StringIO
 from .tree import Tree, head_index, is_dependency_tree, textorder, \

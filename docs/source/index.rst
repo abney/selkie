@@ -1,23 +1,22 @@
 
 Selkie
-======
-
-Selkie is a Python library for natural language processing and digital
-language description.
-
-.. note::
-
-   This project is under active development.
-
-Contents
---------
+******
 
 .. toctree::
    :maxdepth: 2
    :titlesonly:
+   :caption: Table of Contents
 
-   pyext/index
+   intro/index
+   cld/index
+   editor/index
+   nlp/index
+   data/index
+   pyx/index
    corpus/index
 
-Credits
--------
+.. toctree::
+   :caption: API Reference
+
+   modindex
+

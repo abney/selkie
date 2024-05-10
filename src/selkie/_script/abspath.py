@@ -3,7 +3,7 @@
 
 import sys
 from os.path import expanduser, abspath
-from seal.core.misc import Shift
+from ..cld.seal.misc import Shift
 
 
 ##  Convert a relative path to absolute.  Expands tilde.

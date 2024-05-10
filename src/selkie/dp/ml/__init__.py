@@ -3,7 +3,7 @@
 
 import os
 from glob import glob
-from seal.core import sh, io
+from ...cld.seal import sh, io
 
 
 def _clean_prefix (pfx):

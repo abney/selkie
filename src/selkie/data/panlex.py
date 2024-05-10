@@ -6,9 +6,10 @@ from collections import namedtuple
 from os import makedirs, listdir
 from os.path import expanduser, join, exists, abspath
 from zipfile import ZipFile
-from selkie.com import Main
-from selkie.newio import File, Format, lines_to_blocks, blocks_to_lines, pprint, redirect, Dicts
-from selkie.object import MapProxy
+from ..pyx.com import Main
+from ..pyx.formats import File, Format, lines_to_blocks, blocks_to_lines, Dicts
+from ..pyx.io import pprint, redirect
+from ..pyx.object import MapProxy
 
 
 def expr_lvid (expr): return expr[:5]

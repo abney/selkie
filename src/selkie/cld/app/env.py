@@ -2,8 +2,7 @@
 #   Provides the digest_environ() function, which digests the environment
 #   in which a CGI script is called.
 
-import cgi
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 from .config import Config
 from .parse import parse_request_string
 
@@ -61,7 +60,7 @@ def _get_form (env):
 
     if method == 'GET':
         qs = env.get('QUERY_STRING')
-        if qs: return cgi.parse_qs(qs)
+        if qs: return parse_qs(qs)
         else: return {}
 
     elif method == 'POST' and 'wsgi.input' in env:
@@ -272,7 +271,7 @@ def digest_environ (environ, config):
                     raise Exception('Path does not start with rootprefix')
                 pathname = pathname[len(rootprefix):]
             if url.query:
-                form = cgi.parse_qs(url.query)
+                form = parse_qs(url.query)
             else:
                 form = {}
                 

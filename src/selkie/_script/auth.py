@@ -2,8 +2,8 @@
 #   Managing authentication files (users.txt, sessions.txt).
 
 import os, sys
-from seal.core.misc import shift
-from seal.app.auth import LocalAuthenticator
+from ..cld.seal.misc import shift
+from ..cld.app.auth import LocalAuthenticator
 
 
 _usage = '''auth COM [USER]

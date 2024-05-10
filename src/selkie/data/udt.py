@@ -1,8 +1,8 @@
 
 import sys
-from selkie.io import iter_record_blocks
-from seal.nlp.dep import conll_sents, umapped_sents, load_umap, apply_umap
-
+from ..nlp.io import iter_record_blocks
+from ..nlp.dep import conll_sents, umapped_sents, load_umap, apply_umap
+from ..cld.seal.config import conll, udt
 
 def iter_conllu_sents (records):
     

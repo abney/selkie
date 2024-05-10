@@ -1,7 +1,7 @@
 ##  @package seal.ml.mat
 #   Deprecated.
 
-from seal.core.io import iter_records
+from ...cld.seal.io import iter_records
 
 
 ##  Load a matrix.

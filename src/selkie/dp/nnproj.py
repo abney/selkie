@@ -1,8 +1,8 @@
 ##  @package seal.nlp.dp.nnproj
 #   Pseuo-projective parsing functions.
 
-from seal.core.io import tabular
-from seal.nlp.dep import Sentence
+from ..cld.seal.io import tabular
+from ..nlp.dep import Sentence
 
 
 #--  Pseudo-projective parsing functions  --------------------------------------

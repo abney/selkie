@@ -2,7 +2,7 @@
 #   Grammar development tool.
 
 import os, traceback
-from .data import path
+from ..data import path
 from .io import Fn
 from .grammar import Grammar
 from .parser import Parser, Chart

@@ -1,8 +1,8 @@
 ##  @package seal.data.propbank
 #   Propbank.
 
-import seal.data.ptb as ptb
-from seal.nlp.dep import mark_heads
+from . import ptb
+from ..nlp.dep import mark_heads
 
 
 ##  The data directory.

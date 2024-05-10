@@ -2,8 +2,8 @@
 #   Feature grammar.
 
 import os
-from .seq import Index
-from .io import Syntax, StringIO
+from ..pyx.seq import Index
+from ..pyx.io import Syntax, StringIO
 from .features import Category, join, subsumes, scan_category, Declarations, \
                           Parameter, basecat, arity
 from .avs import scan_avs, scan_avstate, Copier

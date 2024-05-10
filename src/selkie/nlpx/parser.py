@@ -2,8 +2,8 @@
 #   Chart parser.
 
 import os
-from .seq import cross_product, product, Index
-from .io import File
+from ..pyx.seq import cross_product, product, Index
+from ..pyx.store import File
 from .features import unify, subst
 from .grammar import Grammar, Lexicon
 from .tree import Tree

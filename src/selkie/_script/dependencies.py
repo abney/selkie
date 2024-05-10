@@ -4,8 +4,8 @@
 from os import listdir
 from os.path import join, isdir, exists
 from importlib import import_module
-from seal.core.io import pprint
-from seal.core.misc import shift
+from ..cld.seal.io import pprint
+from ..cld.seal.misc import shift
 
 ##  Module.__name__ and module.__package__ are both qualified names (strings
 #   containing dots).  If the module is itself a package, they are the same.

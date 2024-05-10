@@ -528,7 +528,7 @@ class Registry (object):
 
 
 ##  The seal registry.
-reg = Registry(os.path.join(data, 'seal'))
+reg = Registry(os.path.join(data, 'roms'))
 
 ##  Backwards compatibility.
 

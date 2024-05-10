@@ -1,9 +1,9 @@
 ##  @package seal.ml.num
 #   Numeric-valued features.
 
-from seal.core.io import infile, outfile, close
-from seal.ml import sym
-from seal.ml.instance import Instance
+from ...cld.seal.io import infile, outfile, close
+from . import sym
+from .instance import Instance
 
 
 #--  Coder  --------------------------------------------------------------------

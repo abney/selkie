@@ -1,0 +1,359 @@
+<html>
+<head>
+<title>PlainTextPanel.js</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../default.css"/>
+</head>
+<body>
+<h1>PlainTextPanel.js</h1>
+<p>
+<a href="../cld/token.html#PlainTextPanel.js">General discussion</a>.
+Included by <a href="../cld/ui/page.html#PlainTextPanel"><tt>PlainTextPanel</tt></a>.</p>
+
+
+<!--  PlainTextPanel  --------------------------------------------------------->
+
+<h2 id="PlainTextPanel"><i>class</i> PlainTextPanel</h2>
+
+<h3>Members</h3>
+<dl>
+<dt><tt>origWritable</tt></dt>
+<dd>Whether the text is writable or not.</dd>
+
+<dt><tt>table</tt></dt>
+<dd>A <a href="#Table">Table</a>.</dd>
+</dl>
+
+<h3>Methods</h3>
+<dl>
+<dt><tt>new PlainTextPanel(origWritable)</tt></dt>
+<dd>Create one.  The table is constructed from the div with ID <tt>'textdiv'</tt>.</dd>
+</dl>
+
+
+<!--  Table  ------------------------------------------------------------------>
+
+<h2 id="Table"><i>class</i> Table</h2>
+<p>
+The Table displays a two-column array of <b>texts</b>.  At
+the bottom is a "+" button.</p>
+
+<h3>Event Handlers</h3>
+<dl>
+<dt><tt>clickPlusButton(evt)</tt></dt>
+<dd>The table is evt.target.control.
+  Calls <tt>appendRow()</tt> to create a new text, then calls <tt><i>text</i>.edit()</tt>.</dd>
+</dl>
+
+<h3>Members</h3>
+<dl>
+<dt><tt>editable</tt></dt>
+<dd>Whether this table is editable.</dd>
+
+<dt><tt>elt</tt></dt>
+<dd>The HTML table element.</dd>
+
+<dt><tt>ncols</tt></dt>
+<dd>The number of columns in the table.  The first column contains the
+  row numbers.</dd>
+
+<dt><tt>panel</tt></dt>
+<dd>A back pointer to the panel.</dd>
+
+<dt><tt>plusButton</tt></dt>
+<dd>The '+' button.  It lies outside the HTML table element.</dd>
+</dl>
+
+<h3>Methods</h3>
+<dl>
+<dt><tt>new Table(div, panel)</tt></dt>
+<dd>Create one.  A Text instance is created for each cell (excluding
+  the row-number column).  Its <tt>elt</tt> is the first child of the
+  cell (a P element).  The P element and the cell itself both have a
+  member <tt>text</tt> pointing back to the text.  The '+' button is
+  created, in the div but outside the table.</dd>
+
+<dt><tt>insertText(ascii, i)</tt></dt>
+<dd>Inserts a new row in the table.  Creates two texts (if
+  translations are being shown); returns the target-language text.</dd>
+
+<dt><tt>appendRow()</tt></dt>
+<dd>Creates a new row at the end of the table.  Uses insertText().</dd>
+
+<dt><tt>deleteRow(i)</tt></dt>
+<dd>Delete the <i>i</i>-th row.</dd>
+
+<dt><tt>updateIndices(i)</tt></dt>
+<dd>This is called by insertText() and deleteRow().  It updates the
+  row numbers and the <tt>i</tt> values for all texts, beginning with
+  the <i>i</i>-th row.</dd>
+
+<dt><tt>nextText(i, j)</tt></dt>
+<dd>Returns the next text following position <i>(i,j)</i>.
+  If <i>j</i> is the last column, goes to the first text in the
+  next row.  Returns null if <i>(i,j)</i> is the last text in the
+  table.</dd>
+
+<dt><tt>nextRowText(i)</tt></dt>
+<dd>Returns the first text in the following row, or null if <i>i</i>
+  is the last row.</dd>
+
+</dl>
+
+
+<!--  EditBox  ---------------------------------------------------------------->
+
+<h2 id="EditBox"><i>class</i> EditBox</h2>
+<p>
+The EditBox is a control for the box used to edit texts.</p>
+
+<h3>Event Handlers</h3>
+<dl>
+<dt><tt>onkeypress(evt)</tt></dt>
+<dd>Associated with the textarea element.
+  Pressing <tt>Enter</tt> invokes the edit box's <tt>commit()</tt> method.</dd>
+
+<dt><tt>onclickcommit(evt)</tt></dt>
+<dd>Associated with the commit button.  Invokes the edit
+  box's <tt>commit()</tt> method.</dd>
+
+<dt><tt>onclickcancel(evt)</tt></dt>
+<dd>Associated with the cancel button.  Invokes the edit
+    box's <tt>cancel()</tt> method.</dd>
+
+</dl>
+
+<h3>Members</h3>
+<dl>
+<dt><tt>textboxElt</tt></dt>
+<dd>Two HTML elements are created when the EditBox is created: a P
+  element containing a textarea element.  This is the textarea element.</dd>
+
+<dt><tt>parElt</tt></dt>
+<dd>This is the P element.</dd>
+
+<dt><tt>text</tt></dt>
+<dd>This is the text that is being editted, or null if the edit box is
+  not currently displayed.</dd>
+
+</dl>
+
+<h3>Methods</h3>
+<dl>
+<dt><tt>new EditBox()</tt></dt>
+<dd>Create one.  Inside the P element is not only the textarea but
+  also two buttons: a commit button and a cancel button.</dd>
+
+<dt><tt>open(text)</tt></dt>
+<dd>If currently editting a text, call <tt>commit()</tt>.
+  Set the <tt>text</tt> member to <i>text</i>.  Replace the text.elt
+  with my parElt.  Focus on the textarea and put the cursor at the end.</dd>
+
+<dt><tt>commit()</tt></dt>
+<dd>Take <i>ascii</i> from the textarea.  If it is the same as the
+  ascii of the text being editted, call <tt>cancel()</tt>.  Otherwise
+  call the text's <tt>save()</tt> method.</dd>
+
+<dt><tt>cancel()</tt></dt>
+<dd>Just calls <tt>close()</tt>.</dd>
+
+<dt><tt>close()</tt></dt>
+<dd>If a text is being editted, put its elt back in the place of my
+  parElt.  Set my <tt>text</tt> to null.  If the text.status
+  is <tt>'new'</tt>, call the text's <tt>delete()</tt> method.  Put
+  focus on the text's <tt>next()</tt> (<tt>nextRow()</tt>, in case of
+  deletion), or the plus button, if there is no next.</dd>
+
+</dl>
+
+
+<!--  Server  ----------------------------------------------------------------->
+
+<h2 id="Server"><i>class</i> Server</h2>
+
+<h3>Methods</h3>
+<dl>
+<dt><tt>requestSave(text, ascii)</tt></dt>
+<dd>Send a save request to the server.  Generates an edit_par() call.
+  The op is <tt>'insert'</tt> if <i>text</i> has
+  status <tt>'new'</tt>, and otherwise <tt>'replace'</tt>.  When a
+  response is received, it is passed to <tt><i>text</i>.finishSave()</tt></dd>
+
+<dt><tt>requestDelete(text)</tt></dt>
+<dd>Submits an edit_par() call with op <tt>'delete'</tt>.  When a
+    response is received, it is passed to <tt><i>text</i>.finishDelete()</tt>.</dd>
+
+</dl>
+
+
+<!--  Text  ------------------------------------------------------------------->
+
+<h2 id="Text"><i>class</i> Text</h2>
+<p>
+Represents one cell of the matrix.</p>
+
+<h3>Class members</h3>
+<dl>
+<dt><tt>server</tt></dt>
+<dd>A <a href="#Server">Server</a>.</dd>
+
+<dt><tt>editbox</tt></dt>
+<dd>An <a href="#EditBox">EditBox</a>.</dd>
+
+</dl>
+
+<h3>Event Handlers</h3>
+<dl>
+<dt><tt>onclick(evt)</tt></dt>
+<dd>The text is evt.target.control.  If it is an original text, call
+  its <tt>gotoIGT()</tt> method.  If it is a translation, call
+  its <tt>edit()</tt> method.</dd>
+
+<dt><tt>onkeypress(evt)</tt></dt>
+<dd>Called when focus is on this text and the user presses a key.
+  The text is evt.target.control.  If Enter is pressed, call
+  its <t>edit()</tt> method.</dd>
+</dl>
+
+<h3>Members</h3>
+<dl>
+
+<dt><tt>table</tt></dt>
+<dd>A back-pointer to the <a href="#Table">table</a>.</dd>
+
+<dt><tt>elt</tt></dt>
+<dd>The P element displaying the contents of the text.</dd>
+
+<dt><tt>ascii</tt></dt>
+<dd>The romanized version of the contents.  (The version displayed in
+  the elt is in Unicode.)</dd>
+
+<dt><tt>i</tt></dt>
+<dd>The row index.</dd>
+
+<dt><tt>j</tt></dt>
+<dd>0 if this is the original text, 1 for the translation.  Note that
+  this does not match the column number in the table, since the first
+  column in the table contains row numbers.</dd>
+
+<dt><tt>status</tt></dt>
+<dd>Either <tt>'new'</tt> or <tt>'old'</tt>.  It is new if it has not
+  yet been saved to disk.  A row containing new texts can be deleted
+  without notifying the server.</dd>
+
+<dt><tt>buttonBar</tt></dt>
+<dd>A <a href="#ButtonBar">ButtonBar</a> containing additional controls.</dd>
+
+</dl>
+
+<h3>Methods</h3>
+<dl>
+<dt><tt>new Text(table, i, j, ascii, elt)</tt></dt>
+<dd>Create one.  If <i>elt</i> is omitted, a new P element will be
+  created (but not attached).  This is the control for the elt, which
+  is assigned Text.onclick and Text.onkeypress as handlers.  The
+  button bar elt is inserted as a new first child of elt (though it
+  floats to the right).</dd>
+
+<dt><tt>isEditable()</tt></dt>
+<dd>The text is editable if the panel is writable.</dd>
+
+<dt><tt>isOrig()</tt></dt>
+<dd>Whether this is an original-language text, as opposed to a translation.</dd>
+
+<dt><tt>gotoIGT()</tt></dt>
+<dd>Sets window.location to the IGT for this text.</dd>
+
+<dt><tt>editAudio()</tt></dt>
+<dd>Sets window.location to the transcript for this text.</dd>
+
+<dt><tt>edit()</tt></dt>
+<dd>Calls editbox.open() on this text.</dd>
+
+<dt><tt>save(ascii)</tt></dt>
+<dd>Sends a save request to the server.  The response will be passed
+  to <tt>finishSave()</tt>.</dd>
+
+<dt><tt>finishSave(ascii, unicode)</tt></dt>
+<dd>The text has been saved.  Set the contents.  Set status
+  to <tt>'old'</tt>.  Call <tt>endEdit()</tt>.</dd>
+
+<dt><tt>endEdit()</tt></dt>
+<dd>If this text is currently being editted, call the
+    editbox's <tt>close()</tt> method.</dd>
+
+<dt><tt>setContents(ascii, unicode)</tt></dt>
+<dd><i>Ascii</i> is stored in the text.  The elt's textContent is set
+  to <i>unicode</i>.</dd>
+
+<dt><tt>insertBefore()</tt></dt>
+<dd>Insert a new row where this text is, moving this text down a row.
+    Calls <a href="#Table.insertText">Table.insertText()</a>.</dd>
+
+<dt><tt>delete()</tt></dt>
+<dd>If this text has status <tt>'old'</tt>, send a delete request to
+  the server.  The response will be passed to <tt>finishDelete()</tt>.
+  If the status is <tt>'new'</tt>, just call <tt>finishDelete()</tt>
+  immediately.</dd>
+
+<dt><tt>finishDelete()</tt></dt>
+<dd>Call <tt>endEdit()</tt> and <a href="#Table.deleteRow"><tt>Table.deleteRow()</tt></a>.</dd>
+
+<dt><tt>next()</tt></dt>
+<dd>Returns the next text to the right.  If this text is at the end of
+  the row, the first text in the next row.  If this is the last text,
+  returns null.</dd>
+
+<dt><tt>nextRow()</tt></dt>
+<dd>Returns the first text in the next row, or null if there are no
+  more rows.</dd>
+
+<dt><tt>focus()</tt></dt>
+<dd>Put focus on the elt.</dd>
+
+</dl>
+
+
+<!--  ButtonBar  -------------------------------------------------------------->
+
+<h2 id="ButtonBar"><i>class</i> ButtonBar</h2>
+
+<h3>Event Handlers</h3>
+<dl>
+<dt><tt>clickLittlePlus(evt)</tt></dt>
+<dd>The text is evt.target.control.  Call its <tt>insertBefore()</tt> method.</dd>
+
+<dt><tt>clickLittleEdit(evt)</tt></dt>
+<dd>The text is evt.target.contorl.  Call its <tt>edit()</tt> method.</dd>
+
+<dt><tt>clickLittleAudio(evt)</tt></dt>
+<dd>The text is evt.target.control.  Call its <tt>editAudio()</tt> method.</dd>
+
+<dt><tt>clickLittleX(evt)</tt></dt>
+<dd>The text is evt.target.control.  Call its <tt>delete()</tt> method.</dd>
+
+<dt><tt>clickLittleIgt(evt)</tt></dt>
+<dd>The text is evt.target.control.  Call its <tt>gotoIGT()</tt> method.</dd>
+
+</dl>
+
+<h3>Members</h3>
+<dl>
+<dt><tt>text</tt></dt>
+<dd>The text this button bar belongs to.</dd>
+
+<dt><tt>elt</tt></dt>
+<dd>The HTML element representing the button bar.</dd>
+
+</dl>
+
+<h3>Methods</h3>
+<dl>
+<dt><tt>new ButtonBar(text)</tt></dt>
+<dd>Create one.  It contains four buttons: <tt>'+'</tt> for inserting a new row
+  here, <tt>'edit'</tt> for editting this text, <tt>'igt'</tt> for
+  going to the IGT, and <tt>'X'</tt> to delete this row.</dd>
+</dl>
+
+</body>
+</html>

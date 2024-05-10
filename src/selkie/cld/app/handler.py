@@ -61,6 +61,7 @@ class ApplicationCaller (object):
         self.headers = None
         self.headers_sent = False
         self.bytes_sent = 0
+        self.status = None
         
         self.environ = self.get_environ() # my get_envirion(), below
 

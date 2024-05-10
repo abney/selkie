@@ -2,9 +2,9 @@
 #   The universal dependency treebank.
 
 import sys
-from seal.core import io
-from seal.core.config import conll, udt
-from seal.nlp.dep import conll_sents, umapped_sents, load_umap, apply_umap
+from ..cld.seal import io
+from ..cld.seal.config import conll, udt
+from ..nlp.dep import conll_sents, umapped_sents, load_umap, apply_umap
 
 
 #--  Dataset  ------------------------------------------------------------------

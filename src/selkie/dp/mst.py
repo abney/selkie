@@ -2,7 +2,7 @@
 #   Wrapper for MST parser.
 
 import os, subprocess, sys
-from seal.data.dep import datasets
+from ..data.dep import datasets
 
 
 ##  Run the MST parser.  It does a system call to Java.

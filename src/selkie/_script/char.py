@@ -2,7 +2,7 @@
 #   Print detailed information about characters.
 
 import sys, unicodedata
-from seal.core.misc import shift
+from ..cld.seal.misc import shift
 
 ##  Arguments are characters.
 #   Possible formats:

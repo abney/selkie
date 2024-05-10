@@ -2,8 +2,8 @@
 #   A machine-learning experiment.
 
 import os
-from seal.core.io import load_nested_dict, split_suffix
-from seal.core.misc import CommandLine, load_module
+from ...cld.seal.io import load_nested_dict, split_suffix
+from ...cld.seal.misc import CommandLine, load_module
 
 
 ##  Load from file.

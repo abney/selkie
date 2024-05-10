@@ -2,8 +2,8 @@
 #   Datasets with symbolic-valued features.
 
 import sys
-from seal.core.io import infile, outfile, close
-from seal.ml.instance import Instance
+from ...cld.seal.io import infile, outfile, close
+from .instance import Instance
 
 
 #--  Feature format  -----------------------------------------------------------

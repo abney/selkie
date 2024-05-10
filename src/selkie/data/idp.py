@@ -1,7 +1,7 @@
 ##  @package seal.data.idp
 #   The Internet Dictionary Project files.
 
-from seal.core.config import idp as idp_dir
+from ..cld.seal.config import idp as idp_dir
 
 
 ##  The lexicons.

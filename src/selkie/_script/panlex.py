@@ -2,9 +2,9 @@
 #   Panlex.
 
 import sys
-from seal.core.misc import shift
-from seal.core.io import pprint
-from seal.data.panlex import PanLex
+from ..cld.seal.misc import shift
+from ..cld.seal.io import pprint
+from ..data.panlex_old import PanLex
 
 
 ##  Main function.

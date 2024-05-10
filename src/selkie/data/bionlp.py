@@ -106,4 +106,4 @@ class Browser(object):
             page.write(line)
 
 
-from seal.server import HttpException
+#from seal.server import HttpException

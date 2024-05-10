@@ -685,6 +685,7 @@ class Spacer (object):
     ##  Constructor.
 
     def __init__ (self, parent, s, n=1):
+        self.parent = parent
 
         ##  An HTML instance.
         self.html = HTML(s)
@@ -694,7 +695,7 @@ class Spacer (object):
     ##  This is here so that one can do e.g. NBSP(2) to create two of them.
 
     def __call__ (self, parent, n=1):
-        return Spacer(parent, self.html * n)
+        return Spacer(self.parent, self.html * n)
 
     ##  Just returns self.html.
 

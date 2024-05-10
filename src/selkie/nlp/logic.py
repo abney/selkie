@@ -45,7 +45,8 @@ class Literal (object):
     def __repr__ (self):
         if self.polarity: p = '+'
         else: p = '-'
-        return p + str(self.expr)
+        # repr so that everything is on one line
+        return p + repr(self.expr)
 
 
 ##  A clause.

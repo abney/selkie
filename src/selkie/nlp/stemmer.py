@@ -2,7 +2,7 @@
 #   Stemmer.
 
 import os
-from .data import path
+from ..data import path
 
 
 ##  True for aeiou.

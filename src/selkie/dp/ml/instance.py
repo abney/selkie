@@ -1,7 +1,7 @@
 ##  @package seal.ml.instance
 #   Machine-learning instances.
 
-from seal.core.misc import as_ascii
+from ...cld.seal.misc import as_ascii
 
 
 ##  The features are a list containing (att, value) pairs, or just an att

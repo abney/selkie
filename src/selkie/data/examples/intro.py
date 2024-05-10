@@ -1,3 +1,0 @@
-
-import seal
-seal.hello()

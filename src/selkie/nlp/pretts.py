@@ -1,7 +1,7 @@
 ##  \package seal.nlp.orth
 #   Orthography.
 
-from .data import path
+from ..data import path
 from .seq import Queue
 
 ##  Load abbreviations table.

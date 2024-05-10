@@ -1,7 +1,8 @@
 ##  \package seal.nlp.features
 #   Features for a feature grammar.
 
-from .io import Syntax, File
+from ..pyx.io import Syntax
+from ..pyx.store import File
 
 
 ##  The category type, sans features.  The input may be a Category or a string.

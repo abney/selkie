@@ -1,7 +1,7 @@
 
-from .com import Main
-from .gdev2 import GDev
-from .wiktionary import WiktDump, LanguageFile
+from .pyx.com import Main
+from .nlpx.gdev import GDev
+from .data.wiktionary import WiktDump, LanguageFile
 
 
 class SelkieMain (Main):

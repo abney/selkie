@@ -1,10 +1,14 @@
 ##  \package seal.ml.libsvm
 #   Libsvm package.
 
-import os
-from libsvm import svmutil, svm_train, svm_predict
-from seal.core.misc import repeatable
-from seal.ml import num, sym
+import os, sys
+try:
+    from libsvm import svmutil, svm_train, svm_predict
+except:
+    print('libsvm has not been installed', file=sys.stderr)
+
+from ...cld.seal.misc import repeatable
+from . import num, sym
 
 
 #--  train  --------------------------------------------------------------------
