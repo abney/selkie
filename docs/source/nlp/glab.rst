@@ -970,8 +970,9 @@ For example, ``ex.notebook.gl`` contains::
 
 It is interpreted as follows::
 
-   >>> from seal import ex
-   >>> interpret_file(ex.notebook.gl, show_syntax=True)
+   >>> from selkie.data import ex
+   >>> from selkie.cld.glab.eval import interpret_file
+   >>> interpret_file(ex('notebook.gl'), show_syntax=True)
    | #T My Notebook
    | _x := <a,b,c>
    : setvalue(_x, seq(a, b, c))

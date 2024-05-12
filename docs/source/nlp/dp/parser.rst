@@ -11,7 +11,7 @@ Example
 The parser starts by creating a **configuration** from the input
 sentence::
 
-   >>> from seal.nlp.dp.parser import Configuration
+   >>> from selkie.nlp.dp.parser import Configuration
    >>> c0 = Configuration(['the', 'dog', 'in', 'the', 'park', 'chased', 'the', 'cat'])
    >>> print(c0)
    Configuration:
@@ -173,7 +173,7 @@ Configurations
 
 A Configuration contains a stack and an input pointer.
 One initializes a configuration either from a tokenized sentence (i.e., a
-simple list of strings) or from a seal.dep.Sentence instance, in
+simple list of strings) or from a selkie.dep.Sentence instance, in
 which case the words() method is called to get a list of strings.
 The stack is initialized to contain just a root node.
 
@@ -317,8 +317,8 @@ Continuing with our previous example:::
 To illustrate the "supervised" methods, let us create a
 configuration from a CoNLL sentence::
 
-   >>> from seal.core.io import ex
-   >>> from seal.nlp.dep import conll_sents
+   >>> from selkie.core.io import ex
+   >>> from selkie.nlp.dep import conll_sents
    >>> sent = next(conll_sents(ex.depsent2))
    >>> print(sent)
    0 *root* _   _     _ _
@@ -454,7 +454,7 @@ The configuration must have a value for conll::
 Here is an example of using the supervised oracle:::
 
    >>> c = Configuration(s)
-   >>> from seal.nlp.dp.parser import supervised_oracle
+   >>> from selkie.nlp.dp.parser import supervised_oracle
    >>> supervised_oracle(c)
    ('sh', None)
    >>> (act, role) = _
@@ -480,7 +480,7 @@ One can perform an entire computation using the function
 computation().  The output is a list of triples
 (*config, act, role*)::
 
-   >>> from seal.nlp.dp.parser import computation
+   >>> from selkie.nlp.dp.parser import computation
    >>> comp = computation(s, supervised_oracle)
    >>> (cfg, act, role) = comp[2]
    >>> print(cfg)
@@ -497,7 +497,7 @@ computation().  The output is a list of triples
 
 For convenience, there is also a print_computation() function:::
 
-   >>> from seal.nlp.dp.parser import print_computation
+   >>> from selkie.nlp.dp.parser import print_computation
    >>> print_computation(comp)
    *r | Th is a te
     -> sh None
@@ -525,7 +525,7 @@ The action is the instance label (the role, if any, is appended to the
 action), and the instance's features are the result of applying the
 feature function to the configuration::
 
-   >>> from seal.nlp.dp.parser import instances, simple_features
+   >>> from selkie.nlp.dp.parser import instances, simple_features
    >>> for inst in instances(s, simple_features):
    ...     print(inst)
    ...
@@ -558,7 +558,7 @@ trivial example::
 Features
 --------
 
-The module seal.nlp.dp.features contains a feature compiler,
+The module selkie.nlp.dp.features contains a feature compiler,
 which takes a complex feature specification and constructs a function
 from it.  The function takes a computation as input and returns a
 feature vector (instance) as output.
@@ -570,7 +570,7 @@ The main function is compile(), which takes a set of feature
 specifications (a string) and produces a function that maps
 configurations to instances::
 
-   >>> from seal.nlp.dp.features import *
+   >>> from selkie.nlp.dp.features import *
    >>> cfgs = [cfg for (cfg,_,_) in comp]
    >>> f = compile('fpos stack 0, fpos input 0')
    >>> f(cfgs[0])
@@ -624,7 +624,7 @@ of the file.  The function compile() first splits the input text
 into feature specs.  Feature specs may be separated either by commas
 or newlines::
 
-   >>> from seal.nlp.dp.features import specs
+   >>> from selkie.nlp.dp.features import specs
    >>> sps = specs('form input 0, fpos input 0, role lc input 0')
    >>> sps
    ['form input 0', 'fpos input 0', 'role lc input 0']
@@ -658,7 +658,7 @@ and returns a string or None.
 Trees
 -----
 
-The module seal.nlp.dp.tree provides the
+The module selkie.nlp.dp.tree provides the
 class DepTree, but it is not actually used and is likely to
 go away.
 
@@ -676,7 +676,7 @@ punctuation tokens.  (They are ignored by default.)  One may provide
 output=*stream* to specify
 an output stream other than stdout::
 
-   >>> from seal.nlp.dp.eval import evaluate
+   >>> from selkie.nlp.dp.eval import evaluate
    >>> evaluate(parser, sents)
 
 ispunc
@@ -685,7 +685,7 @@ ispunc
 The function ispunc() returns True if all the characters
 in the given string have a Unicode category beginning with "P"::
 
-   >>> from seal.nlp.dp.eval import ispunc
+   >>> from selkie.nlp.dp.eval import ispunc
    >>> ispunc('.')
    True
    >>> ispunc('Dr.')
@@ -714,7 +714,7 @@ Also, by default, punctuation tokens are ignored.
 (One can cause them to be counted by specifying excludepunc=False.)
 ::
 
-   >>> from seal.nlp.dp.eval import eval_sent
+   >>> from selkie.nlp.dp.eval import eval_sent
    >>> pred = next(conll_sents(ex.depsent3_pred))
    >>> gold = next(conll_sents(ex.depsent3_gold))
    >>> eval_sent(pred, gold)
@@ -728,7 +728,7 @@ compare
 The function compare() prints out a detailed comparison of a
 predicted and a gold sentence::
 
-   >>> from seal.nlp.dp.eval import compare
+   >>> from selkie.nlp.dp.eval import compare
    >>> compare(pred, gold)
    1   This G R 2 subj 2 subj   
    2   is   G R 0 mv   0 mv     

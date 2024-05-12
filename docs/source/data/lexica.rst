@@ -5,7 +5,7 @@ Other lexica and grammars
 Census
 ------
 
-The module seal.data.census
+The module selkie.data.census
 provides an interface to a list of names from
 the U.S. Census.  A sample of about 6,000,000 census entries was selected,
 and the distribution of first and last names was computed.  The actual
@@ -16,7 +16,7 @@ sample contain about 3,000,000 sample points each.
 
 The basic function is get()::
 
-   >>> from seal.data import census
+   >>> from selkie.data import census
    >>> francis = census.get('Francis')
    >>> francis
    <Name FRANCIS mr=127 fr=393 lr=385>
@@ -89,29 +89,32 @@ None.
 One can iterate over all names by calling the function
 names().
 
-Internet Dictionary Project
----------------------------
+..
+   Commented Out
 
-The module seal.data.idp provides an interface to the
-Internet Dictionary Project (IDP) dictionaries.  Dictionaries are
-available for French (fra), German (deu), Italian (ita), Latin (lat),
-Portuguese (por), and Spanish (spa).  For all except Latin, the keys
-are English words and the target language translation is the value.
-For Latin, the keys are Latin words.
-
-Dictionaries are loaded on demand and cached.
-One may look up individual words as follows::
-
-   >>> from seal.data.idp import lookup
-   >>> lookup('animal', 'deu')
-   'Tier[Noun]'
-   >>> lookup('proprius', 'lat')
-   "one's own, permanent, special, peculiar."
-
-Alternatively, one may fetch the entire dictionary (a dict) and access
-it directly::
-
-   >>> from seal.data.idp import lexicon
-   >>> latin = lexicon('lat')
-   >>> latin['amor']
-   'love, affection, infatuation, passion.'
+   Internet Dictionary Project
+   ---------------------------
+   
+   The module selkie.data.idp provides an interface to the
+   Internet Dictionary Project (IDP) dictionaries.  Dictionaries are
+   available for French (fra), German (deu), Italian (ita), Latin (lat),
+   Portuguese (por), and Spanish (spa).  For all except Latin, the keys
+   are English words and the target language translation is the value.
+   For Latin, the keys are Latin words.
+   
+   Dictionaries are loaded on demand and cached.
+   One may look up individual words as follows::
+   
+      >>> from selkie.data.idp import lookup # doctest: +SKIP
+      >>> lookup('animal', 'deu') # doctest: +SKIP
+      'Tier[Noun]'
+      >>> lookup('proprius', 'lat') # doctest: +SKIP
+      "one's own, permanent, special, peculiar."
+   
+   Alternatively, one may fetch the entire dictionary (a dict) and access
+   it directly::
+   
+      >>> from selkie.data.idp import lexicon # doctest: +SKIP
+      >>> latin = lexicon('lat') # doctest: +SKIP
+      >>> latin['amor'] # doctest: +SKIP
+      'love, affection, infatuation, passion.'

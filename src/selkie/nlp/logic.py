@@ -5,8 +5,15 @@ from itertools import chain
 from heapq import heappush, heappop
 from .io import string_to_tokens, ispathlike
 from .seq import cross_product, concat, unique
-from .expr import Variable, Expr, parse_expr, load_exprs, scan_expr, fresh_variable
+from .expr import Variable, Expr, parse_expr, load_exprs, scan_expr, fresh_variable, restart_variables
 from .interp import standardize_variables, Symtab
+
+
+def reset ():
+    global function_count
+    restart_variables()
+    Clause.count = 0
+    function_count = 0
 
 
 #--  Literal and clause  -------------------------------------------------------
@@ -179,7 +186,7 @@ def check_syntax (expr):
                 if argtype == 'expr': pass
                 elif argtype == 'var':
                     if not isinstance(arg, Variable):
-                        raise Exception("Expecting variable in: " + str(expr))
+                        raise Exception("Expecting variable in: " + repr(expr))
                 else:
                     raise Exception("Bad argtype")
     if isinstance(expr, Expr):

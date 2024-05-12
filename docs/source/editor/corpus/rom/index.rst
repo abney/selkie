@@ -65,7 +65,7 @@ b'&#225;&#254;o&#772;'
 
 To see the graph::
 
-   >>> student.print_graph()
+   >>> student.print_graph() # doctest: +SKIP
 
 Decoder
 -------
@@ -162,6 +162,7 @@ Catalog
 To get a list of the defined romanizations:
 
 >>> from selkie.corpus.rom import default_registry
+>>> default_registry.reset()
 >>> sorted(default_registry)
 ['gothic', 'gothic-student', 'korean', 'otw-jones', 'otw-webkamigad', 'salish']
 

@@ -121,10 +121,12 @@ input.  Be sure to split a string representing a sentence.  A string
 is treated as a sequence of characters, so::
 
    >>> a.accepts('the')
+   False
 
 behaves as if it were::
 
    >>> a.accepts(['t', 'h', 'e'])
+   False
 
 
 Fsa file format

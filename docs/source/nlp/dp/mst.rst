@@ -4,7 +4,7 @@ MST Parser — ``selkie.nlp.dp.mst``
 
 This is just a wrapper for the third-party MST dependency parser::
 
-   >>> from seal.mst import mst
+   >>> from selkie.nlp.dp.mst import mst
    >>> mst('spa')
 
 The function mst() accepts the following optional arguments:

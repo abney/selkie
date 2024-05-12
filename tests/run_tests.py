@@ -3,28 +3,128 @@
 ##  To test *this* version, run it in the selkie_dev environment.
 ##
 
-import sys, unittest, doctest
+import unittest, doctest
+from sys import stdout
 from os import walk
-from os.path import abspath, join
+from os.path import dirname, join
+from checkdist import DistChecker
 
-# Recursively list .rst files
+here = dirname(__file__)
+rootdir = dirname(here)
+docdir = join(rootdir, 'docs', 'source')
+
+skip = ['nlp/glab.rst',
+        'nlp/fst.rst',
+        'nlp/dp/parser.rst',
+        'nlp/dp/eval.rst',
+        'nlp/dp/mst.rst',
+        'nlp/dp/features.rst',
+        'nlp/dp/nnproj.rst',
+        'nlp/dp/nivre.rst',
+        'nlp/dp/ml/cluster.rst',
+        'data/corpora.rst',
+        'data/wiktionary.rst',
+        'data/panlex/panlex2.rst',
+        'data/panlex/panlex_module.rst',
+        'editor/corpus/corpus.rst',
+        'editor/server/disk.rst',
+        'cld/imp/content/requests.rst',
+        'cld/imp/content/elt.rst',
+        'cld/imp/content/framework.rst',
+        'cld/imp/content/responses.rst',
+        'cld/imp/server/server.rst',
+        'cld/imp/server/wsgi.rst',
+        'cld/imp/server/app_toplevel.rst',
+        'cld/imp/server/resources.rst',
+        'cld/imp/server/python_servers.rst',
+        'cld/imp/db/database.rst',
+        'cld/imp/db/db_toplevel.rst',
+        'cld/corpus/token.rst',
+        'cld/corpus/corpus.rst',
+        'cld/corpus/langdb.rst',
+        'cld/corpus/language.rst',
+        'cld/corpus/text.rst',
+        'cld/corpus/media.rst',
+        'cld/pyext/fs.rst',
+        'cld/pyext/config.rst',
+        'cld/pyext/io.rst',
+        'cld/pyext/com.rst',
+        'cld/pyext/object.rst',
+        'cld/pyext/table.rst',
+        ]
+
+skip = set(join(docdir, path) for path in skip)
 
 def rst_files ():
-    for (root, dnames, fnames) in walk('../docs/source'):
+    for (root, dnames, fnames) in walk(docdir):
         for name in fnames:
             if name.endswith('.rst'):
-                yield join(root, name)
+                fn = join(root, name)
+                if fn not in skip:
+                    yield fn
+
+def test_files ():
+    for (root, dnames, fnames) in walk(here):
+        for name in fnames:
+            if name.endswith('.py') and name.startswith('test_'):
+                fn = join(root, name)
+                yield '.'.join(fn[len(here)+1:-3].split('/'))
 
 
-import selkie
-print('Testing:', selkie.__file__)
+#--  Execute  ------------------------------------------------------------------
 
-# Run unit tests
+# Signals an error if any module fails to import
+DistChecker()(rootdir)
 
-unittest.main(argv=['unittest'], exit=False)
+print()
+
+anyfail = False
 
 # Run doctests
-
+print('DOCTESTS')
+total = 0
 for fn in rst_files():
-    print('doctest', fn)
-    doctest.testfile(fn)
+    (nfails, ntests) = doctest.testfile(fn, module_relative=False)
+    total += ntests
+    if nfails:
+        print(fn, ':', ntests, 'tests', nfails, 'failures')
+        anyfail = True
+        break
+    else:
+        print(fn, ':', ntests, 'tests', 'OK')
+if not anyfail:
+    print('TOTAL:', total, 'tests')
+
+print()
+
+# Run unit tests
+print('UNIT TESTS')
+total = 0
+load = unittest.defaultTestLoader.loadTestsFromName
+run = unittest.TextTestRunner().run
+for modname in test_files():
+    print()
+    print('----------------------------------------------------------------------')
+    print('TEST', modname)
+    result = run(load(modname))
+    if result.wasSuccessful():
+        total += result.testsRun
+    else:
+        anyfail = True
+        break
+if not anyfail:
+    print('TOTAL:', total, 'tests')
+
+
+# def test_suite ():
+#     loader = unittest.TestLoader()
+#     suite = unittest.TestSuite()
+#     for fn in rst_files():
+#         suite.addTests(doctest.DocFileSuite(fn, module_relative=False))
+#     suite.addTests(loader.discover(start_dir=here))
+#     return suite
+    
+# if __name__ == '__main__':
+#     runner = unittest.TextTestRunner(verbosity=2)
+#     runner.run(test_suite())
+

@@ -6,8 +6,8 @@
 #
 #   Being a US government publication, it is in the public domain.
 
-from ..cld.seal.config import Dest
 from math import log
+from os.path import dirname, join
 
 
 ##  The name table.
@@ -116,7 +116,8 @@ def load ():
 ##  Load one file: male.first, female.first, or all.last.
 
 def load1 (which, att, d):
-    for line in open('%s/data/census/dist.%s' % (Dest, which)):
+    datadir = dirname(__file__)
+    for line in open(join(datadir, 'census', f'dist.{which}')):
         string, freq, cumfreq, rank = line.split()
         entry = Entry(string, float(freq), float(cumfreq), int(rank))
 

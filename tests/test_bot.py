@@ -1,6 +1,6 @@
 
 from unittest import TestCase
-from selkie.bot import Engine
+from selkie.nlp.bot import Engine
 
 class Test (TestCase):
 

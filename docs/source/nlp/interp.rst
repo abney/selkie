@@ -50,9 +50,10 @@ predicate-calculus expression as output.  There are multiple steps:
    ``replace_metavariables()`` replaces all occurrences of
    "``@``" in a given expression with a new variable.
    
-   >>> from selkie.nlp.expr import parse_expr
+   >>> from selkie.nlp.expr import parse_expr, restart_variables
    >>> e = parse_expr('(lambda @ ($1 @ $2))')
    >>> from selkie.nlp.interp import replace_metavariables
+   >>> restart_variables()
    >>> vp = replace_metavariables(e)
    >>> vp
    (lambda _1 ($1 _1 $2))

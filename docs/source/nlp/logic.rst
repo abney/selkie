@@ -58,8 +58,9 @@ is mortal."
 
    One creates a clause from a list of literals.
    
+   >>> from selkie.nlp.logic import Clause, reset
+   >>> reset()
    >>> lit2 = Literal(True, parse_expr('(mortal Socrates)'))
-   >>> from selkie.nlp.logic import Clause
    >>> c = Clause([lit1, lit2])
    >>> print(c)
    1. -(human Socrates) +(mortal Socrates)
@@ -108,11 +109,9 @@ The conversion is effected by the following functions, applied in order.
    
    >>> from selkie.nlp.logic import check_syntax
    >>> check_syntax(orig)
-   >>> check_syntax(parse_expr('(forall Fido (woof))'))
+   >>> check_syntax(parse_expr('(forall Fido (woof))')) # doctest: +ELLIPSIS
    Traceback (most recent call last):
-     File "<stdin>", line 1, in <module>
-     File "/cl/python/selkie/logic.py", line 135, in check_syntax
-       raise Exception, "Expecting variable in: " + str(expr)
+      ...
    Exception: Expecting variable in: (forall Fido (woof))
 
 .. py:function:: standardize_variables(expr)
@@ -494,32 +493,31 @@ expressions.  This is the contents of the file ``crime.kb``::
                      (exists x3
                        (and (and (hostile x3) (country x3))
                             (sell x7 x1 x3))))))
-         (criminal x7)))</p>
+         (criminal x7)))
 
    (forall x11
      (if (and (missile x11) (own Nono x11))
-         (sell West x11 Nono)))</p>
+         (sell West x11 Nono)))
 
    (forall x14
      (if (enemy x14 America)
-         (and (hostile x14) (country x14))))</p>
+         (and (hostile x14) (country x14))))
 
-   (forall x16 (if (missile x16) (weapon x16)))</p>
+   (forall x16 (if (missile x16) (weapon x16)))
 
-   (exists x17 (and (missile x17) (own Nono x17)))</p>
+   (exists x17 (and (missile x17) (own Nono x17)))
 
-   (American West)</p>
+   (American West)
 
    (enemy Nono America)
 
 The corresponding CNF clauses are shown when we call the solver::
 
-   >>> from logic import solve
-   >>> solve('(wh x (criminal x))', 'crime.kb', trace=True)</p>
-   <BLANKLINE>
+   >>> from selkie.nlp.logic import solve
+   >>> reset()
+   >>> solve('(wh x (criminal x))', ex('crime.kb'), trace=True)
    KB
-   1. -(American _1) -(weapon _2) -(hostile _3) -(country _3)
-      -(sell _1 _2 _3) +(criminal _1)
+   1. -(American _1) -(weapon _2) -(hostile _3) -(country _3) -(sell _1 _2 _3) +(criminal _1)
    2. -(missile _4) -(own Nono _4) +(sell West _4 Nono)
    3. -(enemy _5 America) +(hostile _5)
    4. -(enemy _5 America) +(country _5)
@@ -527,53 +525,35 @@ The corresponding CNF clauses are shown when we call the solver::
    6. +(missile _Sk1)
    7. +(own Nono _Sk1)
    8. +(American West)
-   9. +(enemy Nono America)</p>
-   <BLANKLINE>
-   USABLE</p>
-   <BLANKLINE>
+   9. +(enemy Nono America)
+   USABLE
    SOS
-   10. [0] -(criminal _8) ; +(_Ans _8)</p>
-   <BLANKLINE>
-   Resolve 10.1 + 1.6
-   12. [8] -(American _9) -(weapon _10) -(hostile _11) -(country _11)
-           -(sell _9 _10 _11) ; +(_Ans _9)</p>
-   <BLANKLINE>
-   Resolve 12.1 + 8.1
-   14. [6] -(weapon _12) -(hostile _13) -(country _13)
-           -(sell West _12 _13) ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 14.1 + 5.2
-   16. [6] -(missile _14) -(hostile _15) -(country _15)
-           -(sell West _14 _15) ; +(_Ans West) </p>
-   <BLANKLINE>
-   Resolve 16.1 + 6.1
-   18. [4] -(hostile _16) -(country _16) -(sell West _Sk1 _16)
-           ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 18.1 + 3.2
-   20. [4] -(enemy _17 America) -(country _17) -(sell West _Sk1 _17)
-           ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 20.1 + 9.1
-   22. [2] -(country Nono) -(sell West _Sk1 Nono) ; +(_Ans West) </p>
-   <BLANKLINE>
-   Resolve 22.1 + 4.2
-   24. [2] -(enemy Nono America) -(sell West _Sk1 Nono) ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 24.1 + 9.1
-   26. [1] -(sell West _Sk1 Nono) ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 26.1 + 2.3
-   28. [2] -(missile _Sk1) -(own Nono _Sk1) ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 28.1 + 6.1
-   30. [1] -(own Nono _Sk1) ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 30.1 + 7.1
-   32. [0] ; +(_Ans West)</p>
-   <BLANKLINE>
-   Resolve 32.
-   ANSWER 32.  ; +(_Ans West)
+   10. -(criminal _8) ; +(_Ans _8) wt=0
+   Resolve 10. -(criminal _8) ; +(_Ans _8) wt=0
+       12. -(American _9) -(weapon _10) -(hostile _11) -(country _11) -(sell _9 _10 _11) ; +(_Ans _9) 10.1+1.6 wt=8
+   Resolve 12. -(American _9) -(weapon _10) -(hostile _11) -(country _11) -(sell _9 _10 _11) ; +(_Ans _9) 10.1+1.6 wt=8
+       14. -(weapon _12) -(hostile _13) -(country _13) -(sell West _12 _13) ; +(_Ans West) 12.1+8.1 wt=6
+   Resolve 14. -(weapon _12) -(hostile _13) -(country _13) -(sell West _12 _13) ; +(_Ans West) 12.1+8.1 wt=6
+       16. -(missile _14) -(hostile _15) -(country _15) -(sell West _14 _15) ; +(_Ans West) 14.1+5.2 wt=6
+   Resolve 16. -(missile _14) -(hostile _15) -(country _15) -(sell West _14 _15) ; +(_Ans West) 14.1+5.2 wt=6
+       18. -(hostile _16) -(country _16) -(sell West _Sk1 _16) ; +(_Ans West) 16.1+6.1 wt=4
+   Resolve 18. -(hostile _16) -(country _16) -(sell West _Sk1 _16) ; +(_Ans West) 16.1+6.1 wt=4
+       20. -(enemy _17 America) -(country _17) -(sell West _Sk1 _17) ; +(_Ans West) 18.1+3.2 wt=4
+   Resolve 20. -(enemy _17 America) -(country _17) -(sell West _Sk1 _17) ; +(_Ans West) 18.1+3.2 wt=4
+       22. -(country Nono) -(sell West _Sk1 Nono) ; +(_Ans West) 20.1+9.1 wt=2
+   Resolve 22. -(country Nono) -(sell West _Sk1 Nono) ; +(_Ans West) 20.1+9.1 wt=2
+       24. -(enemy Nono America) -(sell West _Sk1 Nono) ; +(_Ans West) 22.1+4.2 wt=2
+   Resolve 24. -(enemy Nono America) -(sell West _Sk1 Nono) ; +(_Ans West) 22.1+4.2 wt=2
+       26. -(sell West _Sk1 Nono) ; +(_Ans West) 24.1+9.1 wt=1
+   Resolve 26. -(sell West _Sk1 Nono) ; +(_Ans West) 24.1+9.1 wt=1
+       28. -(missile _Sk1) -(own Nono _Sk1) ; +(_Ans West) 26.1+2.3 wt=2
+   Resolve 28. -(missile _Sk1) -(own Nono _Sk1) ; +(_Ans West) 26.1+2.3 wt=2
+       30. -(own Nono _Sk1) ; +(_Ans West) 28.1+6.1 wt=1
+   Resolve 30. -(own Nono _Sk1) ; +(_Ans West) 28.1+6.1 wt=1
+       32.  ; +(_Ans West) 30.1+7.1 wt=0
+   Resolve 32.  ; +(_Ans West) 30.1+7.1 wt=0
+   ANSWER 32.  ; +(_Ans West) 30.1+7.1 wt=0
+   ['West']
 
 In outline, then, the prover goes through the following steps.
 
@@ -598,15 +578,16 @@ The input to the prover is a knowledge base.
    of clauses.  It may be loaded from a file:
    
    >>> from selkie.nlp.logic import KB
+   >>> reset()
    >>> kb = KB(ex('curiosity.kb'))
    >>> print(kb)
-   6. +(animal (_Sk5 _7)) +(love (_Sk6 _7) _7)
-   7. -(love _7 (_Sk5 _7)) +(love (_Sk6 _7) _7)
-   8. -(animal _11) -(kill _10 _11) -(love _12 _10)
-   9. -(animal _13) +(love Jack _13)
-   10. +(kill Jack Tuna) +(kill Curiosity Tuna)
-   11. +(cat Tuna)
-   12. -(cat _14) +(animal _14)
+   1. +(animal (_Sk1 _1)) +(love (_Sk2 _1) _1)
+   2. -(love _1 (_Sk1 _1)) +(love (_Sk2 _1) _1)
+   3. -(animal _5) -(kill _4 _5) -(love _6 _4)
+   4. -(animal _7) +(love Jack _7)
+   5. +(kill Jack Tuna) +(kill Curiosity Tuna)
+   6. +(cat Tuna)
+   7. -(cat _8) +(animal _8)
 
 Unification
 -----------
@@ -688,7 +669,7 @@ values of bound variables are used when creating the new clause.
 
 >>> from selkie.nlp.logic import standardize_apart
 >>> print(standardize_apart(kb[2]))
-13. -(animal _15) -(kill _16 _15) -(love _17 _16)
+8. -(animal _9) -(kill _10 _9) -(love _11 _10)
 
 Let us consider an example.  We create clauses for "every human is
 mortal" and "Socrates is human":
@@ -715,7 +696,7 @@ We copy clause 1, in the context of the unifier:
 
 >>> c3 = standardize_apart(c1, symtab)
 >>> print(c3)
-16. -(human Socrates) +(mortal Socrates)
+11. -(human Socrates) +(mortal Socrates)
 
 That is, we have deduced that Socrates is mortal if he is human.
 
@@ -728,7 +709,7 @@ Resolution
 
    >>> from selkie.nlp.logic import resolve
    >>> print(resolve(c1, 0, c2, 0))
-   18. +(mortal Socrates) 14.1+15.1
+   13. +(mortal Socrates) 9.1+10.1
 
    ``Resolve`` takes four arguments: *c1, i, c2, j,*
    and it resolves the *i*-th literal of *c1* with the *j*-th
@@ -745,7 +726,7 @@ Resolution
    >>> from selkie.nlp.logic import factor
    >>> out = factor(c)
    >>> print(out[0])
-   21. +(loves Mary Harvey) 19.1+19.2
+   16. +(loves Mary Harvey) 14.1+14.2
 
 The combination of resolution and factoring yields a inferentially
 complete theorem prover.

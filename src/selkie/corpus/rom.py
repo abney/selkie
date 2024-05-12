@@ -170,22 +170,22 @@ class Romanization (object):
 
     ##  Print out the state graph.
 
-    def print_graph (self):
+    def print_graph (self, file=None):
         todo = [self.start]
         stateno = {id(self.start): 1}
         while todo:
             q = todo[0]
             del todo[0]
-            print(stateno[id(q)])
+            print(stateno[id(q)], file=file)
             for c in sorted(q):
                 next = q[c]
                 j = id(next)
                 if j not in stateno:
                     stateno[j] = len(stateno)+1
                     todo.append(next)
-                print("   %d ('%s')" % (c, chr(c)), stateno[j])
+                print("   %d ('%s')" % (c, chr(c)), stateno[j], file=file)
             if q.value:
-                print('    value=', repr(q.value))
+                print('    value=', repr(q.value), file=file)
 
     ##  Match an input.  Returns a pair (j, value).
 
@@ -488,19 +488,32 @@ class Registry (object):
 
     ##  Constructor.
 
-    def __init__ (self, path):
+    def __init__ (self, path=None):
         # backwards compatibility
-        if isinstance(path, str):
-            path = [path]
+        if path is not None:
+            if isinstance(path, str):
+                path = [path]
+            else:
+                path = list(path)
+            for d in path:
+                assert ispathlike(d)
 
-        for d in path:
-            assert ispathlike(d)
+        self.orig_path = path
+        self.path = None
+        self.cache = {}
 
-        ##  A list of directory filenames to search for rom files.
-        self.path = path
+        self.reset()
 
-        ##  Cache romanizations that have been loaded.
-        #   A 'default' romanization is always available.
+    def reset (self):
+        if self.orig_path is None:
+            self.path = ['.']
+            try:
+                self.path.extend(config['data']['rompath'])
+            except:
+                pass
+            self.path.append(datapath('roms'))
+        else:
+            self.path = list(self.orig_path)
         self.cache = {'default': Romanization('default')}
 
     ##  Convert a name to a '.rom' filename that exists in one of the
@@ -557,19 +570,6 @@ class Registry (object):
                     if name.endswith('.rom'):
                         yield name[:-4]
 
-
-def _create_default_registry ():
-    path = ['.']
-    try:
-        path = config['data']['rompath']
-    except:
-        pass
-    path.append(datapath('roms'))
-    return Registry(path)
-    
-##  The seal registry.
-default_registry = _create_default_registry()
-
 ##  Backwards compatibility.
 
 def require_rom (name):
@@ -607,11 +607,11 @@ def find_codec (name):
                              rom.std_decoder,
                              name=name)
 
+
+#--  Initialize  ---------------------------------------------------------------
+
+default_registry = Registry()
 codecs.register(find_codec)
-
-
-#--  RomFormat  ----------------------------------------------------------------
-
 RomFormat = Format(read_romfile, None)
 
 

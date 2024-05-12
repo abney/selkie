@@ -500,6 +500,7 @@ class Sentence (object):
                         _visible(d.role),
                         _visible(d.govr)) for d in self._words)
 
+
     ##  Whether there are any words whose form is boolean false.
 
     def contains_epsilons (self):

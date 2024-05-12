@@ -13,7 +13,6 @@ Selkie
    nlp/index
    data/index
    pyx/index
-   corpus/index
 
 .. toctree::
    :caption: API Reference

@@ -5,14 +5,14 @@ Ethnologue language listing
 Overview
 --------
 
-The database in seal.data.langdb is compiled by merging data from
+The database in selkie.data.langdb is compiled by merging data from
 the *Ethnologue,* from the Library of Congress's official
 ISO 639-2 database, and from Panlex.
 It uses the iso-639-2 and iso-639-3 packages.
 
 The database is called languages::
 
-   >>> from seal.data.langdb import languages
+   >>> from selkie.data.langdb import languages
 
 The information in languages exactly reflects the published
 databases, with the following exceptions:

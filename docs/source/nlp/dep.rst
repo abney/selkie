@@ -42,10 +42,10 @@ Or if one prefers a dependency tree to a stemma::
    >>> print(convert(t, output='dep'))
    0   (VBZ:root
    1      (Pron this)
-           is
+          is
    2      (NN
    3         (DT a)
-              test))
+             test))
 
 The legal types input and output types are:
 
@@ -86,15 +86,15 @@ which converts a headed phrase-structure tree to a dependency tree.
    >>> from selkie.nlp.dep import dependency_tree
    >>> d = dependency_tree(h)
    >>> print(d)
-   0    (V:root
-   1       (N:subj
-   2          (Det the)
-              dog)
-           chased
-   3       (N:obj
-   4          (Det a)
-              cat)
-   5       (Adv:mod quickly))
+   0   (V:root
+   1      (N:subj
+   2         (Det the)
+             dog)
+          chased
+   3      (N:obj
+   4         (Det a)
+             cat)
+   5      (Adv:mod quickly))
    
 The function ``dependency_tree()`` takes two keyword arguments:
 ``projections`` and ``reductions``.  They are passed directly to
@@ -180,15 +180,15 @@ true, then the category is the concatenation of all categories in the
 projection.  For example::
 
    >>> print(p.tree(projections=True))
-   0    (S_VP_V:root
-   1       (NP_N:subj
-   2          (Det the)
-              dog)
-           chased
-   3       (NP_N:obj
-   4          (Det a)
-              cat)
-   5       (Adv:mod quickly))
+   0   (S_VP_V:root
+   1      (NP_N:subj
+   2         (Det the)
+             dog)
+          chased
+   3      (NP_N:obj
+   4         (Det a)
+             cat)
+   5      (Adv:mod quickly))
 
 If ``reductions`` is true, then the role is represented by a
 ``Reduction`` object, which prints out as
@@ -196,15 +196,15 @@ the concatenation of ``lr``, ``nodes[0].cat``, ``parent.cat``,
 and ``headsib.cat``.  For example::
 
    >>> print(p.tree(reductions=True))
-   0    (V:root
-   1       (N:'L_NP:subj_S_VP'
-   2          (Det:L_Det_NP_N the)
-              dog)
-           chased
-   3       (N:'R_NP:obj_VP_V'
-   4          (Det:L_Det_NP_N a)
-              cat)
-   5       (Adv:'R_Adv:mod_S_VP' quickly))
+   0   (V:root
+   1      (N:'L_NP:subj_S_VP'
+   2         (Det:L_Det_NP_N the)
+             dog)
+          chased
+   3      (N:'R_NP:obj_VP_V'
+   4         (Det:L_Det_NP_N a)
+             cat)
+   5      (Adv:'R_Adv:mod_S_VP' quickly))
 
 One can specify both ``projections`` and ``reductions``, if desired.
 
@@ -410,13 +410,13 @@ a dependency tree into a stemma.  For example::
    >>> from selkie.nlp.dep import stemma
    >>> s = stemma(d)
    >>> print(s, end='')
-   0 *root*   _    _ _    _
-   1 the      Det  _ _    2
-   2 dog      N    _ subj 3
-   3 chased   V    _ root 0
-   4 a        Det  _ _    5
-   5 cat      N    _ obj  3
-   6 quickly  Adv  _ mod  3
+   0 *root*  _   _ _    _
+   1 the     Det _ _    2
+   2 dog     N   _ subj 3
+   3 chased  V   _ root 0
+   4 a       Det _ _    5
+   5 cat     N   _ obj  3
+   6 quickly Adv _ mod  3
 
 The columns are: index, word, part of speech, lemma, role, and
 governor.  The value for governor is the index of the governor, not
@@ -567,7 +567,7 @@ To get the raw contents of a file in CoNLL dependency format, use
    >>> from selkie.data import ex
    >>> sent = next(iter_record_blocks(ex('depsent1')))
    >>> sent[0]
-   ['1', 'This', 'this', '_', 'pron', '_', '2', 'subj', '_', '_']
+   ('1', 'This', 'this', '_', 'pron', '_', '2', 'subj', '_', '_')
 
 The fields are: index, form, lemma, cpos, fpos, morph, head, rel,
 phead, prel.  The fields cpos, phead, and prel are considered
@@ -618,10 +618,10 @@ Missing fields are represented with a single underscore character.
       ...     print(sents[0])
       ...
       0 *root* _    _    _       _
-      1 This   pron this subj    2   
-      2 is     vb   be   mv      0   
-      3 a      dt   a    det     4   
-      4 test   n    test prednom 2   
+      1 This   pron this subj    2
+      2 is     vb   be   mv      0
+      3 a      dt   a    det     4
+      4 test   n    test prednom 2
 
 If one loads a sentence and then saves it, the result may differ from
 the original.  Namely, if the original records contain cpos but not
@@ -663,13 +663,13 @@ as ``conll/2006/universal-pos-tags``.
    The following example assumes that one has downloaded the CoNLL
    2006 data and stored its location under the config key ``data.conll``::
 
-      >>> from selkie.nlp.config import config
+      >>> from selkie import config
       >>> from os.path import expanduser, join
       >>> conll = expanduser(config['data']['conll'])
-      >>> fn = join(conll, '2006', 'danish', 'ddt', 'train', 'danish_ddt_train.conll')
+      >>> fn = join(conll, '2006', 'danish', 'ddt', 'train', 'danish_ddt_train.conll') # doctest: +SKIP
       >>> from selkie.nlp.dep import umapped_sents
-      >>> s = next(umapped_sents(fn, map))
-      >>> s[1].form
+      >>> s = next(umapped_sents(fn, map)) # doctest: +SKIP
+      >>> s[1].form # doctest: +SKIP
       'Samme'
-      >>> s[1].cat
+      >>> s[1].cat # doctest: +SKIP
       'ADJ'

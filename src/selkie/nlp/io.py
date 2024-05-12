@@ -842,7 +842,7 @@ def load_record_blocks (filename, encoding=None):
 ##  Iterate over record blocks.
 
 def iter_record_blocks (filename, encoding=None):
-    return read_record_blocks(infile(filename, encoding))
+    return _read_record_blocks(infile(filename, encoding))
 
 def read_record_blocks (f):
     return list(_read_record_blocks(f))
@@ -1651,7 +1651,7 @@ def colalign (rows, header=None, indent='', tostring=str, hlines=True):
 ##  Produces a string representation of a table with aligned columns,
 #   suitable for printing.
 
-def tabular (rows, header=None, indent='', tostring=str, hlines=True):
+def tabular (rows, header=None, indent='', tostring=str, hlines=False):
     return '\n'.join(colalign(rows, header, indent, tostring, hlines))
 
 

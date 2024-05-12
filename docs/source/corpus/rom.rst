@@ -191,10 +191,6 @@ path:
 >>> b"l-a'L-e ?u".decode('romtest')
 'ɬáƛe ˁu'
 
-.. testcleanup::
-
-   del default_registry.path[0]
-
 
 API
 ---

@@ -187,6 +187,10 @@ class Interpreter (object):
 ##  An instance of Interpreter.
 interpret = Interpreter()
 
+def interpret_file (fn, show_syntax=False):
+    with open(fn) as f:
+        Interpreter(show_syntax=show_syntax).batch(f)
+
 
 ##  Redirects output to a file.
 

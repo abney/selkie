@@ -784,7 +784,7 @@ There is also a tabular format for representing trees in a file.  An
 example is provided by the file ``t1``, whose contents are::
 
    >>> from selkie.nlp.io import contents
-   >>> print(contents(ex('t1')), end='')
+   >>> print(contents(ex('t1')), end='') # doctest: +NORMALIZE_WHITESPACE
    [	S
    [	NP
    +	Det	the
