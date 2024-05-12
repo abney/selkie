@@ -49,8 +49,9 @@ skip = ['nlp/glab.rst',
         'cld/pyext/config.rst',
         'cld/pyext/io.rst',
         'cld/pyext/com.rst',
-        'cld/pyext/object.rst',
-        'cld/pyext/table.rst',
+        'cld/pyext/misc.rst',
+        'pyx/table.rst',
+        'pyx/xterm.rst',
         ]
 
 skip = set(join(docdir, path) for path in skip)
@@ -74,7 +75,7 @@ def test_files ():
 #--  Execute  ------------------------------------------------------------------
 
 # Signals an error if any module fails to import
-DistChecker()(rootdir)
+(n_modules, n_automodules) = DistChecker()(rootdir)
 
 print()
 
@@ -82,10 +83,10 @@ anyfail = False
 
 # Run doctests
 print('DOCTESTS')
-total = 0
+n_doctests = 0
 for fn in rst_files():
     (nfails, ntests) = doctest.testfile(fn, module_relative=False)
-    total += ntests
+    n_doctests += ntests
     if nfails:
         print(fn, ':', ntests, 'tests', nfails, 'failures')
         anyfail = True
@@ -93,13 +94,13 @@ for fn in rst_files():
     else:
         print(fn, ':', ntests, 'tests', 'OK')
 if not anyfail:
-    print('TOTAL:', total, 'tests')
+    print('TOTAL:', n_doctests, 'tests')
 
 print()
 
 # Run unit tests
 print('UNIT TESTS')
-total = 0
+n_unittests = 0
 load = unittest.defaultTestLoader.loadTestsFromName
 run = unittest.TextTestRunner().run
 for modname in test_files():
@@ -108,12 +109,21 @@ for modname in test_files():
     print('TEST', modname)
     result = run(load(modname))
     if result.wasSuccessful():
-        total += result.testsRun
+        n_unittests += result.testsRun
     else:
         anyfail = True
         break
 if not anyfail:
-    print('TOTAL:', total, 'tests')
+    print('TOTAL:', n_unittests, 'tests')
+
+# Summary
+
+print()
+print('SUMMARY')
+print('Imported modules:  ', n_modules)
+print('Documented modules:', n_automodules)
+print('Doctests:          ', n_doctests)
+print('Unit tests:        ', n_unittests)
 
 
 # def test_suite ():

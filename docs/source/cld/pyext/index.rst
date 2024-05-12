@@ -7,10 +7,7 @@ Supporting Packages
    :titlesonly:
 
    config
-   object
-   map
    io
-   table
+   misc
    fs
-   com
    scripts

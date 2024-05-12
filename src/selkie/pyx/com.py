@@ -5,6 +5,7 @@ as well as system commands.
 
 import sys, subprocess
 from time import time
+from io import StringIO
 from .string import elapsed_time_str
 
 
@@ -29,9 +30,11 @@ def wget (url):
 
 def system (*args, silent=False):
     '''
-    Runs a command line represented as separate words.
-    Returns True on success, False on failure.
-    Keyword argument silent=True suppresses any printout.
+    Execute a system command line.  Unless silent=True is specified,
+    the output is printed to stdout.  The return value is True if the
+    command executes successfully and False if not.  Example::
+
+        system('ls', '-l')
     '''
     return True if subprocess.run(args, capture_output=silent).returncode == 0 else False
 
@@ -486,7 +489,7 @@ class Progress (object):
 
     ##  Constructor.
 
-    def __init__ (self, n=None):
+    def __init__ (self, n=None, file=sys.stderr):
 
         ##  How many ticks are expected in total.  It's OK if it's an underestimate.
         self.target = n
@@ -498,12 +501,13 @@ class Progress (object):
         self.timer = Timer()
 
         self.last_t = None
+        self.file = file
 
     def __enter__ (self):
         return self
 
     def done (self):
-        self.printout(end='\n')
+        self.printout(end='\n', file=self.file)
 
     def __exit__ (self, t, v, tb):
         self.done()
@@ -515,16 +519,16 @@ class Progress (object):
         t = time()
         if self.last_t is None or t - self.last_t > 0.3:
             self.last_t = t
-            self.printout()
+            self.printout(file=self.file)
         return self
 
-    def printout (self, end=' '):
+    def printout (self, end=' ', file=sys.stderr):
         if self.target is None:
             print('\rProgress: %d' % self.count,
                   'Time elapsed: %s' % self.timer,
                   end=end,
-                  file=sys.stderr)
-            sys.stderr.flush()
+                  file=file)
+            file.flush()
 
         else:
             proportion_done = self.count/float(self.target)
@@ -533,9 +537,13 @@ class Progress (object):
             print('\rProgress: %d/%d (%2.2f%%)' % (self.count, self.target, 100 * proportion_done),
                   'Time remaining: %s' % elapsed_time_str(elapsed, est_total),
                   end=end,
-                  file=sys.stderr)
-            sys.stderr.flush()
+                  file=file)
+            file.flush()
 
+    def __str__ (self):
+        with StringIO() as f:
+            self.printout(file=f)
+            return f.getvalue()
 
 
 #--  Manifest  -----------------------------------------------------------------

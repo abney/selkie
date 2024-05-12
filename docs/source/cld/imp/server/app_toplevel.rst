@@ -1,6 +1,8 @@
 
-Server top level
-================
+.. automodule:: selkie.cld.app.toplevel
+
+Server top level — ``selkie.cld.app.toplevel``
+==============================================
 
 This chapter describes the module ``selkie.cld.app.toplevel``.  The
 major classes are Manager and RuntimeContext.  The Manager provides a

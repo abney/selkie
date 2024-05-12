@@ -22,8 +22,9 @@ class DistChecker (object):
         if not exists(self.docs):
             raise Exception('Docs directory does not exists:', self.docs)
 
-        self.check_src()
-        self.check_docs()
+        n_modules = self.check_src()
+        n_automodules = self.check_docs()
+        return (n_modules, n_automodules)
 
     def iter_imports (self):
         for (rp, ds, fs) in walk(self.src):
@@ -42,11 +43,14 @@ class DistChecker (object):
     def check_src (self):
         print()
         print('Check', self.src)
+        count = 0
         for (fn, modname) in self.iter_imports():
             print('import', modname, f'[{fn}]')
             import_module(modname)
             assert modname not in self.modules
             self.modules[modname] = fn
+            count += 1
+        return count
     
     def iter_documented_modules (self):
         for (rp, ds, fs) in walk(self.docs):
@@ -63,9 +67,12 @@ class DistChecker (object):
     def check_docs (self):
         print()
         print('Check', self.docs)
+        count = 0
         for (fn, lno, modname) in self.iter_documented_modules():
             if modname not in self.modules:
                 print(f'Module not found:', modname, f'[{fn}:{lno}]')
+            count += 1
+        return count
 
 
 if __name__ == '__main__':

@@ -75,27 +75,6 @@ from .. import config
 default_registry = None
 
 
-#--  Romanization file  --------------------------------------------------------
-
-def load_romfile (fn):
-    with open(fn, 'rb') as f:
-        return read_romfile(f)
-
-# Since this is returned from inside 'with open', it should not be a generator
-# that requires the file to be open
-
-def read_romfile (f):
-    return list(_read_romfile_1(f))
-
-def _read_romfile_1 (f):
-    for line in f:
-        line = line.rstrip(b'\r\n')
-        if line.startswith(b'#') or not line:
-            continue
-        (key, value) = line.split(b'\t')
-        yield (key, value)
-
-
 #--  Romanization  -------------------------------------------------------------
 
 ##  State in the romanization dictionary.
@@ -114,6 +93,29 @@ class State (dict):
 ##  A romanization.
 
 class Romanization (object):
+
+    ##  Signals an error if type is not 'rom'.
+
+    def check_type (self, type):
+        if type != 'rom':
+            raise Exception('Fails type check: %s %s' % (type, self))
+
+    ##  Read one from file.
+
+    def __read__ (self, f):
+        self._table = table = {}
+        for line in f:
+            (k,v) = line.rstrip('\r\n').split('\t')
+            table[k] = v
+        self._make_rom()
+
+    def _make_rom (self):
+        self._rom = rom = make_romanization(self.parent(), self.name())
+        decode = Decoder()
+        for (key, value) in self._table.items():
+            key = key.encode('ascii')
+            value = decode(value.encode('ascii'))
+            rom[key] = value
 
     ##  Constructor.
 
@@ -606,6 +608,27 @@ def find_codec (name):
             return CodecInfo(None,
                              rom.std_decoder,
                              name=name)
+
+
+#--  Romanization file  --------------------------------------------------------
+
+def load_romfile (fn):
+    with open(fn, 'rb') as f:
+        return read_romfile(f)
+
+# Since this is returned from inside 'with open', it should not be a generator
+# that requires the file to be open
+
+def read_romfile (f):
+    return list(_read_romfile_1(f))
+
+def _read_romfile_1 (f):
+    for line in f:
+        line = line.rstrip(b'\r\n')
+        if line.startswith(b'#') or not line:
+            continue
+        (key, value) = line.split(b'\t')
+        yield (key, value)
 
 
 #--  Initialize  ---------------------------------------------------------------

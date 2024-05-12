@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "selkie"
 
 # When changing the version, remember to update:  src/selkie/__init__.py, docs/source/conf.py
-version = "0.25.dev1"
+version = "0.25"
 
 authors = [
   { name="Steven Abney", email="abney@umich.edu" },

@@ -172,7 +172,8 @@ To get the romanization itself, access the registry like a dict:
 
 The file in which the romanization resides is ``salish.filename``.
 Calling ``print(salish)`` prints its contents.  One can also use
-``salish.items()`` to get an iteration over the pairs.
+``salish.items()`` to get an iteration over the pairs, and
+``salish.print_graph()`` to see the finite-state graph.
 
 Gothic
 ......
@@ -282,6 +283,29 @@ Here are the contents of 'gothic-student':
      - ū́
    * - th
      - þ
+
+Defining a new romanization
+---------------------------
+
+Here is an example of a romanization definition::
+
+    a'	\(00e1)
+    N	\(004b)
+    L-	\(019b)
+    l-	\(026c)
+    ?	\(02c1)
+
+Nota bene: the columns are separated by a single tab, not spaces.
+
+If the preceding is the contents of ``romtest.rom`` in the current
+directory, it is immediately available as encoding ``romtest``.  If it resides in directory
+DIR, one may make it available by adding DIR to the default registry's
+path:
+
+>>> import selkie
+>>> default_registry.path.insert(0, selkie.data.path('examples'))
+>>> b"l-a'L-e ?u".decode('romtest')
+'ɬáƛe ˁu'
 
 API
 ---

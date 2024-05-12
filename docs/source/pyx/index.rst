@@ -9,6 +9,7 @@ Python extensions
    seq
    xterm
    io
+   table
    formats
    persist
    reflect

@@ -9,8 +9,9 @@ project = 'Selkie'
 copyright = '2022, University of Michigan'
 author = 'Steven Abney'
 
+# release: x.y, version: x.y.z
 release = '0.25'
-version = '0.25.dev1'
+version = '0.25.0'
 
 # -- General configuration
 
