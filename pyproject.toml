@@ -5,8 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "selkie"
 
-# When changing the version, remember to update:  src/selkie/__init__.py, docs/source/conf.py
-version = "0.25"
+# When changing the version, remember to update:
+#     setup.py
+#     src/selkie/__init__.py
+#     docs/source/conf.py
+
+version = "0.25.1"
 
 authors = [
   { name="Steven Abney", email="abney@umich.edu" },
@@ -22,4 +26,5 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/abney/selkie"
+"Documentation" = "https://selkie.readthedocs.io/"
 "Bug Tracker" = "https://github.com/abney/selkie/issues"

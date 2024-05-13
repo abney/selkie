@@ -1,0 +1,22 @@
+.editable {
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+    padding: 2px;
+    min-height: 10px;
+}
+.editable:hover {
+    border: 1px solid #80e080;
+}
+table.PlainText {
+    width: 550px;
+    margin: 0px;
+    table-layout: fixed;
+}
+table.ParallelText {
+    width: 1000px;
+    margin: 0px;
+    table-layout: fixed;
+}
+table.PlainText td, table.ParallelText td {
+    width: 100%;
+}

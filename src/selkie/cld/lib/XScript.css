@@ -1,0 +1,44 @@
+@import "default.css";
+
+input, button {
+    cursor: pointer;
+}
+table.grid {
+    border-width: 0px;
+    padding: 2px;
+    border-collapse: collapse;
+    border-spacing: 0px;
+    margin: 0px;
+    width: 720px;
+}
+.segno {
+    font-size: smaller;
+}
+.transcription {
+    border: 1px solid #ddd;
+    width: 400px;
+    height: 26px;
+    cursor: pointer;
+}
+.controls {
+    border: 1px solid #ddd;
+}
+.recctls {
+    font-size: smaller;
+}
+.instructions {
+    font-size: smaller;
+}
+.thinbutton {
+    padding: 0px;
+}
+.thinoption {
+    padding: 0px;
+}
+.selected {
+    font-weight: bold;
+    color: red;
+}
+:disabled {
+    cursor: default;
+}

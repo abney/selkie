@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Authenticate</title>
+<link rel="stylesheet" type="text/css" href="/.lib/default.css">
+</head>
+<body>
+<h1>Login</h1>
+<form enctype="x-www-form-urlencoded" accept-charset="utf-8" method="POST" action="/login">
+<table>
+<tr><td>User:</td> <td><input id="userbox" type="text" name="user"></input></td></tr>
+<tr><td>Password:</td> <td><input type="password" name="pass"></input></td></tr>
+</table>
+<input type="submit" name="status" value="Submit"></input>
+</form>
+<script>
+var userbox = document.getElementById('userbox');
+userbox.focus();
+</script>
+</body>
+</html>

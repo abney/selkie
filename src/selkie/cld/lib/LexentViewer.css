@@ -1,0 +1,31 @@
+@import "util.css";
+@import "default.css";
+
+/*------------------------------------------------------------------------------
+/*  LexentViewer.css
+/*----------------------------------------------------------------------------*/
+
+.toggleSpan {
+    font-size: small;
+    padding: 2px;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    line-height: 1.8;
+    cursor: pointer;
+}
+.toggleSpan:hover {
+    background-color: #f8f8f8;
+}
+.toggleSpan:active {
+    background-color: #fff8f0;
+}
+.toggleSpan.selected {
+    background-color: #fff8f0;
+    box-shadow: inset 1px 1px 2px #d0d0d0;
+}
+.toggleSpan.selected:hover {
+    background-color: #f8f0e8;
+}
+.toggleSpan.selected:active {
+    background-color: white;
+}

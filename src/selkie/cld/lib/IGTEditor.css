@@ -1,0 +1,34 @@
+@import "default.css";
+@import "grid.css";
+
+/*------------------------------------------------------------------------------
+/*  igt.css
+/*----------------------------------------------------------------------------*/
+
+.trans {
+    color: #807050;
+    background-color: #fff0e8;
+}
+.gloss {
+    font-size: 60%;
+    font-style: italic;
+}
+.glossed {
+    display: inline-block;
+    cursor: pointer;
+    border: 1px solid white;
+}
+table.lemmaTable {
+    width: auto;
+    table-layout: auto;
+}
+.lemmaTable td {
+    min-width: 0px;
+}
+.tokenSelected {
+    background-color: #ffffe0;
+    border: 1px dotted #c0c0c0;
+}
+.lemmaSelected {
+    background-color: #ffffe8;
+}

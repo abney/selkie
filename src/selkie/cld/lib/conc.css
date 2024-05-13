@@ -1,0 +1,34 @@
+.textpar {
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+    padding: 2px;
+    min-height: 10px;
+}
+table.ParallelText {
+    width: 1000px;
+    margin: 0px;
+    table-layout: fixed;
+}
+table.ParallelText td {
+    width: 100%;
+    vertical-align: top;
+}
+.littleButton {
+    font-size: x-small;
+    padding-left: 2px;
+    padding-right: 2px;
+    border: 1px solid #d0d0d0;
+    margin-left: 2px;
+    cursor: pointer;
+}
+.littleButton:hover {
+    color: white;
+    background-color: #d0d0d0;
+}
+.littleButton:active {
+    background-color: blue;
+}
+.tokenSelected {
+    background-color: #ffffe0;
+    border: 1px dotted #c0c0c0;
+}
