@@ -4,7 +4,7 @@
 ##
 
 import unittest, doctest
-from sys import stdout
+from sys import stdout, argv
 from os import walk
 from os.path import dirname, join
 from checkdist import DistChecker
@@ -12,6 +12,8 @@ from checkdist import DistChecker
 here = dirname(__file__)
 rootdir = dirname(here)
 docdir = join(rootdir, 'docs', 'source')
+
+devflag = (len(argv) > 1 and argv[1] == 'dev')
 
 skip = ['nlp/glab.rst',
         'nlp/fst.rst',
@@ -26,8 +28,6 @@ skip = ['nlp/glab.rst',
         'data/wiktionary.rst',
         'data/panlex/panlex2.rst',
         'data/panlex/panlex_module.rst',
-        'editor/corpus/corpus.rst',
-        'editor/server/disk.rst',
         'cld/imp/content/requests.rst',
         'cld/imp/content/elt.rst',
         'cld/imp/content/framework.rst',
@@ -50,13 +50,18 @@ skip = ['nlp/glab.rst',
         'cld/pyext/io.rst',
         'cld/pyext/com.rst',
         'cld/pyext/misc.rst',
+        # temporarily disabled
         'pyx/table.rst',
         'pyx/xterm.rst',
+        #'pyx/formats.rst',
+        'editor/corpus/slf.rst',
+        'editor/server/disk.rst',
         ]
 
 skip = set(join(docdir, path) for path in skip)
 
 def rst_files ():
+    global docdir, skip
     for (root, dnames, fnames) in walk(docdir):
         for name in fnames:
             if name.endswith('.rst'):
@@ -65,6 +70,7 @@ def rst_files ():
                     yield fn
 
 def test_files ():
+    global here
     for (root, dnames, fnames) in walk(here):
         for name in fnames:
             if name.endswith('.py') and name.startswith('test_'):
@@ -74,56 +80,58 @@ def test_files ():
 
 #--  Execute  ------------------------------------------------------------------
 
-# Signals an error if any module fails to import
-(n_modules, n_automodules) = DistChecker()(rootdir)
+def run_tests ():
+    global rootdir, devflag
 
-print()
+    # Each call signals an error if any test fails
 
-anyfail = False
+    (n_modules, n_automodules) = DistChecker(rootdir, installed=devflag)()
+    n_doctests = run_doctests()
+    n_unittests = run_unittests()
 
-# Run doctests
-print('DOCTESTS')
-n_doctests = 0
-for fn in rst_files():
-    (nfails, ntests) = doctest.testfile(fn, module_relative=False)
-    n_doctests += ntests
-    if nfails:
-        print(fn, ':', ntests, 'tests', nfails, 'failures')
-        anyfail = True
-        break
-    else:
-        print(fn, ':', ntests, 'tests', 'OK')
-if not anyfail:
-    print('TOTAL:', n_doctests, 'tests')
-
-print()
-
-# Run unit tests
-print('UNIT TESTS')
-n_unittests = 0
-load = unittest.defaultTestLoader.loadTestsFromName
-run = unittest.TextTestRunner().run
-for modname in test_files():
     print()
-    print('----------------------------------------------------------------------')
-    print('TEST', modname)
-    result = run(load(modname))
-    if result.wasSuccessful():
-        n_unittests += result.testsRun
-    else:
-        anyfail = True
-        break
-if not anyfail:
+    print('SUMMARY')
+    print('Imported modules:  ', n_modules)
+    print('Documented modules:', n_automodules)
+    print('Doctests:          ', n_doctests)
+    print('Unit tests:        ', n_unittests)
+
+
+def run_doctests ():
+    print()
+    print('DOCTESTS')
+
+    n_doctests = 0
+    for fn in rst_files():
+        (nfails, ntests) = doctest.testfile(fn, module_relative=False)
+        n_doctests += ntests
+        if nfails:
+            print('doctest:', f'{ntests:3d} tests', f'{nfails:3d} failures')
+            raise Exception('doctest failed')
+        else:
+            print('doctest:', f'{ntests:3d} tests', f'[{fn}]')
+    print('TOTAL:', n_doctests, 'tests')
+    return n_doctests
+
+
+def run_unittests ():
+    print()
+    print('UNIT TESTS')
+
+    n_unittests = 0
+    load = unittest.defaultTestLoader.loadTestsFromName
+    run = unittest.TextTestRunner().run
+    for modname in test_files():
+        print()
+        print('----------------------------------------------------------------------')
+        print('TEST', modname)
+        result = run(load(modname))
+        if result.wasSuccessful():
+            n_unittests += result.testsRun
+        else:
+            raise Exception('Unit test failed')
     print('TOTAL:', n_unittests, 'tests')
-
-# Summary
-
-print()
-print('SUMMARY')
-print('Imported modules:  ', n_modules)
-print('Documented modules:', n_automodules)
-print('Doctests:          ', n_doctests)
-print('Unit tests:        ', n_unittests)
+    return n_unittests
 
 
 # def test_suite ():
@@ -138,3 +146,5 @@ print('Unit tests:        ', n_unittests)
 #     runner = unittest.TextTestRunner(verbosity=2)
 #     runner.run(test_suite())
 
+
+run_tests()

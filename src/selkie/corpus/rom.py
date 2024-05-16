@@ -635,7 +635,7 @@ def _read_romfile_1 (f):
 
 default_registry = Registry()
 codecs.register(find_codec)
-RomFormat = Format(read_romfile, None)
+#RomFormat = Format(read_romfile, None)
 
 
 #--  Main  ---------------------------------------------------------------------

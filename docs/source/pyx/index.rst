@@ -11,6 +11,7 @@ Python extensions
    io
    table
    formats
+   disk
    persist
    reflect
    com

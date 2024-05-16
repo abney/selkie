@@ -8,7 +8,7 @@ from importlib import import_module
 from io import StringIO
 from time import time
 from math import inf
-from collections.abc import Callable
+from collections.abc import Callable, MutableSequence, MutableMapping
 
 
 #--  General  ------------------------------------------------------------------
@@ -133,50 +133,32 @@ class Object (object):
 
 #--  ListProxy, MapProxy  ------------------------------------------------------
 
-class ListProxy (object):
+class ListProxy (MutableSequence):
 
-    def __iter__ (self):
-        return self.__list__().__iter__()
-        
-    def __contains__ (self, k):
-        return self.__list__().__contains__(k)
+    # required
+    def __getitem__ (self, idx): return self.__proxyfor__.__getitem__(idx)
+    def __setitem__ (self, idx, value): return self.__proxyfor__.__setitem__(idx, value)
+    def __delitem__ (self, idx): return self.__proxyfor__.__delitem__(idx)
+    def __len__ (self): return self.__proxyfor__.__len__()
+    def insert (self, idx, value): return self.__proxyfor__.insert(idx, value)
 
-    def __getitem__ (self, k):
-        return self.__list__().__getitem__(k)
-
-    def __len__ (self):
-        return self.__list__().__len__()
-
-    def __repr__ (self):
-        return self.__list__().__repr__()
+    # mixin
+    def __iter__ (self): return self.__proxyfor__.__iter__()
+    def __contains__ (self, key): return self.__proxyfor__.__contains__(key)
 
 
-class MapProxy (object):
+class MapProxy (MutableMapping):
 
-    def __iter__ (self):
-        return iter(self.__map__())
-        
-    def __len__ (self):
-        return len(self.__map__())
+    # required
+    def __getitem__ (self, key): return self.__proxyfor__.__getitem__(key)
+    def __setitem__ (self, key, value): return self.__proxyfor__.__setitem__(key, value)
+    def __delitem__ (self, key): return self.__proxyfor__.__delitem__(key)
+    def __iter__ (self): return self.__proxyfor__.__iter__()
+    def __len__ (self): return self.__proxyfor__.__len__()
 
-    def __contains__ (self, k):
-        return k in self.__map__()
-
-    def __getitem__ (self, k):
-        return self.__map__()[k]
-
-    def get (self, k, dflt=None):
-        return self.__map__().get(k, dflt)
-
-    def keys (self):
-        return self.__map__().keys()
-
-    def values (self):
-        return self.__map__().values()
-    
-    def items (self):
-        return self.__map__().items()
-
-    def __repr__ (self):
-        return self.__map__().__repr__()
-
+    # mixin
+    def __contains__ (self, key): self.__proxyfor__.__contains__(key)
+    def get (self, key, dflt=None): return self.__proxyfor__.get(key, dflt)
+    def keys (self): return self.__proxyfor__.keys()
+    def values (self): return self.__proxyfor__.values()
+    def items (self): return self.__proxyfor__.items()

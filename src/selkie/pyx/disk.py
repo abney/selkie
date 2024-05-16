@@ -2,8 +2,8 @@
 from os import unlink, makedirs, listdir, walk
 from os.path import join, normpath, dirname, exists, isdir, expanduser
 from collections.abc import MutableMapping
-from .object import MapProxy
-from .formats import File, blocks_to_lines, lines_to_blocks
+#from .object import MapProxy
+from .formats import File
 
 # def coerce_to (x, cls):
 #     return x if isinstance(x, cls) else cls(x)
@@ -130,15 +130,15 @@ class BaseDisk (MutableMapping):
         self.__delitem__(fn)
 
 
-class VDisk (BaseDisk, MapProxy):
-    '''
-    An implementation of BaseDisk that contains a dict that serves as the mapping.
-    '''
-    def __init__ (self):
-        self.__dict = {}
-
-    def __map__ (self):
-        return self.__dict
+# class VDisk (BaseDisk, MapProxy):
+#     '''
+#     An implementation of BaseDisk that contains a dict that serves as the mapping.
+#     '''
+#     def __init__ (self):
+#         self.__dict = {}
+# 
+#     def __map__ (self):
+#         return self.__dict
         
 
 class Directory (object):

@@ -13,6 +13,7 @@ For consistency with typical webserver expectations, the methods
 A virtual disk behaves just like a dict, except that it is backed by
 files and thus persistent.  For example::
 
+   >>> from selkie.pyx.disk import VDisk
    >>> disk = VDisk('/tmp/foo')
    >>> disk['/bar/baz'] = ['hi there\n', 'just a test\n']
 
@@ -20,29 +21,26 @@ The assignment causes the directory ``/tmp/foo/bar`` to be created if it did
 not previously exist, and it writes the file ``/tmp/foo/bar/baz``, containing
 two lines of text.  One can subsequently fetch the contents::
 
-   >>> for line in disk['/bar/baz']:
-   ...     print(line)
-   ...
-   hi there
-   just a test
+   >>> list(disk['/bar/baz'])
+   ['hi there\n', 'just a test\n']
 
-The return value is a ``BaseFile`` instance (see selkie.newio), which
+The return value is a ``BaseFile`` instance (see selkie.pyx.formats), which
 behaves like an iteration over lines (which include the terminating newline).
 
 Opening a new VDisk with the same directory name reads the same
 values::
 
-   >>> disk2 = VDisk('foo')
-   >>> list(disk2['/bar'])
-   ['hi there', 'just a test']
+   >>> disk2 = VDisk('/tmp/foo')
+   >>> list(disk2['/bar/baz'])
+   ['hi there\n', 'just a test\n']
 
-Since the values are BaseFile instances, one can specify a format::
+Since the values are BaseFile instances, one can wrap them in a format::
 
-   >>> from selkie.newio import NestedDict
-   >>> baz = NestedDict(disk['/bar/baz'])
-   >>> baz.save({'foo':'bar', 'baz': {'a':'1', 'b':'2'}})
-   >>> baz.load()
-   {'foo': 'bar', 'baz': {'a': '1', 'b': '2'}}
+   >>> from selkie.pyx.formats import Json
+   >>> baz = Json(disk['/bar/baz'])
+   >>> baz.store([{'foo':42, 'bar':{'a':1, 'b':2}}])
+   >>> list(baz)
+   [{'foo': 42, 'bar': {'a': 1, 'b': 2}}]
 
 As an iteration, a VDisk contains all valid pathnames.  It is not
 hierarchically structured::
@@ -61,20 +59,21 @@ directory object yields only the names within that directory::
 One may use one of the names (note the lack of leading slashes) to
 access the actual files from the Directory object::
 
-   >>> baz = NestedDict(bar['baz'])
-   >>> baz.load()
-   {'foo': 'bar', 'baz': {'a': '1', 'b': '2'}}
+   >>> list(Json(bar['baz']))
+   [{'foo': 42, 'bar': {'a': 1, 'b': 2}}]
 
 Thus one may alternatively use a sequence of directory accesses::
 
-   >>> disk['/']['bar']['baz']
-   <selkie.newio.RegularFile at 0x7f833f3c5d60>
+   >>> list(Json(disk['/']['bar']['baz']))
+   [{'foo': 42, 'bar': {'a': 1, 'b': 2}}]
+
+There is no method to delete a virtual disk. Use the standard functions::
+
+   >>> from shutil import rmtree
+   >>> rmtree('/tmp/foo')
 
 Module Documentation
 --------------------
-
-Virtual disk — ``selkie.pyx.disk``
-==================================
 
 .. automodule:: selkie.pyx.disk
 

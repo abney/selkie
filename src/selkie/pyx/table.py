@@ -1,5 +1,6 @@
 
 from .object import ListProxy, MapProxy
+
 #from .newio import Format
 
 
@@ -19,16 +20,9 @@ class Record (object):
 class Table (ListProxy):
 
     def __init__ (self, objtype, source):
-        ListProxy.__init__(self)
-
         self._source = source
         self._fmt = Format(lambda lines: lines_to_objects(objtype, lines), objects_to_lines)
-        self._contents = list(self._fmt(self._source))
-
-    def __list__ (self): return self._contents
-
-    def __repr__ (self):
-        return object.__repr__(self)
+        self.__proxyfor__ = list(self._fmt(self._source))
 
 
 def lines_to_objects (typ, lines):
@@ -77,22 +71,19 @@ class Index (MapProxy):
         else:
             keyf = key
 
-        self._index = {}
+        self.__proxyfor__ = {}
         if multi: add = self._add2
         else: add = self._add1
         for obj in table:
             add(keyf(obj), obj)
 
     def _add1 (self, key, value):
-        if key in self._index:
+        if key in self.__proxyfor__:
             raise Exception(f'Multiple records for key {repr(key)}')
-        self._index[key] = value
+        self.__proxyfor__[key] = value
 
     def _add2 (self, key, value):
-        if key in self._index:
-            self._index[key].append(value)
+        if key in self.__proxyfor__:
+            self.__proxyfor__[key].append(value)
         else:
-            self._index[key] = [value]
-
-    def __map__ (self):
-        return self._index
+            self.__proxyfor__[key] = [value]

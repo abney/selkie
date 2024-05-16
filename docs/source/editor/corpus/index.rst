@@ -6,7 +6,7 @@ Corpus File Formats
    :maxdepth: 1
    :titlesonly:
 
-   corpus
+   slf
    rom/index
    conc
 

@@ -3,15 +3,15 @@ import time, math, os, sys, pathlib
 from os import listdir
 from os.path import join, exists, expanduser
 from io import StringIO
+from .. import config
 #from ..pyx.io import load_kvi
 from ..pyx.io import tabular, pprint
 from ..pyx.seq import LazyList
 from ..pyx.object import ListProxy, MapProxy
-from ..pyx.formats import File, BaseFile, Dicts, lines_to_records, records_to_lines
+from ..pyx.formats import File, BaseFile, Dicts, Records
 #from ..pyx.formats import Nested, NestedDict,
 from ..pyx.com import Main
 from ..pyx.disk import VDisk
-from .user import User
 from ..editor.webserver import Backend
 from .drill import Drill
 
@@ -20,16 +20,11 @@ from .drill import Drill
 
 class Corpus (object):
 
-    def __init__ (self, root=None, user=None):
-        if user is None:
-            user = User()
-        if root is None:
-            root = user.props['corpus']
+    def __init__ (self, root):
         root = expanduser(root)
 
         self.disk = VDisk(root)
         self._directory = self.disk['/']
-        self._user = user
         self._langs = None
         self._roms = None
         self._index = None
@@ -38,13 +33,13 @@ class Corpus (object):
         # for lang in self._langs:
         #     lang._corpus = self
 
+    # To prevent .langs from being set
+
     def __getattr__ (self, name):
         if name == 'langs':
             if self._langs is None:
                 self._langs = LanguageTable(self)
             return self._langs
-        elif name == 'user':
-            return self._user
 
     def __getitem__ (self, name):
         return self.langs[name]
@@ -75,21 +70,21 @@ class LanguageTable (MapProxy):
     def __init__ (self, corpus):
         self._corpus = corpus
         self._file = Dicts(corpus._directory['langs'])
-        self._langs = {}
+        self.__proxyfor__ = {}
 
         for d in self._file:
             langid = d.get('id')
             if not langid:
                 print('** Missing id in langs')
                 continue
-            self._langs[langid] = Language(self, langid, d)
-
-    def __map__ (self):
-        return self._langs
+            self.__proxyfor__[langid] = Language(self, langid, d)
 
     def __str__ (self):
-        return tabular(((langid, lg.name) for (langid, lg) in self.__map__.items()),
-                       hlines=False)
+        if self.__proxyfor__:
+            return tabular(((langid, lg.name) for (langid, lg) in self.__proxyfor__.items()),
+                           hlines=False)
+        else:
+            return '(no languages)'
 
 
 class Language (MapProxy):
@@ -100,7 +95,7 @@ class Language (MapProxy):
         self._directory = None
         self._name = props.get('name', '')
         self._lexicon = None
-        self._toc = None
+        self.__proxyfor__ = None
 
         root = tab._corpus._directory
         if langid in root:
@@ -121,9 +116,9 @@ class Language (MapProxy):
             return self._langid
 
         elif name == 'toc':
-            if self._toc is None:
-                self._toc = TextTable(self)
-            return self._toc
+            if self.__proxyfor__ is None:
+                self.__proxyfor__ = TextTable(self)
+            return self.__proxyfor__
 
         elif name == 'lexicon':
             if self._lexicon is None:
@@ -176,7 +171,7 @@ class Language (MapProxy):
         return str(self.toc)
 
     def __repr__ (self):
-        return f'<Language {self._langid} {self._name}'
+        return f'<Language {self._langid} {self._name}>'
 
 
 class TextTable (MapProxy):
@@ -184,7 +179,7 @@ class TextTable (MapProxy):
     def __init__ (self, lang):
         self._lang = lang
         self._file = Dicts(lang._directory['toc'])
-        self._props = {}
+        self.__proxyfor__ = {}
 
         for d in self._file:
             txtid = d['id']
@@ -193,16 +188,13 @@ class TextTable (MapProxy):
                 text = Aggregate(meta)
             else:
                 text = Text(meta)
-            self._props[txtid] = text
+            self.__proxyfor__[txtid] = text
 
-        for text in self._props.values():
+        for text in self.__proxyfor__.values():
             text._set_children(self)
-        
-    def __map__ (self):
-        return self._props
 
     def __str__ (self):
-        if self._props:
+        if self.__proxyfor__:
             return tabular((tx.toc_entry() for tx in self.values()), hlines=False)
         else:
             return '(empty text table)'
@@ -239,7 +231,7 @@ def load_corpus (fn):
 
 #--  Lexicon, Lexent, Loc  -----------------------------------------------------
 
-class Lexent (MapProxy):
+class Lexent (object):
 
     def __init__ (self, lexicon, props):
         self._lexicon = lexicon
@@ -346,9 +338,9 @@ class Lexicon (MapProxy):
     def __init__ (self, lang):
         self._lang = lang
         self._file = Dicts(lang.directory()['/lexicon'])
-        self._table = {}
+        self.__proxyfor__ = {}
 
-        tab = self._table
+        tab = self.__proxyfor__
         for props in self._file:
             lexent = Lexent(self, props)
             form = lexent.form
@@ -360,9 +352,6 @@ class Lexicon (MapProxy):
             while i >= len(lst):
                 lst.append(None)
             lst[i] = lexent
-
-    def __map__ (self):
-        return self._table
 
     def __repr__ (self):
         return '<Lexicon {}>'.format(self._lang.langid)
@@ -508,20 +497,20 @@ class Metadata (MapProxy):
 
     def __init__ (self, lang, props):
         self._lang = lang
-        self._props = props
+        self.__proxyfor__ = props
 
         if 'ch' in props:
             props['ch'] = tuple(props['ch'].split())
 
     def __map__ (self):
-        return self._props
+        return self.__proxyfor__
 
     def __str__ (self):
-        return tabular((item for item in self._props.items()),
+        return tabular((item for item in self.__proxyfor__.items()),
                        hlines=False)
 
     def __repr__ (self):
-        return repr(self._props)
+        return repr(self.__proxyfor__)
 
 
 class Item (ListProxy):
@@ -530,6 +519,7 @@ class Item (ListProxy):
         self._meta = meta
         self._lang = meta._lang
         self._parent = None
+        self.__proxyfor__ = None  # Specializations must provide __proxyfor__
 
     def __getattr__ (self, name):
         if name == 'meta':
@@ -580,7 +570,7 @@ class Text (Item):
 
     def __init__ (self, meta):
         Item.__init__(self, meta)
-        self._sents = None
+        self.__proxyfor__ = None
 
     def __list__ (self):
         return self.sents
@@ -593,9 +583,9 @@ class Text (Item):
 
     def __getattr__ (self, name):
         if name == 'sents':
-            if self._sents is None:
-                self._sents = Sentences(self)
-            return self._sents
+            if self.__proxyfor__ is None:
+                self.__proxyfor__ = Sentences(self)
+            return self.__proxyfor__
         else:
             return Item.__getattr__(self, name)
 
@@ -615,16 +605,13 @@ class Aggregate (Item):
 
     def __init__ (self, meta):
         Item.__init__(self, meta)
-        self._children = None
+        self.__proxyfor__ = None
 
     def __getattr__ (self, name):
         if name == 'children':
-            return self._children
+            return self.__proxyfor__
         else:
             return Item.__getattr__(self, name)
-
-    def __list__ (self):
-        return self._children
 
     def is_text (self):
         return False
@@ -632,26 +619,26 @@ class Aggregate (Item):
     def _set_children (self, texts):
         ch_names = self.meta.get('ch')
         if not ch_names:
-            self._children = tuple()
+            self.__proxyfor__ = tuple()
         else:
-            self._children = tuple(texts[name] for name in ch_names)
-            for child in self._children:
+            self.__proxyfor__ = tuple(texts[name] for name in ch_names)
+            for child in self.__proxyfor__:
                 # note: if multiple documents "claim" the same child, the first one wins
                 if child._parent is None:
                     child._parent = self
 
     def walk (self):
         yield self
-        if self._children:
-            for child in self._children:
+        if self.__proxyfor__:
+            for child in self.__proxyfor__:
                 for item in child.walk():
                     yield item
 
     def pprint_tree (self):
         pprint(*self.toc_entry())
-        if self._children:
+        if self.__proxyfor__:
             with pprint.indent():
-                for child in self._children:
+                for child in self.__proxyfor__:
                     child.pprint_tree()
 
 
@@ -732,20 +719,17 @@ class Sentences (ListProxy):
 
         self._text = text
         self._file = Dicts(txtdir[text.textid])
-        self._sents = [Sentence(text, i, d) for (i, d) in enumerate(self._file)]
+        self.__proxyfor__ = [Sentence(text, i, d) for (i, d) in enumerate(self._file)]
 
     def to_dicts (self):
-        for sent in self._sents:
+        for sent in self.__proxyfor__:
             yield sent.to_dict()
 
     def to_lines (self):
         return Dicts.render(self.to_dicts())
 
-    def __list__ (self):
-        return self._sents
-
     def __repr__ (self):
-        return repr(self._sents)
+        return repr(self.__proxyfor__)
 
 
 class Sentence (ListProxy):
@@ -753,21 +737,21 @@ class Sentence (ListProxy):
     def __init__ (self, text, i, props):
         self._text = text
         self._i = i
-        self._words = props.get('w').split()
+        self.__proxyfor__ = props.get('w').split()
         self._trans = props.get('g')
 
     def to_dict (self):
-        return {'w': ' '.join(self._words),
+        return {'w': ' '.join(self.__proxyfor__),
                 'g': self._trans}
 
     def text (self): return self._text
     def i (self): return self._i
-    def words (self): return self._words
+    def words (self): return self.__proxyfor__
     def translation (self): return self._trans
-    def __list__ (self): return self._words
+    def __list__ (self): return self.__proxyfor__
 
     def intern_words (self, lex):
-        words = self._words
+        words = self.__proxyfor__
         for i in range(len(words)):
             w = words[i]
             if isinstance(w, str):
@@ -775,7 +759,7 @@ class Sentence (ListProxy):
 
 #     def __repr__ (self):
 #         words = ['<Sentence']
-#         for (i, w) in enumerate(self._words):
+#         for (i, w) in enumerate(self.__proxyfor__):
 #             if i >= 3:
 #                 words.append(' ...')
 #                 break
@@ -786,21 +770,12 @@ class Sentence (ListProxy):
 #         return ''.join(words)
 
     def __repr__ (self):
-        return repr(self._words)
+        return repr(self.__proxyfor__)
 
     def pprint (self):
         print('Sentence', self._text.textid() if self._text else '(no text)', self._i)
-        for (i, word) in enumerate(self._words):
+        for (i, word) in enumerate(self.__proxyfor__):
             print(' ', i, word)
-
-    def __len__ (self):
-        return self._words.__len__()
-    
-    def __getitem__ (self, i):
-        return self._words.__getitem__(i)
-
-    def __iter__ (self):
-        return self._words.__iter__()
 
     def __str__ (self):
         return ' '.join(self)

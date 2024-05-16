@@ -7,7 +7,7 @@ from os import makedirs, listdir
 from os.path import expanduser, join, exists, abspath
 from zipfile import ZipFile
 from ..pyx.com import Main
-from ..pyx.formats import File, Format, lines_to_blocks, blocks_to_lines, Dicts
+from ..pyx.formats import File, Format, Blocks, Dicts
 from ..pyx.io import pprint, redirect
 from ..pyx.object import MapProxy
 
@@ -163,7 +163,7 @@ class Table (object):
 
 
 def lines_to_objects (typ, lines):
-    for block in lines_to_blocks(lines):
+    for block in Blocks.from_lines(lines):
         yield block_to_object(typ, block)
 
 def block_to_object (typ, block):
@@ -181,7 +181,7 @@ def block_to_object (typ, block):
     return obj
 
 def objects_to_lines (objects):
-    return blocks_to_lines(objects_to_blocks(objects))
+    return Blocks.to_lines(objects_to_blocks(objects))
 
 def objects_to_blocks (objects):
     for obj in objects:

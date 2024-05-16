@@ -7,5 +7,4 @@ Web Application
 
    intro
    webserver
-   disk
    store

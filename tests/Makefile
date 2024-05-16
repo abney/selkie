@@ -3,3 +3,6 @@
 
 all:
 	python run_tests.py
+
+dev:
+	python run_tests.py dev

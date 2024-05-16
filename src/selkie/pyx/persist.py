@@ -1,5 +1,5 @@
 
-from .formats import Containers
+from .formats import NestedDicts
 
 
 #--  Single  -------------------------------------------------------------------
@@ -26,7 +26,7 @@ def Simple (f):
 class Container (object):
 
     def __init__ (self, f):
-        self._file = Containers(f)
+        self._file = NestedDicts(f)
         self._editing = False
         self._contents = None
         self.load()

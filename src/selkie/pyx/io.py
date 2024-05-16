@@ -16,7 +16,6 @@ from os.path import exists
 from pathlib import Path
 from collections import namedtuple
 from .seq import as_list
-from .object import MapProxy, ListProxy
 from .string import as_ascii
 from .xterm import fg
 

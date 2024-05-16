@@ -1,5 +1,6 @@
 
 import re
+from json import loads as json_parse, dumps as json_unparse
 from io import StringIO
 from os.path import expanduser, exists
 
@@ -17,7 +18,7 @@ class BaseFile (object):
         self.store(contents, 'a')
 
     def writer (self):
-        return Writer(self)
+        return _Writer(self)
 
     def __str__ (self):
         bol = True
@@ -39,7 +40,7 @@ class BaseFile (object):
 # The alternative would be to run store() in a separate thread, but
 # that would reduce space needs at the cost of increased time overhead.
 
-class Writer (object):
+class _Writer (object):
 
     def __init__ (self, f, mode='w'):
         self._file = f
@@ -69,14 +70,7 @@ class Writer (object):
 #
 #  A filter is a function that takes a stream as input and returns a stream.
 
-def File (filename=None, encoding='utf8', binary=False, contents=None, format=None):
-    f = _file1(filename, encoding, binary, contents)
-    if format is not None:
-        return FormattedFile(format, f)
-    else:
-        return f
-
-def _file1 (filename, encoding, binary, contents):
+def File (filename=None, binary=False, contents=None, **kwargs):
     if not (filename is None or contents is None):
         raise Exception('Cannot specify both filename and contents')
 
@@ -85,7 +79,7 @@ def _file1 (filename, encoding, binary, contents):
             raise Exception('Must specify either filename or contents')
         if binary:
             raise Exception('Not implemented')
-        return FileFromString(contents)
+        return StringFile(contents)
 
     elif filename == '-':
         return StdStream()
@@ -98,7 +92,7 @@ def _file1 (filename, encoding, binary, contents):
             return BinaryFile(filename)
 
         else:
-            return RegularFile(filename, encoding)
+            return RegularFile(filename, **kwargs)
 
     elif isinstance(filename, BaseFile):
         return filename
@@ -107,7 +101,7 @@ def _file1 (filename, encoding, binary, contents):
         raise Exception(f'Cannot coerce to file: {repr(filename)}')
 
 
-class FileFromString (BaseFile):
+class StringFile (BaseFile):
 
     def __init__ (self, contents=''):
         BaseFile.__init__(self)
@@ -160,19 +154,19 @@ class URLStream (BaseFile):
 
 class RegularFile (BaseFile):
 
-    def __init__ (self, fn, encoding):
+    def __init__ (self, fn, **kwargs):
         BaseFile.__init__(self)
         self.filename = expanduser(fn)
-        self.encoding = encoding
+        self.kwargs = kwargs
 
     def __iter__ (self):
         if exists(self.filename):
-            with open(self.filename, 'r', encoding=self.encoding) as f:
+            with open(self.filename, 'r', **self.kwargs) as f:
                 for line in f:
                     yield line
 
     def store (self, lines, mode='w'):
-        with open(self.filename, mode, encoding=self.encoding) as f:
+        with open(self.filename, mode, **self.kwargs) as f:
             for line in lines:
                 f.write(line)
 
@@ -194,9 +188,9 @@ class BinaryFile (BaseFile):
                 f.write(line)
 
 
-#--  Buffered  -----------------------------------------------------------------
+#--  _Buffered  -----------------------------------------------------------------
 
-class Buffered (object):
+class _Buffered (object):
 
     def __init__ (self, stream):
         self.stream = iter(stream)
@@ -225,54 +219,31 @@ class Buffered (object):
 
 #--  Format  ---------------------------------------------------------------
 
-class Format (object):
-    '''
-    A file format defines *elements* of a certain sort.
-    '''
-    def __init__ (self, read, render):
-        self.read = read
-        self.render = render
+class Format (BaseFile):
 
-    def __call__ (self, filename=None, encoding='utf8', binary=False, contents=None):
-        '''
-        Apply to *f*, which is an instance of ``BaseFile``.  The return
-        value is a ``FormattedFile``.
-        '''
-        return FormattedFile(self, _file1(filename, encoding, binary, contents))
+    @classmethod
+    def from_lines (self, lines):
+        raise NotImplementedError()
 
+    @classmethod
+    def to_lines (self, elts):
+        raise NotImplementedError()
 
-class FormattedFile (BaseFile):
-    '''
-    A specialization of ``BaseFile`` that is produced by applying a
-    ``Format`` to a file.  It contains a base file and a
-    format.  Iterating over it applies the format's ``read`` function
-    to the base file.  Storing *contents* to it applies the format's
-    ``render`` function to the *contents* and then stores the resulting lines
-    in the base file.
-    '''
-
-    def __init__ (self, fmt, f):
+    def __init__ (self, filename=None, binary=False, contents=None, **kwargs):
         BaseFile.__init__(self)
-        self._format = fmt
-        self._file = f
+        self._file = File(filename, binary, contents, **kwargs)
 
     def format (self):
-        '''
-        Returns the Format.
-        '''
-        return self._format
+        return self
 
     def base (self):
-        '''
-        Returns the BaseFile.
-        '''
         return self._file
 
     def __iter__ (self):
-        return self._format.read(iter(self._file))
+        return self.from_lines(iter(self._file))
 
     def store (self, contents, mode='w'):
-        self._file.store(self._format.render(contents), mode)
+        self._file.store(self.to_lines(contents), mode)
 
 
 # class LoadableFormat (Format):
@@ -280,25 +251,36 @@ class FormattedFile (BaseFile):
 #     pass
         
 
-
-Lines = Format(lambda x: x, lambda x: x)
+# class Lines (Format):
+# 
+#     @classmethod
+#     def to_lines (contents):
+#         return contents
+#     
+#     @classmethod
+#     def from_lines (lines):
+#         return lines
 
 
 #--  Records  ------------------------------------------------------------------
 
-def lines_to_records (lines):
-    for line in lines:
-        line = line.rstrip('\r\n')
-        if line:
-            yield line.split('\t')
-        else:
-            yield []
+class Records (Format):
 
-def records_to_lines (recs):
-    for rec in recs:
-        yield '\t'.join(rec) + '\r\n'
+    @classmethod
+    def from_lines (self, lines):
+        for line in lines:
+            line = line.rstrip('\r\n')
+            if line:
+                yield line.split('\t')
+            else:
+                yield []
+    
+    @classmethod
+    def to_lines (self, recs):
+        for rec in recs:
+            yield '\t'.join(rec) + '\n'
 
-Tabular = Records = Format(lines_to_records, records_to_lines)
+Tabular = Records
 
 
 #--  Simples  ------------------------------------------------------------------
@@ -311,163 +293,178 @@ Tabular = Records = Format(lines_to_records, records_to_lines)
 # When loading, the original objects are not reconstructed.  The value consists
 # of strings, pairs, lists and dicts.
 
-def lines_to_simples (lines):
-    return _lines_to_simples(iter(lines))
+class Simples (Format):
 
-def _lines_to_simples (lines, terminator=None):
-    try:
-        while True:
-            yield lines_to_simple(lines, terminator)
-    except StopIteration:
-        pass
-
-def lines_to_simple (lines, terminator=None):
-    line = next(lines)
-    j = -1 if line.endswith('\n') else len(line)
-    if terminator and line == terminator:
-        raise StopIteration
-    elif line.startswith('|'):
-        return line[1:j]
-    elif line.startswith(':'):
-        key = line[1:j]
-        value = lines_to_simple(lines)
-        return (key, value)
-    elif line.startswith('{'):
-        return _make_dict(_lines_to_simples(lines, '}\n'))
-    elif line.startswith('['):
-        return list(_lines_to_simples(lines, ']\n'))
-    else:
-        raise Exception(f'Unexpected line: {repr(line)}')
-
-def _make_dict (items):
-    d = {}
-    for item in items:
-        if not (isinstance(item, tuple) and len(item) == 2):
-            raise Exception(f'Expecting pairs: {repr(item)}')
-        (k,v) = item
-        d[k] = v
-    return d
-        
-def simples_to_lines (objs):
-    for obj in objs:
-        for line in simple_to_lines(obj):
-            yield line
-
-def simple_to_lines (obj):
-    if isinstance(obj, str):
-        yield '|' + obj + '\n'
-    elif isinstance(obj, dict):
-        yield '{\n'
-        for (k,v) in obj.items():
-            yield ':' + str(k) + '\n'
-            for line in simple_to_lines(v):
-                yield line
-        yield '}\n'
-    elif isinstance(obj, tuple) and len(obj) == 2 and isinstance(obj[0], str):
-        yield ':' + obj[0] + '\n'
-        for line in simple_to_lines(obj[1]):
-            yield line
-    elif isinstance(obj, list):
-        yield '[\n'
-        for elt in obj:
-            for line in simple_to_lines(elt):
-                yield line
-        yield ']\n'
-    else:
-        raise Exception(f'Not a simple: {repr(obj)}')
+    @classmethod
+    def from_lines (self, lines):
+        return self._lines_to_simples(iter(lines))
+    
+    @classmethod
+    def _lines_to_simples (self, lines, terminator=None):
+        try:
+            while True:
+                yield self.lines_to_simple(lines, terminator)
+        except StopIteration:
+            pass
+    
+    @classmethod
+    def lines_to_simple (self, lines, terminator=None):
+        line = next(lines)
+        j = -1 if line.endswith('\n') else len(line)
+        if terminator and line == terminator:
+            raise StopIteration
+        elif line.startswith('|'):
+            return line[1:j]
+        elif line.startswith(':'):
+            key = line[1:j]
+            value = self.lines_to_simple(lines)
+            return (key, value)
+        elif line.startswith('{'):
+            return self._make_dict(self._lines_to_simples(lines, '}\n'))
+        elif line.startswith('['):
+            return list(self._lines_to_simples(lines, ']\n'))
+        else:
+            raise Exception(f'Unexpected line: {repr(line)}')
+    
+    @classmethod
+    def _make_dict (self, items):
+        d = {}
+        for item in items:
+            if not (isinstance(item, tuple) and len(item) == 2):
+                raise Exception(f'Expecting pairs: {repr(item)}')
+            (k,v) = item
+            d[k] = v
+        return d
             
-Simples = Format(lines_to_simples, simples_to_lines)
-
+    @classmethod
+    def to_lines (self, objs):
+        for obj in objs:
+            for line in self.simple_to_lines(obj):
+                yield line
+    
+    @classmethod
+    def simple_to_lines (self, obj):
+        if isinstance(obj, str):
+            yield '|' + obj + '\n'
+        elif isinstance(obj, dict):
+            yield '{\n'
+            for (k,v) in obj.items():
+                yield ':' + str(k) + '\n'
+                for line in self.simple_to_lines(v):
+                    yield line
+            yield '}\n'
+        elif isinstance(obj, tuple) and len(obj) == 2 and isinstance(obj[0], str):
+            yield ':' + obj[0] + '\n'
+            for line in self.simple_to_lines(obj[1]):
+                yield line
+        elif isinstance(obj, list):
+            yield '[\n'
+            for elt in obj:
+                for line in self.simple_to_lines(elt):
+                    yield line
+            yield ']\n'
+        else:
+            raise Exception(f'Not a simple: {repr(obj)}')
+            
 
 #--  Blocks  -------------------------------------------------------------------
 
-def lines_to_blocks (lines):
-    return _records_to_blocks(lines_to_records(lines))
+class Blocks (Format):
 
-def _records_to_blocks (records):
-    block = []
-    for r in records:
-        if r:
-           block.append(r)
-        elif block:
-            yield block
-            block = []
-    if block:
-        yield block
-
-def blocks_to_lines (blocks):
-    first = True
-    for block in blocks:
-        if first:
-            first = False
-        else:
-            yield '\n'
-        for record in block:
-            yield '\t'.join(record) + '\n'
+    @classmethod
+    def from_lines (self, lines):
+        return self._records_to_blocks(Records.from_lines(lines))
     
-Blocks = Format(lines_to_blocks, blocks_to_lines)
-
+    @classmethod
+    def _records_to_blocks (self, records):
+        block = []
+        for r in records:
+            if r:
+               block.append(r)
+            elif block:
+                yield block
+                block = []
+        if block:
+            yield block
+    
+    @classmethod
+    def to_lines (self, blocks):
+        first = True
+        for block in blocks:
+            if first:
+                first = False
+            else:
+                yield '\n'
+            for record in block:
+                yield '\t'.join(record) + '\n'
+    
 
 #--  Dicts  --------------------------------------------------------------------
 
-def lines_to_dicts (lines):
-    d = {}
-    for line in lines:
-        line = line.rstrip('\r\n')
-        if line:
-            i = _first_space(line)
-            if i is None:
-                raise Exception(f'Missing value: {repr(line)}')
-            key = line[:i]
-            value = line[i+1:]
-            if key in d:
-                raise Exception(f'Duplicate key: {key}')
-            d[key] = value
-        else:
+class Dicts (Format):
+
+    @classmethod
+    def from_lines (self, lines):
+        d = {}
+        for line in lines:
+            line = line.rstrip('\r\n')
+            if line:
+                i = self._first_space(line)
+                if i is None:
+                    raise Exception(f'Missing value: {repr(line)}')
+                key = line[:i]
+                value = line[i+1:]
+                if key in d:
+                    raise Exception(f'Duplicate key: {key}')
+                d[key] = value
+            else:
+                yield d
+                d = {}
+        if d:
             yield d
-            d = {}
-    if d:
-        yield d
-
-def _first_space (line):
-    for i in range(len(line)):
-        if line[i].isspace():
-            return i
-
-def dicts_to_lines (dicts):
-    first = True
-    for d in dicts:
-        if first: first = False
-        else: yield '\n'
-        for (k,v) in d.items():
-            if not _spacefree(k):
-                raise Exception(f'Bad key: {repr(key)}')
-            yield k + ' ' + v
-        
-def _spacefree (key):
-    for i in range(len(key)):
-        if key[i].isspace():
-            return False
-    return True
-
-Dicts = Format(lines_to_dicts, dicts_to_lines)
-
+    
+    @classmethod
+    def _first_space (self, line):
+        for i in range(len(line)):
+            if line[i].isspace():
+                return i
+    
+    @classmethod
+    def dicts_to_lines (dicts):
+        first = True
+        for d in dicts:
+            if first: first = False
+            else: yield '\n'
+            for (k,v) in d.items():
+                if not _spacefree(k):
+                    raise Exception(f'Bad key: {repr(key)}')
+                yield k + ' ' + v
+            
+    @classmethod
+    def _spacefree (key):
+        for i in range(len(key)):
+            if key[i].isspace():
+                return False
+        return True
+    
 
 #--  ILines  -------------------------------------------------------------------
 
-def lines_to_ilines (lines):
-    for line in lines:
-        line = line.rstrip('\r\n')
-        i = 0
-        while i < len(line) and line[i] == ' ':
-            i += 1
-        yield (i, line[i:])
+class ILines (Format):
 
-def ilines_to_lines (ilines):
-    for (ind, line) in ilines:
-        yield '  ' * ind + line + '\n'
-
-ILines = Format(lines_to_ilines, ilines_to_lines)
+    @classmethod
+    def from_lines (self, lines):
+        for line in lines:
+            line = line.rstrip('\r\n')
+            i = 0
+            while i < len(line) and line[i] == ' ':
+                i += 1
+            yield (i, line[i:])
+    
+    @classmethod
+    def to_lines (self, ilines):
+        for (ind, line) in ilines:
+            yield '  ' * ind + line + '\n'
 
 
 #--  NestedLists  --------------------------------------------------------------
@@ -477,108 +474,120 @@ ILines = Format(lines_to_ilines, ilines_to_lines)
 #
 # The toplevel elements are the elements of the (nonexistent) block at level -1.
 
-def lines_to_nested_lists (lines):
-    stream = Buffered(lines_to_ilines(lines))
-    lst = list(ilines_to_nested_list(stream, 0))
-    if lst:
-        yield lst
+class NestedLists (Format):
 
-def ilines_to_nested_list (ilines, indent):
-    for (ind, line) in ilines:
-        if ind < indent:
-            ilines.pushback((ind, line))
-            break
-        elif ind == indent:
-            yield line
-        else:
-            ilines.pushback((ind, line))
-            lst = list(ilines_to_nested_list(ilines, ind))
-            if lst:
-                yield lst
-        
-def nested_lists_to_lines (lst):
-    return ilines_to_lines(_nested_list_to_ilines(lst, 0))
-
-def _nested_list_to_ilines (lines, ind):
-    for line in lines:
-        if isinstance(line, str):
-            yield (ind, line)
-        else:
-            for iline in _nested_list_to_ilines(line, ind + 2):
-                yield iline
-
-NestedLists = Format(lines_to_nested_lists, nested_lists_to_lines)
-
-
-#--  Containers  ---------------------------------------------------------------
-
-def lines_to_containers (lines):
-    return nested_lists_to_containers(lines_to_nested_lists(lines))
-
-def nested_lists_to_containers (lists):
-    for lst in lists:
-        yield nested_list_to_container(list(lst))
-
-def nested_list_to_container (lst):
-    out = None
-    i = 0
-    while i < len(lst):
-        if isinstance(lst[i], list):
-            raise Exception('Embedded dict without a key')
-        elif i+1 < len(lst) and isinstance(lst[i+1], list):
-            out = _insert_item(lst[i], nested_list_to_container(lst[i+1]), dict, out)
-            i += 2
-        else:
-            line = lst[i].strip()
-            k = _first_space(line)
-            if k is None:
-                out = _insert_item(None, line, list, out)
+    @classmethod
+    def from_lines (self, lines):
+        stream = _Buffered(ILines.from_lines(lines))
+        lst = list(self.ilines_to_nested_list(stream, 0))
+        if lst:
+            yield lst
+    
+    @classmethod
+    def ilines_to_nested_list (self, ilines, indent):
+        for (ind, line) in ilines:
+            if ind < indent:
+                ilines.pushback((ind, line))
+                break
+            elif ind == indent:
+                yield line
             else:
-                out = _insert_item(line[:k], line[k+1:].strip(), dict, out)
-            i += 1
-    return out
-
-def _insert_item (key, value, typ, out):
-    if out is None:
-        out = typ()
-    elif not isinstance(out, typ):
-        raise Exception(f'Inconsistent with {type(out)}: {key} {value}')
-    if key is None:
-        out.append(value)
-    elif key in out:
-        raise Exception(f'Duplicate key: {key}')
-    else:
-        out[key] = value
-    return out
-
-def containers_to_lines (conts):
-    for cont in conts:
-        for line in container_to_lines(cont):
-            yield line
-
-def container_to_lines (cont):
-    return ilines_to_lines(container_to_ilines(cont, 0))
-
-def container_to_ilines (cont, indent):
-    if isinstance(cont, dict):
-        for (k, v) in cont.items():
-            if isinstance(v, str):
-                yield (indent, k + ' ' + v)
-            elif isinstance(v, dict):
-                yield (indent, k)
-                for iline in container_to_ilines(v, indent+2):
+                ilines.pushback((ind, line))
+                lst = list(self.ilines_to_nested_list(ilines, ind))
+                if lst:
+                    yield lst
+            
+    @classmethod
+    def to_lines (self, lsts):
+        for lst in lsts:
+            for line in ILines.to_lines(self._nested_list_to_ilines(lst, 0)):
+                yield line
+    
+    @classmethod
+    def _nested_list_to_ilines (self, lines, ind):
+        for line in lines:
+            if isinstance(line, str):
+                yield (ind, line)
+            else:
+                for iline in self._nested_list_to_ilines(line, ind + 2):
                     yield iline
-            else:
-                raise Exception(f'Unexpected value type: {repr(v)}')
-    elif isinstance(cont, list):
-        for v in cont:
-            if isinstance(v, str):
-                yield (indent, v)
-            else:
-                raise Exception('Lists may only contain strings')
 
 
-Containers = Format(lines_to_containers, containers_to_lines)
+#--  NestedDicts  ---------------------------------------------------------------
+
+class NestedDicts (Format):
+
+    @classmethod
+    def from_lines (self, lines):
+        return self.from_nested_lists(NestedLists.from_lines(lines))
+    
+    @classmethod
+    def from_nested_lists (self, lists):
+        for lst in lists:
+            yield self.nested_list_to_container(list(lst))
+    
+    @classmethod
+    def nested_list_to_container (lst):
+        out = None
+        i = 0
+        while i < len(lst):
+            if isinstance(lst[i], list):
+                raise Exception('Embedded dict without a key')
+            elif i+1 < len(lst) and isinstance(lst[i+1], list):
+                out = self._insert_item(lst[i], self.nested_list_to_container(lst[i+1]), dict, out)
+                i += 2
+            else:
+                line = lst[i].strip()
+                k = _first_space(line)
+                if k is None:
+                    out = self._insert_item(None, line, list, out)
+                else:
+                    out = self._insert_item(line[:k], line[k+1:].strip(), dict, out)
+                i += 1
+        return out
+    
+    @classmethod
+    def _insert_item (self, key, value, typ, out):
+        if out is None:
+            out = typ()
+        elif not isinstance(out, typ):
+            raise Exception(f'Inconsistent with {type(out)}: {key} {value}')
+        if key is None:
+            out.append(value)
+        elif key in out:
+            raise Exception(f'Duplicate key: {key}')
+        else:
+            out[key] = value
+        return out
+    
+    @classmethod
+    def to_lines (self, conts):
+        for cont in conts:
+            for line in self.container_to_lines(cont):
+                yield line
+    
+    @classmethod
+    def container_to_lines (self, cont):
+        return ILines.to_lines(self.container_to_ilines(cont, 0))
+    
+    @classmethod
+    def container_to_ilines (self, cont, indent):
+        if isinstance(cont, dict):
+            for (k, v) in cont.items():
+                if isinstance(v, str):
+                    yield (indent, k + ' ' + v)
+                elif isinstance(v, dict):
+                    yield (indent, k)
+                    for iline in self.container_to_ilines(v, indent+2):
+                        yield iline
+                else:
+                    raise Exception(f'Unexpected value type: {repr(v)}')
+        elif isinstance(cont, list):
+            for v in cont:
+                if isinstance(v, str):
+                    yield (indent, v)
+                else:
+                    raise Exception('Lists may only contain strings')
 
 # 
 # #--  NestedDict  ---------------------------------------------------------------
@@ -627,3 +636,18 @@ Containers = Format(lines_to_containers, containers_to_lines)
 #             raise Exception(f'Unexpected value type: {repr(v)}')
 # 
 # NestedDicts = Format(lines_to_nested_dicts, nested_dicts_to_lines)
+
+class Json (Format):
+
+    @classmethod
+    def from_lines (self, lines):
+        yield json_parse(''.join(lines))
+
+    @classmethod
+    def to_lines (self, objs):
+        first = True
+        for obj in objs:
+            if not first:
+                raise Exception('Only one object can be stored in a Json file')
+            first = False
+            yield json_unparse(obj)

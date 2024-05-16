@@ -60,7 +60,7 @@ part of a smaller item that it contains. To be precise, a language item
 contains only summary information about the language.
 To get the list of items in the corpus, do::
 
-   $ cld /tmp/foo.cld items
+   $ python -m selkie.cld /tmp/foo.cld items
 
 Usage
 -----
