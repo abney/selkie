@@ -1,6 +1,9 @@
 
-Virtual disks, REST — ``selkie.pyx.disk``
-=========================================
+Virtual disks — ``selkie.pyx.disk``
+===================================
+
+VDisk
+-----
 
 This module provides "virtual disks" that behave like dicts whose
 keys are pathnames and whose values are the file contents.
@@ -72,35 +75,11 @@ There is no method to delete a virtual disk. Use the standard functions::
    >>> from shutil import rmtree
    >>> rmtree('/tmp/foo')
 
+
 Module Documentation
 --------------------
 
 .. automodule:: selkie.pyx.disk
-
-.. autoclass:: BaseDisk
-
-   .. automethod:: __iter__
-   .. automethod:: __contains__(name)
-   .. automethod:: __getitem__(name)
-   .. automethod:: __setitem__(name, value)
-   .. automethod:: __delitem__(name)
-   .. automethod:: iterdirectory(name)
-   .. automethod:: physical_pathname(name)
-   .. automethod:: __len__()
-   .. automethod:: keys()
-   .. automethod:: items()
-   .. automethod:: values()
-   .. automethod:: HEAD(fn)
-   .. automethod:: GET(fn)
-   .. automethod:: PUT(fn, value)
-   .. automethod:: DELETE(fn)
-
-.. autoclass:: Directory
-
-   .. automethod:: __init__(disk, name)
-   .. automethod:: physical_pathname(name=None)
-   .. automethod:: __iter__(self)
-   .. automethod:: __getitem__(name)
 
 .. py:class:: VDisk(root)
 
@@ -189,3 +168,10 @@ Module Documentation
    .. py:method:: values()
 
       Returns an iteration over the values (regular files).
+
+.. autoclass:: Directory
+
+   .. automethod:: __init__(disk, name)
+   .. automethod:: physical_pathname(name=None)
+   .. automethod:: __iter__(self)
+   .. automethod:: __getitem__(name)

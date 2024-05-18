@@ -6,7 +6,7 @@
 import unittest, doctest
 from sys import stdout, argv
 from os import walk
-from os.path import dirname, join
+from os.path import dirname, join, exists
 from checkdist import DistChecker
 
 here = dirname(__file__)
@@ -53,9 +53,6 @@ skip = ['nlp/glab.rst',
         # temporarily disabled
         'pyx/table.rst',
         'pyx/xterm.rst',
-        #'pyx/formats.rst',
-        'editor/corpus/slf.rst',
-        'editor/server/disk.rst',
         ]
 
 skip = set(join(docdir, path) for path in skip)
@@ -89,12 +86,23 @@ def run_tests ():
     n_doctests = run_doctests()
     n_unittests = run_unittests()
 
+    if exists('previous_results'):
+        with open('previous_results') as f:
+            for line in f:
+                values = [int(field) for field in line.split()]
+                break
+    else:
+        values = (0, 0, 0, 0)
+
     print()
-    print('SUMMARY')
-    print('Imported modules:  ', n_modules)
-    print('Documented modules:', n_automodules)
-    print('Doctests:          ', n_doctests)
-    print('Unit tests:        ', n_unittests)
+    print( 'SUMMARY             Curr Prev')
+    print(f"Imported modules:   {n_modules:4d} {values[0]:4d} {'**' if n_modules != values[0] else ''}")
+    print(f"Documented modules: {n_automodules:4d} {values[1]:4d} {'**' if n_automodules != values[1] else ''}")
+    print(f"Doctests:           {n_doctests:4d} {values[2]:4d} {'**' if n_doctests != values[2] else ''}")
+    print(f"Unit tests:         {n_unittests:4d} {values[3]:4d} {'**' if n_unittests != values[3] else ''}")
+
+    with open('previous_results', 'w') as f:
+        print(' '.join(str(v) for v in (n_modules, n_automodules, n_doctests, n_unittests)), file=f)
 
 
 def run_doctests ():

@@ -22,7 +22,8 @@ as part of description rather than documentation, but that is not
 entirely unreasonable.
 
 The SLF "file" is actually a directory, though it may of course be
-reduced to a file by using zip.
+reduced to a file by using zip. A corpus can also be converted to a
+single-file JSON format ("itemizing") and back again ("deitemizing").
 
 Concepts
 --------
@@ -30,28 +31,41 @@ Concepts
 A corpus consists of languages, and a language consists of a texts,
 a lexicon, and an (automatically generated) index.
 
-A text consists of sentences (possibly with translations), and a
-sentence consists of a sequence of forms with (optional) sense
-numbers. The lack of an explicit sense number is the same as sense 0.
+There are three basic kinds of text: *simple* texts consist of sentences,
+*aggregate* texts consist of other texts, and *empty* texts consist of
+nothing; they serve only as placeholders.
+
+A simple text consists of sentences, optionally with translations.
+A sentence consists of a sequence of forms, and a form is a particular
+normalized Unicode character sequence. (Any alteration of the character sequence
+produces a different form.)
 If the text is a transcript, the sentences may also contain time
 points.
 
-A lexicon is a table in which a key is a form plus a sense
-number. A **form** is a Unicode string representing a concrete word shape or a
-piece of a word. It is possible to designate multiple forms as
+A lexicon is a table in which the keys are forms.
+
+It is possible to designate multiple forms as
 equivalent by choosing one as the **canonical form** and linking the
 variant form(s) to it. That is used for spelling variation and spelling
 errors, and may be used for dialectal or stylistic variation. (A
 corpus represents a single linguistic variety, but one is free to
 define that variety inclusively.)
 
-An index (of word forms) is also a table whose keys are form plus
-sense number; but its values are lists of locations,
+Forms may also be abstract, in at least two ways. (1) A sense
+designator (conventionally, a period and some number of digits) may be
+added to a form to create a new sense-disambiguated form. The original
+form represents the default sense. (2) A form in the lexicon may
+represent a morpheme, and there is no requirement that a morpheme be a
+contiguous piece of text. For example, a consonant template 'ktb'
+is an acceptable morpheme.
+
+An index (of tokens) is also a table whose keys are forms;
+but its values are lists of locations,
 where a location is the pairing of a text ID and a sentence
 number.
 
-Definition
-----------
+Format Definition
+-----------------
 
 The main goal is simplicity. A corpus is represented as a (small)
 hierarchy of directories, with the following structure:
@@ -59,8 +73,9 @@ hierarchy of directories, with the following structure:
  * A **corpus** is a directory containing a metadata file named
    'langs', a subdirectory 'roms' containing romanizations, and some
    number of language subdirectories. The names of language
-   subdirectories are language IDs; neither of the names 'langs' nor
-   'roms' are valid language IDs either in ISO-639-3 or Glottolog.
+   subdirectories are language IDs. The filenames 'langs' and
+   'roms' cannot be mistaken for language IDs if one uses either
+   ISO-639-3 or Glottolog codes.
 
  * A **language** is a subdirectory whose name is a language ID.
    It contains a lexicon, a table of
@@ -72,32 +87,50 @@ hierarchy of directories, with the following structure:
    metadata, which is contained in the 'toc' file. Some texts consist
    solely of metadata.
 
-Files are in JSON format. I use the terms "object" and "map"
-interchangeably.
+All files are in a simple format in which a file consists of blocks of
+lines separated by an empty line, and each line in a block
+represents a key-value pair, separated at the first whitespace
+character. For example::
 
- * The corpus metadata file is named 'langs'. It contains a map
+   w aniin
+   g hello
+
+   w Debid ndizhnikaaz
+   g my name is David
+
+In some cases, duplicate keys are allowed, and the file is
+interpreted as a list of property-lists, and in other cases the file
+is intepreted as a list of objects or maps (and duplicate keys are not allowed).
+The following is the complete list of files:
+
+ * **Langs**. There is a single corpus metadata file, with pathname 'corpus/langs'.
+   It contains a map
    from language IDs to language entries. A language entry
    minimally has key ``name``.
 
- * The file 'lexicon' contains a map from forms to form entries.
-   A form entry is a list of sense entries, and a sense entry is an object
+ * **Lexicon**. Each language directory contains a file named 'lexicon'.
+   It contains a list of lexical entries,
+   and a lexical entry is an object
    with the following keys (all optional):
 
-    * ``type`` - Word, inflected form of word, spelling variant,
+    * ``id`` — Form. No two lexical entries may have the same form.
+
+    * ``ty`` - Type. Word, sense-disambiguated form of word, 
+      inflected form of word, spelling variant,
       etc. It is permitted to have forms that appear only in the
       lexicon and not in texts; they may be used to represent
       dependent morphemes.
 
-    * ``pos`` - Part of speech. Connects the lexical entry
+    * ``c`` - Category (part of speech). Connects the lexical entry
       to the grammar. May include morphological information.
    
-    * ``parts`` - The value is a list of senses, representing
+    * ``pp`` - Parts. The value is a list of forms, representing
       (unordered) constituents of this form. No assumptions are
       made about how the form is related to the parts. In
       particular, the form need not be the concatenation of the
       parts.
 
-    * ``gloss`` - The English translation.
+    * ``g`` - The English translation.
 
     * ``cf`` - Canonical form. We deal with spelling variation,
       spelling errors, dialectal forms, etc., by mapping all
@@ -105,23 +138,33 @@ interchangeably.
       not contain any keys except a 'cf' record and (optionally) a
       'type' record.
 
- * The file 'index' contains a map from senses to lists of
+    * ``of`` — Orthographic form. Sense-disambiguated forms can use
+      this field to indicate how the form is written in text.
+
+ * **Index**. Each language directory also contains a file named 'index'.
+   It contains a map from senses to lists of
    locations (where tokens occur). A location is a string consisting
-   of a text ID and a sentence number, separated by '.' (period).
+   of a text ID and a sentence number, separated by a period.
 
- * The 'toc' file contains a map from text IDs to text metadata. Text
-   metadata is an object containing the following keys (all optional):
+ * **Toc**. Finally, each language directory contains a file name 'toc'.
+   It contains a list of text metadata entries. A text
+   metadata entry contains the following keys:
 
-    * ``type`` - E.g., collection, book, chapter, page, text,
+    * ``id`` — The text ID. This is the only required key. No two
+      entries may have the same ID.
+
+    * ``ty`` - E.g., collection, book, chapter, page, text,
       audio. Complex texts (collections, documents, document sections,
       and so on) consist of metadata but no text file.
 
-    * ``title``
+    * ``ti`` — Title.
 
-    * ``author``
+    * ``au`` — Author.
 
-    * ``parts`` - A list of text IDs. A text should either have a
-      'parts' entry or a text file, but not both.
+    * ``ch`` - Children. A list of text IDs. A text should either have a
+      'ch' entry or a text file, but not both. A text that has a text
+      file is simple, a text that has a 'ch' entry is aggregate, and a
+      text that has neither is empty.
 
     * ``pdf`` - The pathname of a PDF file. If it is a relative
       pathname, it is interpreted relative to the directory that
@@ -133,145 +176,194 @@ interchangeably.
     * ``video`` - The pathname of a video file, or an object with keys
       'pathname', 'start', 'and 'end'.
 
- * A text file contains a list of segments that are generically called
+ * **Text files.** Each language directory contains a 'txt'
+   subdirectory that in turn contains text files whose names are text
+   IDs (numbers beginning with 1).
+   A text file contains a list of segments that are generically called
    "sentences", though they may variously represent sentences,
-   utterances, pause groups, or other similar-size pieces of text.
+   utterances, pause groups, or other similar-sized pieces of text.
    A sentence is an object with keys:
 
-    * ``text`` - The value may be either a string or a list containing
-      a mix of strings, positive numbers representing timestamps, and
-      negative numbers representing sense numbers. A sense number
-      applies to the immediately preceding form.
+    * ``w`` - Words. The value is a string consisting of
+      space-separated forms.
 
-    * ``gloss`` - The translation into English.
+    * ``t`` — Timestamp. The value is a floating-point number
+      representing seconds from the beginning of the audio.
 
-   A sentence is tokenized by dividing the strings at whitespace. The
-   result is a sequence consisting of a mix of forms, timestamps, and
-   sense numbers.
+    * ``g`` - Gloss. The translation into English.
 
 
-Hierarchical interface
+Programmatic interface
 ----------------------
 
-**Corpus**. One loads a corpus using the Corpus constructor.  The corpus has a
-``langs`` member, which is a list of languages::
+The structure of a corpus directory is as follows.
+The second column gives an expression for accessing the structural
+unit in question, assuming that *corpus* is a variable containing the
+corpus as a whole, and the third column gives the type of the object::
 
-   >>> from selkie.corpus import Corpus
+   corpus/               corpus                        Corpus
+       langs             corpus.langs                  LanguageTable
+       roms/             corpus.roms                   RomRepository
+           *romname*     corpus.roms[*romname*]        Rom
+           ...
+       *langid*/         corpus[*langid*]              Language
+           lexicon       corpus[*langid*].lexicon      Lexicon
+           index         corpus[*langid*].index        TokenIndex
+           toc           corpus[*langid*].toc          MetadataTable
+           txt/          corpus[*langid*].txt          TextTable
+               *txtid*   corpus[*langid*].txt[*txtid]  SimpleText
+               ...
+       ...
+
+The individual files ('langs', 'lexicon', 'index', and each of the roms
+and simple texts) are called corpus *items*. The contents of the items
+suffices to reconstruct the entire corpus.
+
+**Corpus**. One loads a corpus using the Corpus constructor. Let us
+create a corpus by copying an example::
+
    >>> from selkie.data import ex
-   >>> corpus = Corpus(ex('corp25.lgc'))
+   >>> from shutil import copytree, rmtree
+   >>> from os.path import exists
+   >>> if exists('/tmp/corpus'): rmtree('/tmp/corpus')
+   >>> copytree(ex('corp25.slf'), '/tmp/corpus')
+   '/tmp/corpus'
+   >>> from selkie.corpus import Corpus
+   >>> corpus = Corpus('/tmp/corpus')
+
+**Language table.**
+As indicated above, the corpus has a
+``langs`` member, which is the list of languages::
+
    >>> print(corpus.langs)
    deu German
 
-One can fetch a language by accessing langs as a dict::
+The corpus behaves like a dict that maps language IDs to languages::
 
-   >>> deu = corpus.langs['deu']
-   >>> deu.langid
+   >>> list(corpus)
+   ['deu']
+   >>> deu = corpus['deu']
+   >>> deu.langid()
    'deu'
-   >>> deu.name
+   >>> deu.full_name()
    'German'
 
-The ``toc`` member is a dict containing **items** (texts, documents, and
-collections).  It is loaded the first time it is accessed.  The
-metadata for each item is loaded at the same time::
+**Language.**
+A language has 'lexicon', 'index', 'toc', and 'txt' members::
+
+   >>> deu.lexicon
+   <Lexicon deu>
+   >>> deu.index
+   <TokenIndex deu>
+   >>> deu.toc
+   <MetadataTable deu>
+   >>> deu.txt
+   <TextTable deu>
+
+**Toc.**
+The 'toc' member of a language is a table that maps text IDs to
+metadata dicts::
+
+   >>> list(deu.toc)
+   ['1', '2', '3']
+   >>> deu.toc['1']
+   {'id': '1', 'ty': 'story', 'ti': 'Eine kleine Geschichte', 'ch': ('2', '3')}
+   >>> deu.toc['1']['ti']
+   'Eine kleine Geschichte'
+
+It prints out showing just IDs and titles:
 
    >>> print(deu.toc)
    1 story Eine kleine Geschichte
-   2 page  p1
-   3 page  p2
-   >>> len(deu.toc)
-   3
-   >>> t1 = deu.toc['1']
-   >>> print(t1.meta)
-   lang        <Language deu German>
-   textid      1
-   text_type   story
-   descr
-   author
-   title       Eine kleine Geschichte
-   orthography None
-   child_names ('2', '3')
-   catalog_id  None
-   audio       None
-   >>> t1.title
+   2 page  p1                    
+   3 page  p2                    
+
+**Text table.**
+The 'txt' member has the same keys (text IDs), but the values are text objects::
+
+   >>> list(deu.txt)
+   ['1', '2', '3']
+   >>> deu.txt['1']
+   <Aggregate 1>
+   >>> deu.txt['2']
+   <SimpleText 2>
+
+The same metadata dict that one access through 'toc' can also be accessed
+from the text itself:
+
+   >>> t1 = deu.txt['1']
+   >>> t1.metadata()
+   {'id': '1', 'ty': 'story', 'ti': 'Eine kleine Geschichte', 'ch': ('2', '3')}
+
+Convenience methods are provided to access most of the metadata items::
+
+   >>> t1.textid()
+   '1'
+   >>> t1.text_type()
+   'story'
+   >>> t1.author()
+   ''
+   >>> t1.title()
    'Eine kleine Geschichte'
 
-Subsets of interest are the documents (maximal items that are not
-collections) and the texts::
+**Hierarchical structure.**
+Texts form a hierarchical structure, represented by the children() and
+parent() methods of Text. One obtains the root of the hierarchy from
+the language::
 
+   >>> roots = deu.get_roots()
+   >>> roots
+   [<Aggregate 1>]
+   
+From there, one follows children() and parent() links::
+
+   >>> roots[0].children()
+   (<SimpleText 2>, <SimpleText 3>)
+   >>> t2 = _[0]
+   >>> t2.parent()
+   <Aggregate 1>
+
+One can also use the method walk() to iterate over all descendants of
+a text (including itself).
+
+A text has methods that characterize its intuitive level in the
+hierarchy. The largest aggregates are *collections*, which are
+distinguished by having text type 'collection'. The largest
+non-collections are *documents*. And the leaves of the hierarchy are
+simple texts. Texts have methods to test those properties:
+is_collection(), is_document(), is_simple_text(), and languages have
+methods to fetch them::
+
+   >>> deu.get_collections()
+   []
    >>> deu.get_documents()
    [<Aggregate 1>]
-   >>> deu.get_texts()
-   [<Text 2>, <Text 3>]
+   >>> deu.get_simple_texts()
+   [<SimpleText 2>, <SimpleText 3>]
 
-An aggregate behaves as a list of children, a text behaves as a
-list of sentences, and a sentence behaves like a list of words::
+**Sentences and words.**
+A simple text behaves like a list of sentences::
 
-   >>> list(t1)
-   [<Text 2>, <Text 3>, <Aggregate 4>, <Text 9>]
-   >>> t2 = t1[0]
-   >>> list(t2)
-   [<S in einem kleinen Dorf am Fluss wohnte ein Schuster>,
-    <S der Schuster war sehr arm>]
-   >>> s = t2[0]
-   >>> s[0]
-   'in'
+   >>> t3 = deu.txt['3']
+   >>> list(t3)
+   [<Sentence 1 eines Tages begegnete der Schuster ...>, <Sentence 2 Ende>]
 
-REST interface
---------------
+(Incidentally, if one accesses an aggregate like a list, the list
+elements are the children.)
 
-Alternatively, one can create a REST interface to the corpus::
+A sentence behaves like a list of words::
 
-   >>> from selkie.corpus import RESTCorpus
-   >>> corpus = RESTCorpus(corpus_filename)
+   >>> sent = t3[0]
+   >>> list(sent)
+   ['eines', 'Tages', 'begegnete', 'der', 'Schuster', 'einen', 'Bettler']
+   >>> sent[0]
+   'eines'
 
-The corpus can be accessed like a dict, or using the methods GET, PUT,
-and DELETE.  (If an object is read-only, then only GET is available.)
-The valid paths are as follows.  All entities are represented in JSON
-format.
+In addition, a sentence has methods for accessing a list of
+timestamps, and a translation::
 
-.. list-table::
-   :widths: 1 3
+   >>> sent.timestamps()
+   [(0, '1.4958'), (2, '1.9394'), (5, '2.7833'), (7, '3.3269')]
+   >>> sent.translation()
+   'one day the cobbler met a beggar'
 
-   * - ``/toc/lgid``
-     - Read-only.  Returns the toc file for the given language as a
-       list of text metadata objects.
-   * - ``/toc/lgid/textid``
-     - Read-write.  Returns the metadata for a given text.  This is a
-       dict with keys ``textid``, ``text_type``, ``author``,
-       ``title``, ``orthography``, ``filename``, and ``children``.
-
-
-Corpus and Language
--------------------
-
-.. autoclass:: selkie.corpus.Corpus
-   :members:
-
-.. autoclass:: selkie.corpus.Language
-   :members:
-
-
-Utility functions and classes
------------------------------
-
-.. py:function:: counts(items)
-
-   Returns a dict mapping the item types to their counts in the
-   iteration *items*.  Items must be hashable.
-
-.. py:class:: Records
-
-   A Records instance represents the contents of a file whose lines
-   are to be interpreted as tab-separated records.  It is not
-   necessary to wrap Records in "with".  For example::
-
-      >>> recs = Records('foo.tab')
-      >>> for (x, y) in recs: ...
-   
-   One may report errors with line numbers by calling the methods
-   ``warn()`` or ``error()``.
-
-.. py:class:: RecordGroups
-
-   Represents the contents of a file that consists of tabular
-   records that are separated into groups by empty lines.

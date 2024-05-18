@@ -372,6 +372,13 @@ Catalog of formats
       >>> list(Dicts(s))
       [{'a': '1', 'b': '2'}, {'c': '3'}]
 
+.. py:class:: PLists
+
+   A Format whose elements are property lists. A property list is a
+   list of (*key*, *value*) pairs. The disk format is the same as for
+   Dicts, except that the ordering of pairs matters and duplicates are
+   allowed.
+
 .. py:class:: ILines
 
    A Format whose elements are pairs (*ind*, *line*) where *ind* is

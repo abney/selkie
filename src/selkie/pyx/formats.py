@@ -11,8 +11,9 @@ from os.path import expanduser, exists
 
 class BaseFile (object):
 
-    def __iter__ (self): raise NotImplementedError
-    def store (self, contents, mode='w'): raise NotImplementedError
+    def __iter__ (self): raise NotImplementedError()
+    def store (self, contents, mode='w'): raise NotImplementedError()
+    def exists (self): raise NotImplementedError()
 
     def append (self, contents):
         self.store(contents, 'a')
@@ -107,6 +108,9 @@ class StringFile (BaseFile):
         BaseFile.__init__(self)
         self._contents = contents
 
+    def exists (self):
+        return True
+
     def __iter__ (self):
         with StringIO(self._contents) as f:
             for line in f:
@@ -125,6 +129,9 @@ class StringFile (BaseFile):
 
 
 class StdStream (BaseFile):
+
+    def exists (self):
+        return True
 
     def __iter__ (self):
         for line in sys.stdin:
@@ -159,6 +166,9 @@ class RegularFile (BaseFile):
         self.filename = expanduser(fn)
         self.kwargs = kwargs
 
+    def exists (self):
+        return exists(self.filename)
+
     def __iter__ (self):
         if exists(self.filename):
             with open(self.filename, 'r', **self.kwargs) as f:
@@ -176,6 +186,9 @@ class BinaryFile (BaseFile):
     def __init__ (self, fn):
         BaseFile.__init__(self)
         self.filename = fn
+
+    def exists (self):
+        return exists(self.filename)
 
     def __iter__ (self):
         with open(fn, 'rb') as f:
@@ -232,6 +245,9 @@ class Format (BaseFile):
     def __init__ (self, filename=None, binary=False, contents=None, **kwargs):
         BaseFile.__init__(self)
         self._file = File(filename, binary, contents, **kwargs)
+
+    def exists (self):
+        return self._file.exists()
 
     def format (self):
         return self
@@ -430,13 +446,13 @@ class Dicts (Format):
                 return i
     
     @classmethod
-    def dicts_to_lines (dicts):
+    def to_lines (self, dicts):
         first = True
         for d in dicts:
             if first: first = False
             else: yield '\n'
             for (k,v) in d.items():
-                if not _spacefree(k):
+                if not self._spacefree(k):
                     raise Exception(f'Bad key: {repr(key)}')
                 yield k + ' ' + v
             
@@ -447,6 +463,40 @@ class Dicts (Format):
                 return False
         return True
     
+
+#--  PLists  -------------------------------------------------------------------
+
+class PLists (Format):
+
+    @classmethod
+    def from_lines (self, lines):
+        d = []
+        for line in lines:
+            line = line.rstrip('\r\n')
+            if line:
+                i = Dicts._first_space(line)
+                if i is None:
+                    raise Exception(f'Missing value: {repr(line)}')
+                key = line[:i]
+                value = line[i+1:]
+                d.append((key, value))
+            else:
+                yield d
+                d = []
+        if d:
+            yield d
+    
+    @classmethod
+    def to_lines (self, plists):
+        first = True
+        for d in plists:
+            if first: first = False
+            else: yield '\n'
+            for (k,v) in d:
+                if not Dicts._spacefree(k):
+                    raise Exception(f'Bad key: {repr(key)}')
+                yield k + ' ' + v
+
 
 #--  ILines  -------------------------------------------------------------------
 
