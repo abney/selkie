@@ -3,7 +3,7 @@ from os import unlink, makedirs, listdir, walk
 from os.path import join, normpath, dirname, exists, isdir, expanduser
 from collections.abc import MutableMapping
 #from .object import MapProxy
-from .formats import File
+from .formats import RegularFile
 
 # def coerce_to (x, cls):
 #     return x if isinstance(x, cls) else cls(x)
@@ -52,14 +52,11 @@ class VDisk (MutableMapping):
         if isdir(fullfn):
             return Directory(self, name)
         else:
-            return File(fullfn)
+            return RegularFile(fullfn, mkdirs=True)
 
     def __setitem__ (self, fn, lines):
-        fn = self.physical_pathname(fn)
-        dn = dirname(fn)
-        if not exists(dn):
-            makedirs(dn)
-        File(fn).store(lines)
+        fullfn = self.physical_pathname(fn)
+        RegularFile(fullfn, mkdirs=True).store(lines)
 
     def __delitem__ (self, fn):
         fn = self.physical_pathname(fn)

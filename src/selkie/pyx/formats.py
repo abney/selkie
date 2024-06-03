@@ -2,7 +2,9 @@
 import re
 from json import loads as json_parse, dumps as json_unparse
 from io import StringIO
-from os.path import expanduser, exists
+from os import makedirs
+from os.path import expanduser, exists, dirname
+from collections import OrderedDict
 
 
 #--  BaseFile  -----------------------------------------------------------------
@@ -161,9 +163,10 @@ class URLStream (BaseFile):
 
 class RegularFile (BaseFile):
 
-    def __init__ (self, fn, **kwargs):
+    def __init__ (self, fn, mkdirs=False, **kwargs):
         BaseFile.__init__(self)
         self.filename = expanduser(fn)
+        self.mkdirs = mkdirs
         self.kwargs = kwargs
 
     def exists (self):
@@ -176,6 +179,9 @@ class RegularFile (BaseFile):
                     yield line
 
     def store (self, lines, mode='w'):
+        if self.mkdirs:
+            dn = dirname(self.filename)
+            makedirs(dn, exist_ok=True)
         with open(self.filename, mode, **self.kwargs) as f:
             for line in lines:
                 f.write(line)
@@ -415,55 +421,6 @@ class Blocks (Format):
                 yield '\t'.join(record) + '\n'
     
 
-#--  Dicts  --------------------------------------------------------------------
-
-class Dicts (Format):
-
-    @classmethod
-    def from_lines (self, lines):
-        d = {}
-        for line in lines:
-            line = line.rstrip('\r\n')
-            if line:
-                i = self._first_space(line)
-                if i is None:
-                    raise Exception(f'Missing value: {repr(line)}')
-                key = line[:i]
-                value = line[i+1:]
-                if key in d:
-                    raise Exception(f'Duplicate key: {key}')
-                d[key] = value
-            else:
-                yield d
-                d = {}
-        if d:
-            yield d
-    
-    @classmethod
-    def _first_space (self, line):
-        for i in range(len(line)):
-            if line[i].isspace():
-                return i
-    
-    @classmethod
-    def to_lines (self, dicts):
-        first = True
-        for d in dicts:
-            if first: first = False
-            else: yield '\n'
-            for (k,v) in d.items():
-                if not self._spacefree(k):
-                    raise Exception(f'Bad key: {repr(key)}')
-                yield k + ' ' + v
-            
-    @classmethod
-    def _spacefree (key):
-        for i in range(len(key)):
-            if key[i].isspace():
-                return False
-        return True
-    
-
 #--  PLists  -------------------------------------------------------------------
 
 class PLists (Format):
@@ -496,6 +453,95 @@ class PLists (Format):
                 if not Dicts._spacefree(k):
                     raise Exception(f'Bad key: {repr(key)}')
                 yield k + ' ' + v
+
+
+#--  Dicts  --------------------------------------------------------------------
+
+class Dicts (Format):
+
+    @classmethod
+    def from_lines (self, lines, dicttype=dict):
+        d = dicttype()
+        for line in lines:
+            line = line.rstrip('\r\n')
+            if line:
+                i = self._first_space(line)
+                if i is None:
+                    raise Exception(f'Missing value: {repr(line)}')
+                key = line[:i]
+                value = line[i+1:]
+                if key in d:
+                    raise Exception(f'Duplicate key: {key}')
+                d[key] = value
+            else:
+                yield d
+                d = dicttype()
+        if d:
+            yield d
+    
+    @classmethod
+    def _first_space (self, line):
+        for i in range(len(line)):
+            if line[i].isspace():
+                return i
+    
+    @classmethod
+    def to_lines (self, dicts):
+        first = True
+        for d in dicts:
+            if first: first = False
+            else: yield '\n'
+            for (k,v) in d.items():
+                if not self._spacefree(k):
+                    raise Exception(f'Bad key: {repr(key)}')
+                yield k + ' ' + v + '\n'
+            
+    @classmethod
+    def _spacefree (self, key):
+        for i in range(len(key)):
+            if key[i].isspace():
+                return False
+        return True
+    
+
+class OrderedDicts (Format):
+
+    @classmethod
+    def from_lines (self, lines):
+        return Dicts.from_lines(lines, OrderedDict)
+
+    @classmethod
+    def to_lines (self, dicts):
+        return Dicts.to_lines(dicts)
+
+
+#--  ObjectTables  -------------------------------------------------------------
+
+class ObjectTables (Format):
+
+    # The first key in an object is the primary key. Every object must begin
+    # with the primary key, and every object must have a unique value for
+    # the primary key.
+    #
+    # The table's keys are primary keys, and its values are the objects (dicts).
+    # A File's contents are always a list containing exactly one table.
+
+    @classmethod
+    def from_lines (self, lines):
+        tab = {}
+        primary_key = None
+        for obj in OrderedDicts.from_lines(lines):
+            for (pkey, pvalue) in obj.items(): break
+            if primary_key is None: primary_key = pkey
+            elif primary_key != pkey:
+                raise Exception(f'Object does not begin with the primary key: {obj}')
+            tab[pvalue] = obj
+        yield tab
+
+    @classmethod
+    def to_lines (self, tables):
+        if tables:
+            return OrderedDicts.to_lines(tables[0].values())
 
 
 #--  ILines  -------------------------------------------------------------------

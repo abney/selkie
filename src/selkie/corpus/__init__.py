@@ -1,14 +1,16 @@
 
 import time, math, os, sys, pathlib
-from os import listdir
+from os import listdir, walk
 from os.path import join, exists, expanduser
 from io import StringIO
+from collections import OrderedDict
+from collections.abc import Sequence
 from .. import config
 #from ..pyx.io import load_kvi
 from ..pyx.io import tabular, pprint
 from ..pyx.seq import LazyList
 from ..pyx.object import ListProxy, MapProxy
-from ..pyx.formats import File, BaseFile, Dicts, PLists, Records
+from ..pyx.formats import File, BaseFile, Dicts, PLists, Records, ObjectTables
 #from ..pyx.formats import Nested, NestedDict,
 from ..pyx.com import Main
 from ..pyx.disk import VDisk
@@ -23,43 +25,222 @@ from .drill import Drill
 #     lexicon     Lexicon
 #     index       TokenIndex
 #     txt         TextTable
-#       *txtid*   SimpleText
+#       *txtid*   Text
+
+
+def list_files (dirname):
+    n = len(dirname)
+    for (relpath, subdirnames, filenames) in walk(dirname):
+        for name in filenames:
+            print(join(relpath, name)[n:])
+
+
+#--  Items  --------------------------------------------------------------------
+#
+# Modifications to items are saved up and written to disk all at once.
+# Deleting an entire item can happen immediately.
+# A deleted item should be removed from the 'tosave' set.
+
+class ItemDisk (object):
+
+    def __init__ (self, corpus, filename):
+        self._corpus = corpus
+        self._root = expanduser(filename)
+        self._disk = VDisk(self._root)
+        self._nholds = 0
+        self._aborted = False
+        self._tosave = set()
+        self._items = {'/': self}
+
+    def corpus (self):
+        return self._corpus
+    
+    def File (self, name):
+        return self._disk[name]
+
+    def __delitem__ (self, name):
+        self._disk.__delitem__(name)
+        # there should be at most one
+        tosave = [item for item in self._tosave if item.item_name() == name]
+        for item in tosave:
+            self._tosave.remove(item)
+            
+    # for use by _Hold only
+
+    def _release (self, abort):
+        if self._nholds <= 0:
+            raise Exception('Hold count is off')
+        self._nholds -= 1
+        if abort: self._aborted = True
+        if self._nholds == 0:
+            if not self._aborted:
+                for item in self._tosave:
+                    item._save()
+            self._tosave.clear()
+            self._aborted = False
+
+    def hold (self):
+        self._nholds += 1
+        return _Hold(self)
+
+    # for use by Item only
+
+    def _modified (self, item):
+        if self._nholds > 0:
+            self._tosave.add(item)
+        else:
+            item._save()
+
+    def intern (self, name, *moreargs):
+        item = self._items.get(name)
+        if item is None:
+            if not moreargs:
+                raise Exception('Must provide cls if the item does not already exist')
+            cls = moreargs[0]
+            moreargs = moreargs[1:]
+            item = self._items[name] = cls(self, name, *moreargs)
+        return item
+
+    def __getitem__ (self, name):
+        return self._items[name]
+
+    def get (self, name, default=None):
+        return self._items.get(name, default)
+
+    def __iter__ (self):
+        return self._items.__iter__()
+
+    def __len__ (self):
+        return self._items.__len__()
+
+    def __delitem__ (self, name):
+        del self._items[name]
+        del self._disk[name]
+
+    def rmtree (self, pfx):
+        todo = [name for name in self._items if name.startswith(pfx)]
+        for name in todo:
+            self.__delitem__(name)
+
+    def filename (self):
+        return self._disk.root
+
+    def disk (self):
+        return self._disk
+
+
+class _Hold (object):
+
+    def __init__ (self, disk):
+        self._disk = disk
+
+    def __enter__ (self):
+        return self
+
+    def __exit__ (self, error_type, v, tb):
+        self._disk._release(abort=error_type)
+
+
+class Item (object):
+
+    debug = False
+
+    # Must be overridden by specializations
+    format = None
+
+    # May be overridden by specializations
+    backlinks_class = None
+
+    def __init__ (self, disk, name):
+        assert isinstance(disk, ItemDisk), 'Not an ItemDisk'
+        self._disk = disk
+        self._item_name = name
+        self._file = None
+        self._contents = None
+        self._backlinks = None
+
+    def disk (self): return self._disk
+    def corpus (self): return self._disk.corpus()
+    def item_name (self): return self._item_name
+
+    def contents (self):
+        if self._contents is None:
+            self._file = self.format(self._disk.File(self._item_name))
+            self._contents = list(self._file)
+            if self.debug: print('[READ]', self._item_name, self._contents)
+        return self._contents
+    
+    def backlinks (self):
+        if self._backlinks is None:
+            if self.backlinks_class is None:
+                raise Exception('This class has no backlinks')
+            self._backlinks = self.backlinks_class(self)
+        return self._backlinks
+
+    # So that we can put Items in a set
+
+    def __hash__ (self):
+        return hash(self._item_name)
+
+    def __cmp__ (self, other):
+        return cmp(self._item_name, other._item_name)
+        
+    def modified (self):
+        if self.debug: print('[MODIFIED]', self._item_name)
+        self._backlinks = None
+        self._disk._modified(self)
+
+    def modifying (self):
+        return self._disk.hold()
+
+    # for the use of ItemDisk only
+
+    def _save (self):
+        if self._contents is None:
+            raise Exception('Contents not set')
+        if self.debug: print('[WRITE]', self._item_name, self._contents)
+        self._file.store(self._contents)
+
+    def __repr__ (self):
+        return f'<{self.__class__.__name__} {self.item_name()}>'
 
 
 #--  Corpus, Language  ---------------------------------------------------------
 
 class Corpus (object):
 
-    def __init__ (self, root):
-        root = expanduser(root)
-
-        self._disk = VDisk(root)
-        self._langs = None
-        self._roms = None
+    def __init__ (self, filename):
+        self._items = ItemDisk(self, filename)
 
     def disk (self):
-        return self._disk
-
-    def getfile (self, name):
-        return self._disk[name]
-
-    # 'langs' and 'roms' are created on demand
-
-    def __getattr__ (self, name):
-        if name == 'langs':
-            if self._langs is None:
-                self._langs = LanguageTable(self)
-            return self._langs
-        elif name == 'roms':
-            if self._roms is None:
-                self._roms = RomRepository(self)
-            return self._roms
+        return self._items.disk()
 
     def filename (self):
-        return self.disk().root
+        return self._items.filename()
+
+    def list_files (self):
+        list_files(self.filename())
+
+    def item (self, name):
+        return self._items[name]
+
+    def intern (self, name, *moreargs):
+        return self._items.intern(name, *moreargs)
+        
+    def __getattr__ (self, name):
+        if name == 'langs':
+            return self.intern('/langs', LanguageTable)
+        elif name == 'roms':
+            # This is a directory, not an Item
+            return RomTable(self)
+        else:
+            raise AttributeError(f'No such attribute: {name}')
 
     def __getitem__ (self, name):
         return self.langs[name]
+
+    def get (self, name):
+        return self.langs.get(name)
 
     def __iter__ (self):
         return iter(self.langs)
@@ -67,40 +248,74 @@ class Corpus (object):
     def __len__ (self):
         return len(self.langs)
 
+    def language (self, name):
+        return self.langs.get(name)
+
+    def new (self, langid, fullname):
+        return self.langs.new(langid, fullname)
+
+    def __delitem__ (self, langid):
+        self.langs.__delitem__(langid)
+
     def languages (self):
         return iter(self.langs)
 
     def __repr__ (self):
         return '<Corpus {}>'.format(self.filename())
 
-    def language (self, name):
-        return self.langs.get(name)
 
+class LanguageTable (Item):
 
-class LanguageTable (MapProxy):
+    format = ObjectTables
 
-    def __init__ (self, corpus):
-        self._corpus = corpus
-        self._file = Dicts(corpus.getfile('/langs'))
-        self._table = {}
-        self.__proxyfor__ = self._table
+    def _table (self):
+        return self.contents()[0]
 
-        for entry in self._file:
-            langid = entry.get('id')
-            if not langid:
-                print('** Missing id in langs')
-                continue
-            self._table[langid] = Language(self, langid, entry)
+    def __getitem__ (self, langid):
+        lang = self._table().get(langid)
+        if lang is None:
+            raise Exception(f'No such language in corpus: {langid}')
+        return Language(self, lang)
 
-    def corpus (self):
-        return self._corpus
+    def get (self, langid):
+        return self._table().get(langid)
 
-    def item_name (self):
-        return '/langs'
+    def __iter__ (self):
+        return self._table().__iter__()
+
+    def __len__ (self):
+        return self._table().__len__()
+
+    def items (self):
+        for (key, value) in self._table().items():
+            yield (key, Language(self, value))
+
+    def keys (self):
+        return self._table().keys()
+
+    def values (self):
+        for value in self._table().values():
+            yield Language(self, value)
+
+    def __bool__ (self):
+        return bool(self._table())
+
+    def __delitem__ (self, langid):
+        self._table().__delitem__(langid)
+        self.modified()
+        self.disk().rmtree('/' + langid)
+
+    def new (self, langid, fullname):
+        table = self.contents()[0]
+        if langid in table:
+            raise Exception(f'Language already exists: {langid}')
+        table[langid] = obj = OrderedDict([('id', langid), ('name', fullname)])
+        self.modified()
+        return Language(self, obj)
 
     def __str__ (self):
-        if self._table:
-            return tabular(((langid, lg.full_name()) for (langid, lg) in self._table.items()),
+        if self:
+            return tabular(((langid, lg.fullname()) for (langid, lg) in self.items()),
                            hlines=False)
         else:
             return '(no languages)'
@@ -108,41 +323,60 @@ class LanguageTable (MapProxy):
 
 class Language (object):
 
-    def __init__ (self, tab, langid, props):
-        self._corpus = tab._corpus
-        self._langid = langid
+    def __init__ (self, langs, props):
+        assert isinstance(langs, LanguageTable), 'Not a LanguageTable'
+        self._langs = langs
         self._props = props
         self._lexicon = None
         self._index = None
-        self._txt = None
+        self._toc = None
+
+    def disk (self):
+        return self._langs.disk()
+
+    def corpus (self):
+        return self._langs.corpus()
+
+    def __getitem__ (self, prop):
+        return self._props.__getitem__(prop)
+
+    def __iter__ (self):
+        return self._props.__iter__()
+
+    def __len__ (self):
+        return self._props.__len__()
+
+    def __setitem__ (self, key, value):
+        assert isinstance(value, str), 'Value must be a string'
+        self._props[key] = value
+        self._langs.modified()
 
     def __getattr__ (self, name):
         if name == 'lexicon':
             if self._lexicon is None:
-                self._lexicon = Lexicon(self)
+                self._lexicon = self.disk().intern(self.item_name() + '/lexicon', Lexicon, self)
             return self._lexicon
         elif name == 'index':
             if self._index is None:
-                self._index = TokenIndex(self)
+                self._index = self.disk().intern(self.item_name() + '/index', TokenIndex, self)
             return self._index
-        elif name == 'txt':
-            if self._txt is None:
-                self._txt = TextTable(self)
-            return self._txt
         elif name == 'toc':
-            return self.txt.metadata()
-
-    def corpus (self):
-        return self._corpus
-
-    def item_name (self):
-        return '/' + self._langid
+            if self._toc is None:
+                self._toc = self.disk().intern(self.item_name() + '/toc', Toc, self)
+            return self._toc
+        elif name == 'txt':
+            return TextTable(self.toc, self)
+        else:
+            raise AttributeError(f'No such attribute: {name}')
 
     def langid (self):
-        return self._langid
+        return self._props['id']
 
-    def full_name (self):
+    def fullname (self):
         return self._props.get('name', '(no name given)')
+
+    def item_name (self):
+        return '/' + self.langid()
 
     def print_tree (self):
         for root in self.get_roots():
@@ -187,73 +421,37 @@ class Language (object):
         return str(self._toc)
 
     def __repr__ (self):
-        return f'<Language {self._langid} {self.full_name()}>'
+        return f'<Language {self.langid()} {self.fullname()}>'
+
+
+class TocBacklinks (object):
+
+    def __init__ (self, toc):
+        self._toc = toc
+        self._parent_table = {}
+        
+        for (parid, obj) in self._toc._table().items():
+            if 'ch' in obj:
+                for childid in obj['ch'].split():
+                    if childid not in self._parent_table:
+                        self._parent_table[childid] = parid
+
+    def parent (self, textid):
+        return self._parent_table.get(textid)
 
 
 # The difference between a TextTable and a Toc is that the values
-# in a TextTable are Texts, whereas the values in a Toc are Metadata
+# in a TextTable are Texts, whereas the values in a Toc are TextMetadata
 # instances.
 
-class MetadataTable (object):
+class Toc (Item):
 
-    def __init__ (self, table):
-        self._table = table
+    format = ObjectTables
+    backlinks_class = TocBacklinks
 
-    def __getitem__ (self, textid):
-        return self._table[textid].metadata()
-
-    def __iter__ (self):
-        return self._table.__iter__()
-
-    def __len__ (self):
-        return self._table.__len__()
-
-    def items (self):
-        for (textid, txt) in self._table.items():
-            yield (textid, txt.metadata())
-    
-    def keys (self):
-        return self._table.keys()
-
-    def values (self):
-        for txt in self._table.values():
-            yield txt.metadata()
-
-    def item_name (self):
-        return self._table.item_name()
-
-    def __repr__ (self):
-        return f'<MetadataTable {self._table.langid()}>'
-
-    def __str__ (self):
-        if self._table:
-            return tabular((tx.toc_entry() for tx in self._table.values()), hlines=False)
-        else:
-            return '(empty text table)'
-
-class TextTable (MapProxy):
-
-    def __init__ (self, lang):
+    def __init__ (self, corpus, name, lang):
+        Item.__init__(self, corpus, name)
         self._lang = lang
-        self._file = Dicts(lang.corpus().getfile(self.item_name()))
-        self._metadata = MetadataTable(self)
-        self._dict = {}
-        self.__proxyfor__ = self._dict
-
-        for d in self._file:
-            txtid = d['id']
-            metadata = Metadata(lang, d)
-            if 'ch' in d:
-                text = Aggregate(lang, metadata)
-            else:
-                text = SimpleText(lang, metadata)
-            self._dict[txtid] = text
-
-        # after all the toc file has been loaded and all texts have metadata,
-        # set parent and children values
-
-        for text in self._dict.values():
-            text._set_children(self)
 
     def langid (self):
         return self._lang.langid()
@@ -261,13 +459,123 @@ class TextTable (MapProxy):
     def language (self):
         return self._lang
 
-    # 'txt' is not actually an item
+    def text_table (self):
+        return self._lang.txt
+
+    def _table (self):
+        return self.contents()[0]
+
+    def __getitem__ (self, textid):
+        obj = self._table()[textid]
+        return TextMetadata(self, obj)
+
+    def __iter__ (self):
+        return self._table().__iter__()
+
+    def __len__ (self):
+        return self._table().__len__()
+
+    def __bool__ (self):
+        return self._table().__bool__()
+
+    def items (self):
+        for (textid, obj) in self._table().items():
+            yield (textid, TextMetadata(self, obj))
+    
+    def keys (self):
+        return self._table().keys()
+
+    def values (self):
+        for obj in self._table().values():
+            yield TextMetadata(self, obj)
+
+    def new (self, textid, **kwargs):
+        obj = OrderedDict([('id', textid)] + list(kwargs.items()))
+        self._table()[textid] = obj
+        self.modified()
+        return TextMetadata(self, obj)
+
+    def __delitem__ (self, textid):
+        table = self._table()
+        del table[textid]
+        self.modified()
+        del self.text_table()[textid]
+
+    def _toc_entry (self, obj):
+        return (obj.get('id'), obj.get('ty'), obj.get('ti'))
+
+    # for use by Text only
+    
+    def _parent (self, textid):
+        return self.backlinks().parent(textid)
+
+    def __str__ (self):
+        table = self._table()
+        if table:
+            return tabular((self._toc_entry(obj) for obj in table.values()), hlines=False)
+        else:
+            return '(empty text table)'
+
+
+def pget (plist, key):
+    for (k, value) in plist:
+        if k == key:
+            return value
+
+
+class TextTable (object):
+
+    def __init__ (self, toc, lang):
+        self._toc = toc
+        self._lang = lang
+
+    def toc (self):
+        return self._toc
+    
+    def langid (self):
+        return self._lang.langid()
+
+    def language (self):
+        return self._lang
+
+    def corpus (self):
+        return self._lang.corpus()
+
+    def toc (self):
+        return self._lang.toc
+
+    # although 'txt' is not actually an item
     
     def item_name (self):
-        return self._lang.item_name() + '/toc'
+        return self._lang.item_name() + '/txt'
 
-    def metadata (self):
-        return self._metadata
+    def __getitem__ (self, textid):
+        return Text(self._lang, self._toc[textid])
+
+    def __iter__ (self):
+        return self._toc.__iter__()
+
+    def __len__ (self):
+        return self._toc.__len__()
+
+    def keys (self):
+        return self._toc.keys()
+
+    def items (self):
+        for (textid, metadata) in self._toc.items():
+            yield (textid, Text(self._lang, metadata))
+
+    def values (self):
+        for (textid, text) in self.items():
+            yield text
+
+    def new (self, textid, **kwargs):
+        metadata = self.toc().new(textid, **kwargs)
+        return Text(self._lang, metadata)
+
+    def __delitem__ (self, textid):
+        item_name = self.item_name() + '/' + textid
+        del self.corpus().items[item_name]
 
     def __repr__ (self):
         return f'<TextTable {self._lang.langid()}>'
@@ -279,7 +587,7 @@ def open_language (cname, lname):
     return lang
     
 
-class RomRepository (object):
+class RomList (object):
 
     def __init__ (self, corpus):
         self._corpus = corpus
@@ -316,41 +624,57 @@ def load_corpus (fn):
 ##  The constructor is called while building the language's TextList.  Thus the __init__
 ##  method should not seek to access lang.toc.
 
-class Metadata (MapProxy):
+class TextMetadata (object):
     
     FileKeys = {'id', 'ty', 'de', 'au', 'ti', 'or', 'ch', 'no', 'audio'}
 
-    def __init__ (self, lang, props):
-        self._lang = lang
-        self.__proxyfor__ = props
-
-        if 'ch' in props:
-            props['ch'] = tuple(props['ch'].split())
+    def __init__ (self, toc, props):
+        assert isinstance(toc, Toc), 'Not a Toc'
+        self._toc = toc
+        self._props = props
 
     def language (self):
-        return self._lang
+        return self._toc.language()
 
     def corpus (self):
-        return self._lang.corpus()
+        return self._toc.corpus()
 
-    def __map__ (self):
-        return self.__proxyfor__
+    def textid (self):
+        return self._props['id']
+
+    def __getitem__ (self, key):
+        return self._props[key]
+
+    def get (self, key, default=None):
+        return self._props.get(key, default)
+
+    def __iter__ (self):
+        return self._props.__iter__()
+
+    def __len__ (self):
+        return self._props.__len__()
+
+    def __setitem__ (self, key, value):
+        self._props[key] = value
+        self._toc.modified()
+
+    def __delitem__ (self, key):
+        del self._props[key]
+        self._toc.modified()
 
     def __str__ (self):
-        return tabular((item for item in self.__proxyfor__.items()),
+        return tabular((item for item in self._props.items()),
                        hlines=False)
 
     def __repr__ (self):
-        return repr(self.__proxyfor__)
+        return f"<TextMetadata {self._toc.langid()} {self.textid()}>"
 
 
-class Text (object):
+class Text (Sequence):
 
     def __init__ (self, lang, metadata):
         self._lang = lang
         self._metadata = metadata
-        self._parent = None
-        self._children = None
 
     def language (self):
         return self._lang
@@ -362,16 +686,13 @@ class Text (object):
         return self._metadata
 
     def parent (self):
-        return self._parent
+        # Value None if there is no parent
+        parentid = self._lang.toc._parent(self.textid())
+        if parentid is not None:
+            return self._lang.txt[parentid]
 
-    def children (self):
-        return self._children
-
-    # Called by TextTable after all texts have been created.
-    # Overridden by Aggregate.
-
-    def _set_children (self, table):
-        pass
+    def has_children (self):
+        return 'ch' in self._metadata
 
     def walk (self):
         yield self
@@ -395,7 +716,7 @@ class Text (object):
         return self._metadata.get('au', '')
 
     def is_root (self):
-        return self._parent is None
+        return self.parent() is None
 
     def is_collection (self):
         return self._metadata.get('ty') == 'collection'
@@ -404,10 +725,12 @@ class Text (object):
         return not self.is_collection()
 
     def is_document (self):
-        return self.is_document_part() and (self._parent is None or self._parent.is_collection())
+        if self.is_document_part():
+            parent = self.parent()
+            return parent is None or parent.is_collection()
 
     def is_simple_text (self):
-        return isinstance(self, SimpleText)
+        return not self.has_children()
 
     def is_vocabulary (self):
         return self._metadata.get('ty') == 'vocab'
@@ -420,55 +743,35 @@ class Text (object):
             if txt.is_simple_text():
                 yield txt
 
-    def toc_entry (self):
-        return (self.textid(), self._metadata.get('ty'), self._metadata.get('ti'))
-
     def __repr__ (self):
         return f'<{self.__class__.__name__} {self.textid()}>'
 
-
-class SimpleText (Text):
-
-    def __init__ (self, *args):
-        Text.__init__(self, *args)
-        self._sents = None
-
-    def sentences (self):
-        if self._sents is None:
-            self._sents = Sentences(self)
-        return self._sents
+    def _list (self):
+        ch = self.children()
+        return self.sentences() if ch is None else ch
 
     def __iter__ (self):
-        return self.sentences().__iter__()
+        return self._list().__iter__()
 
     def __getitem__ (self, i):
-        return self.sentences().__getitem__(i)
+        return self._list().__getitem__(i)
 
     def __len__ (self):
-        return self.sentences().__len__()
+        return self._list().__len__()
+
+    def append (self, *args, **kwargs):
+        self._list().append(*args, **kwargs)
+
+    ## Simple Texts
+
+    def sentences (self):
+        return self.corpus().intern(self.item_name(), SentenceList)
 
     def pprint_tree (self):
         pprint(*self.toc_entry())
 
     def __str__ (self):
         return ''.join(self.sentences().to_lines())
-
-
-class Aggregate (Text):
-
-    def __init__ (self, *args):
-        Text.__init__(self, *args)
-        self._children = None
-
-    # Called by TextTable after all texts have been created (with metadata).
-
-    def _set_children (self, table):
-        if self._children is None:
-            self._children = tuple(table[textid] for textid in self._metadata.get('ch'))
-            for child in self._children:
-                # note: if multiple documents "claim" the same child, the first one wins
-                if child._parent is None:
-                    child._parent = self
 
     def pprint_tree (self):
         pprint(*self.toc_entry())
@@ -477,60 +780,72 @@ class Aggregate (Text):
                 for child in self.__proxyfor__:
                     child.pprint_tree()
 
-
-class TextList (object):
-
-    def __init__ (self, lang, texts):
-        texts = list(texts)
-
-        self._contents = texts
-        self._index = dict((t.name(), t) for t in texts)
-
-        SimpleText._set_children_and_parents(texts)
-        for text in texts:
-            text._set_sentences(lang)
-
-    def __len__ (self):
-        return self._contents.__len__()
-
-    def __getitem__ (self, i):
-        if isinstance(i, str):
-            return self._index[i]
-        else:
-            return self._contents[i]
-
-    def __iter__ (self):
-        return self._contents.__iter__()
+    ## Aggregate Texts
     
-    def roots (self):
-        for text in self._contents:
-            if text.parent() is None:
-                yield text
+    def children (self):
+        if 'ch' in self._metadata:
+            chids = self._metadata['ch'].split()
+            txt = self._lang.txt
+            return [txt[chid] for chid in chids]
 
-    def tokens (self):
-        for text in self._contents:
-            for sent in text.sentences():
-                for (j, word) in enumerate(sent):
-                    yield (Loc(text.textid(), sent.i(), j), word)
+#     def _set_children (self, table):
+#         if self._children is None:
+#             self._children = tuple(table[textid] for textid in self._metadata.get('ch'))
+#             for child in self._children:
+#                 # note: if multiple documents "claim" the same child, the first one wins
+#                 if child._parent is None:
+#                     child._parent = self
 
-    @staticmethod
-    def write_tree (f, text, indent):
-        if indent: f.write(' ' * indent)
-        f.write('[')
-        f.write(str(text.textid()))
-        f.write('] ')
-        f.write(text.title() or '(no title)')
-        indent += 2
-        if text.has_children():
-            for child in text.children():
-                f.write('\n')
-                TextList.write_tree(f, child, indent)
-        
-    def print_tree (self):
-        roots = self.roots()
-        for root in roots:
-            self.write_tree(sys.stdout, root, 0)
-            print()
+
+# class TextList (object):
+# 
+#     def __init__ (self, lang, texts):
+#         texts = list(texts)
+# 
+#         self._contents = texts
+#         self._index = dict((t.name(), t) for t in texts)
+# 
+#     def __len__ (self):
+#         return self._contents.__len__()
+# 
+#     def __getitem__ (self, i):
+#         if isinstance(i, str):
+#             return self._index[i]
+#         else:
+#             return self._contents[i]
+# 
+#     def __iter__ (self):
+#         return self._contents.__iter__()
+#     
+#     def roots (self):
+#         for text in self._contents:
+#             if text.parent() is None:
+#                 yield text
+# 
+#     def tokens (self):
+#         for text in self._contents:
+#             for sent in text.sentences():
+#                 for (j, word) in enumerate(sent):
+#                     yield (Loc(text.textid(), sent.i(), j), word)
+# 
+#     @staticmethod
+#     def write_tree (f, text, indent):
+#         if indent: f.write(' ' * indent)
+#         f.write('[')
+#         f.write(str(text.textid()))
+#         f.write('] ')
+#         f.write(text.title() or '(no title)')
+#         indent += 2
+#         if text.has_children():
+#             for child in text.children():
+#                 f.write('\n')
+#                 TextList.write_tree(f, child, indent)
+#         
+#     def print_tree (self):
+#         roots = self.roots()
+#         for root in roots:
+#             self.write_tree(sys.stdout, root, 0)
+#             print()
 
 
 # join(self.lang.dirname, 'toc')
@@ -547,23 +862,64 @@ class TextList (object):
 # list(Tokfile(self))
 
 
-class Sentences (ListProxy):
+class SentenceList (Item, Sequence):
     
-    def __init__ (self, text):
-        self._text = text
-        self._file = PLists(text.corpus().getfile(text.item_name()))
-        self._sents = [Sentence(text, i, plist) for (i, plist) in enumerate(self._file, 1)]
-        self.__proxyfor__ = self._sents
+    format = PLists
 
-    def __repr__ (self):
-        return repr(self._sents)
+    def __iter__ (self):
+        for (i, obj) in enumerate(self.contents()):
+            yield Sentence(self, i, obj)
+            
+    def __getitem__ (self, i):
+        sents = self.contents()
+        if i < 0:
+            i = len(sents) + i
+            if i < 0:
+                raise IndexError()
+        return Sentence(self, i, sents[i])
 
+    def __len__ (self):
+        return len(self.contents())
+
+    def _parse_rawsent (self, rawsent, gloss):
+        out = []
+        if isinstance(rawsent, str):
+            out.append(('w', rawsent))
+        else:
+            for elt in rawsent:
+                if isinstance(elt, str):
+                    out.append(('w', elt))
+                elif isinstance(elt, (float, int)):
+                    out.append(('t', str(elt)))
+                else:
+                    raise Exception(f'Bad element in sentence: {repr(elt)}')
+        if gloss is not None:
+            assert isinstance(gloss, str), 'Gloss is not a string'
+            out.append(('g', gloss))
+        return out
+
+    def append (self, rawsent, gloss=None):
+        '''rawsent is a string or an iterable containing strings and floats.'''
+        sents = self.contents()
+        i = len(sents)
+        obj = self._parse_rawsent(rawsent, gloss)
+        sents.append(obj)
+        self.modified()
+        
 
 class Sentence (ListProxy):
 
-    def __init__ (self, text, sno, plist):
-        self._text = text
+    def __init__ (self, sentences, sno, plist):
+        self._sentences = sentences
         self._sno = sno
+        self._words = None
+        self._timestamps = None
+        self._trans = None
+        self.__proxyfor__ = None
+
+        self._parse_contents(plist)
+
+    def _parse_contents (self, plist):
         self._words = []
         self._timestamps = []
         self._trans = None
@@ -658,7 +1014,17 @@ class Lexent (object):
         
     def form (self): return self._obj['id']
     def gloss (self): return self._obj.get('g', '')
-    def parts (self): return self._obj.get('pp', '').split()
+
+    def parts (self):
+        lex = self._lexicon
+        with lex.modifying():
+            return [lex.intern(form) for form in self._obj.get('pp', '').split()]
+
+    def partof (self):
+        return self._lexicon.backlinks().partof(self.form())
+
+    def variants (self):
+        return self._lexicon.backlinks().variants(self.form())
 
     def __lt__ (self, other):
         return self._form < other._form
@@ -721,45 +1087,75 @@ class Loc (object):
         return '<Loc {}.{}.{}>'.format(self._t, self._s, '' if self._w is None else self._w)
 
 
-class Lexicon (object):
+class LexiconBacklinks (object):
 
-    def __init__ (self, lang):
-        self._corpus = lang.corpus()
-        self._lang = lang
-        self._file = Dicts(self._corpus.getfile(self.item_name()))
-        self._entries = None
+    def __init__ (self, lexicon):
+        self._lexicon = lexicon
+        self._table = {}
+        
+        table = self._table
+        for (form, obj) in self._lexicon._table().items():
 
-    def item_name (self):
-        return self._lang.item_name() + '/lexicon'
+            if 'pp' in obj:
+                for part in obj['pp'].split():
+                    self._add_backlink(part, 'po', form)
 
-    def entries (self):
-        if self._entries is None:
-            self._entries = tab = {}
-            for obj in self._file:
-                lexent = Lexent(self, obj)
-                form = lexent.form()
-                if form in tab:
-                    print(f"** Duplicate entries in lexicon for form '{form}'; keeping the last one only")
-                else:
-                    tab[form] = lexent
-        return self._entries
+            if 'cf' in obj:
+                self._add_backlink(obj['cf'], 'vv', form)
 
-    def __repr__ (self):
-        return '<Lexicon {}>'.format(self._lang.langid())
-
-    def __iter__ (self): return self.entries().__iter__()
-    def __getitem__ (self, form): return self.entries().__getitem__(form)
-    def __len__ (self): return self.entries().__len__()
-
-    def intern (self, key):
-        tab = self._entdict
-        if key in tab:
-            return tab[key]
+    def _add_backlink (self, form, key, value):
+        table = self._table
+        if form in table:
+            obj = table[form]
         else:
-            ent = Lexent(key)
-            tab[key] = ent
-            self._entries.append(ent)
-            return ent
+            obj = table[form] = {}
+        if key in obj:
+            obj[key].append(value)
+        else:
+            obj[key] = [value]
+
+    def _get_backlinks (self, form, key):
+        lex = self._lexicon
+        if form in self._table:
+            values = self._table[form].get(key)
+            if values:
+                return [lex[value] for value in values]
+        return []
+
+    def partof (self, form):
+        return self._get_backlinks(form, 'po')
+
+    def variants (self, textid):
+        return self._get_backlinks(form, 'vv')
+
+
+class Lexicon (Item):
+
+    format = ObjectTables
+    backlinks_class = LexiconBacklinks
+
+    def __init__ (self, corpus, name, lang):
+        Item.__init__(self, corpus, name)
+        self._lang = lang
+
+    def _table (self):
+        return self.contents()[0]
+
+    def __iter__ (self): return self._table().__iter__()
+    def __len__ (self): return self._table().__len__()
+
+    def __getitem__ (self, form):
+        return Lexent(self, self._table().__getitem__(form))
+
+    def intern (self, form):
+        tab = self._table()
+        if form in tab:
+            obj = tab[form]
+        else:
+            obj = OrderedDict([('id', form)])
+            tab[form] = obj
+            self.modified()
+        return Lexent(self, obj)
 
     ##  Load  --------------------------
 
@@ -881,13 +1277,13 @@ class Lexicon (object):
         return Concordance(self, ent)
 
 
-class TokenIndex (object):
+class TokenIndex (Item):
 
-    def __init__ (self, lang):
+    format = Dicts
+
+    def __init__ (self, corpus, name, lang):
+        Item.__init__(self, corpus, name)
         self._lang = lang
-
-    def __repr__ (self):
-        return f'<TokenIndex {self._lang.langid()}>'
 
 
 #--  Concordance  --------------------------------------------------------------

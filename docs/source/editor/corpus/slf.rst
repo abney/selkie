@@ -211,7 +211,7 @@ corpus as a whole, and the third column gives the type of the object::
            index         corpus[*langid*].index        TokenIndex
            toc           corpus[*langid*].toc          MetadataTable
            txt/          corpus[*langid*].txt          TextTable
-               *txtid*   corpus[*langid*].txt[*txtid]  SimpleText
+               *txtid*   corpus[*langid*].txt[*txtid]  Text
                ...
        ...
 
@@ -220,16 +220,46 @@ and simple texts) are called corpus *items*. The contents of the items
 suffices to reconstruct the entire corpus.
 
 **Corpus**. One loads a corpus using the Corpus constructor. Let us
-create a corpus by copying an example::
+first create a temp directory to work in::
+
+   >>> from tempfile import TemporaryDirectory
+   >>> tmp = TemporaryDirectory()
+
+And let us create a corpus by copying an example::
 
    >>> from selkie.data import ex
-   >>> from shutil import copytree, rmtree
-   >>> from os.path import exists
-   >>> if exists('/tmp/corpus'): rmtree('/tmp/corpus')
-   >>> copytree(ex('corp25.slf'), '/tmp/corpus')
-   '/tmp/corpus'
+   >>> from shutil import copytree
+   >>> from os.path import join
+   >>> corpus_filename = join(tmp.name, 'corpus')
+   >>> bool(copytree(ex('corp25.slf'), corpus_filename))
+   True
+   
+Opening the corpus::
+
    >>> from selkie.corpus import Corpus
-   >>> corpus = Corpus('/tmp/corpus')
+   >>> corpus = Corpus(corpus_filename)
+
+A corpus behaves like a dict whose keys are language IDs::
+
+   >>> list(corpus)
+   ['deu']
+   >>> corpus['deu']
+   <Language deu German>
+
+The methods __iter__(), __len__(), keys(), items(), and values() are
+also available and work as one would expect.
+One can use the method new() to add a new language::
+
+   >>> corpus.new('oji', 'Ojibwe')
+   <Language oji Ojibwe>
+   >>> list(corpus)
+   ['deu', 'oji']
+   
+And one can delete a language using del::
+
+   >>> del corpus['oji']
+   >>> list(corpus)
+   ['deu']
 
 **Language table.**
 As indicated above, the corpus has a
@@ -238,18 +268,36 @@ As indicated above, the corpus has a
    >>> print(corpus.langs)
    deu German
 
-The corpus behaves like a dict that maps language IDs to languages::
+One may equally treat corpus.langs as a dict containing languages. In
+fact, dict method calls placed on the corpus are simply dispatched to
+corpus.langs. (The method new() is an honorary "dict method call".)
 
-   >>> list(corpus)
-   ['deu']
+**Language.**
+A language has an ID and a full name::
+
    >>> deu = corpus['deu']
    >>> deu.langid()
    'deu'
-   >>> deu.full_name()
+   >>> deu.fullname()
    'German'
 
-**Language.**
-A language has 'lexicon', 'index', 'toc', and 'txt' members::
+Alternatively, the properties listed in the 'langs' file can be
+accessed by treating the language as a dict::
+
+   >>> deu['id']
+   'deu'
+   >>> deu['name']
+   'German'
+
+Similarly, they may be modified, and the change is automatically
+written to disk::
+
+   >>> deu['name'] = 'Deutsch (German)'
+   >>> deu['name']
+   'Deutsch (German)'
+
+Corresponding to the files in the language directory, a language has
+attributes 'lexicon', 'index', 'toc', and 'txt'::
 
    >>> deu.lexicon
    <Lexicon deu>
@@ -261,22 +309,35 @@ A language has 'lexicon', 'index', 'toc', and 'txt' members::
    <TextTable deu>
 
 **Toc.**
-The 'toc' member of a language is a table that maps text IDs to
-metadata dicts::
+A table of contents ('toc') is a table that maps text IDs to
+metadata::
 
    >>> list(deu.toc)
    ['1', '2', '3']
    >>> deu.toc['1']
-   {'id': '1', 'ty': 'story', 'ti': 'Eine kleine Geschichte', 'ch': ('2', '3')}
-   >>> deu.toc['1']['ti']
-   'Eine kleine Geschichte'
+   <TextMetadata deu 1>
 
-It prints out showing just IDs and titles:
+The toc prints out showing just IDs and titles::
 
    >>> print(deu.toc)
    1 story Eine kleine Geschichte
    2 page  p1                    
    3 page  p2                    
+
+One can add new texts to the toc::
+
+
+
+Text metadata behaves like a dict::
+
+   >>> meta = deu.toc['1']
+   >>> meta['ti']
+   'Eine kleine Geschichte'
+   >>> print(meta)
+   id 1                     
+   ty story                 
+   ti Eine kleine Geschichte
+   ch 2 3                   
 
 **Text table.**
 The 'txt' member has the same keys (text IDs), but the values are text objects::
@@ -367,3 +428,172 @@ timestamps, and a translation::
    >>> sent.translation()
    'one day the cobbler met a beggar'
 
+API Documentation
+-----------------
+
+The corpus is built on top of a VDisk that associates Files with
+names. First, the disk is wrapped in a BatchDisk, which collects a
+list of modified items for saving as a batch.
+And the Files are wrapped in Items, which apply a Format to the
+File, store the resulting contents, and manage edits. After
+editing the contents, one calls the item's 'modified()' method, which
+adds the item to the BatchDisk's list. Edits may be done in a
+'with' clause applied to the BatchDisk. On exit, all modified items
+are saved. (Outside a 'with' clause, modified() causes an immediate
+save.)
+
+Classes that specialize CorpusItem have a 'format' member that is used
+to instantiate items. That is, the item class determines the file format.
+
+The only caching is the creation of backlinks. The Toc and the Lexicon
+both have backlinks. Each has a backlinks() method, which instantiates
+an appropriate backlinks object the first time it is called. When
+an item that has backlinks is flagged as modified(), its cached value
+for backlinks is cleared.
+
+The Corpus maintains a cache that maps item names to items. When a new
+item is visited, one must provide its type.
+
+.. py:class:: BatchDisk
+
+   Wraps a VDisk and adds the hold() and modified() methods.
+   Call hold() in a 'with' clause to hold saves until the 'with'
+   clause is ended.
+   
+   Although not included here, Item does implement __hash__() and
+   __cmp__(), permitting Items to be used in sets or as keys for
+   dicts. Two Items with the same name are equal.
+
+   .. py:attribute:: root
+
+      The pathname corresponding to the root of the disk.
+
+   .. py:method:: __getitem__(name)
+
+      Passed through to the VDisk.      
+            
+   .. py:method:: hold()
+
+      Creates a "hold" object for use in a 'with' clause. When the
+      clause ends, the object notifies this BatchDisk. The BatchDisk
+      keeps a count of active holds. When the last one ends, all
+      modified items are saved.
+
+.. py:class:: Item(disk, name, fmt)
+
+   An Item is created on a BatchDisk (*disk*) and is identified by a
+   *name* that is unique to it. *Fmt* is applied to the File to get
+   the contents of the item.
+
+   .. py:attribute:: debug
+
+      A class attribute that can be set True to cause messages to
+      print whenever items are read or written.
+
+   .. py:method:: disk()
+
+      Returns the BatchDisk.
+
+   .. py:method:: item_name()
+
+      Returns the item name.
+
+   .. py:method:: contents()
+
+      Returns the object read from the formatted File. One may modify
+      it, but changes will not be saved unless one calls
+      modified().
+
+   .. py:method:: modified()
+
+      Notifies the BatchDisk that this Item is modified. If there is a
+      hold on the disk, the Item goes into a set of modified
+      items. Since it is a set, calling modified() multiple times has
+      no effect after the first time. When the hold is released, or
+      immediately, if there is no hold, the disk saves the Item,
+      calling the store() method of the underlying File.
+
+.. py:class:: CorpusItem(corpus, item_name)
+
+   A specialization of Item for use in a Corpus. The Item is created
+   on the disk in the corpus, and its format is determined by the
+   class of the Item. (Each specialization of CorpusItem is associated
+   with a format.)
+
+   .. py:attribute:: format
+
+      This is a class attribute that must be provided by any
+      specialization. The Item class determines the file format for
+      its instances.
+
+   .. py:method:: corpus()
+
+      Returns the corpus.
+
+.. py:class:: Corpus(root)
+
+   *Root* is a pathname. It may begin with '~'.
+
+   A Corpus wraps a BatchDisk. It has its own mapping from item names
+   to Items. (In addition, the corpus its self is the value of the
+   name '/'.)
+
+   .. py:method:: disk()
+
+      Returns the BatchDisk.
+
+   .. py:method:: filename()
+
+      Returns the root filename.
+
+   .. py:method:: item(name)
+
+      Returns the item with the given *name*, if it exists. Signals an
+      error otherwise.
+
+   .. py:method:: intern(name, cls)
+
+      Returns the item with the given *name*. If it does not already
+      exist, it instantiates it as an instance of *cls* and adds it to
+      the mapping.
+        
+   .. py:attribute:: langs
+
+      This attribute is a synonym for the item '/langs', which is a
+      LanguageTable. It is a lazy attribute: it is created the first
+      time it is accessed.
+
+   .. py:attribute:: roms
+
+      The value is a RomTable. It is not interned in the item table,
+      since it is a subdirectory, not an item. Note that accessing
+      'roms' twice returns two different objects, but they behave
+      identically.
+
+   .. py:method:: __getitem__(name)
+
+      The same as .langs[name].
+
+   .. py:method:: get(name)
+
+      The same as .langs.get(name).
+
+   .. py:method:: __iter__()
+
+      Iterates over the languages.
+
+   .. py:method:: __len__ (self):
+
+      The number of languages.
+
+   .. py:method:: languages()
+
+      Iterates over the languages.
+
+   .. py:method:: language(name)
+
+      Same as get(name).
+
+   .. py:method:: new_language(langid, fullname)
+
+      Same as .langs.new(langid, fullname).

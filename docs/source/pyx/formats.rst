@@ -358,6 +358,13 @@ Catalog of formats
       >>> list(s)
       ['a\t1\n', 'b\t2\n', '\n', 'c\t3\n']
 
+.. py:class:: PLists
+
+   A Format whose elements are property lists. A property list is a
+   list of (*key*, *value*) pairs. The disk format is the same as for
+   Dicts, except that the ordering of pairs matters and duplicates are
+   allowed.
+
 .. py:class:: Dicts
 
    A Format whose elements are dicts. The file contents are
@@ -372,12 +379,40 @@ Catalog of formats
       >>> list(Dicts(s))
       [{'a': '1', 'b': '2'}, {'c': '3'}]
 
-.. py:class:: PLists
+.. py:class:: OrderedDicts
 
-   A Format whose elements are property lists. A property list is a
-   list of (*key*, *value*) pairs. The disk format is the same as for
-   Dicts, except that the ordering of pairs matters and duplicates are
-   allowed.
+   A Format whose elements are OrderedDicts. Identical to Dicts except
+   for the class used for the dicts.
+
+.. py:class:: ObjectTables
+
+   An "object" is an OrderedDict, considered as an object with
+   attributes and values. The first attribute (hence the need for an
+   OrderedDict) is considered to be the attribute that represents the
+   object identifier. All objects must have the same attribute as the
+   first attribute, and objects must be uniquely identified by their
+   value for that attribute. An object table is a map from the
+   identifiers to the objects.
+
+   An ObjectTables file builds an an OrderedDicts file, and constructs
+   a table from all the OrderedDicts in the file. For the sake of
+   consistency with the other formats, one iterates over object
+   tables, but in fact, there is never more than one table.
+
+   For example::
+
+      >>> from collections import OrderedDict as Obj
+      >>> table = {}
+      >>> table['1'] = Obj([('id', '1'), ('b', 'hi')])
+      >>> table['2'] = Obj([('id', '2'), ('b', 'lo')])
+      >>> from selkie.pyx.formats import ObjectTables
+      >>> f = ObjectTables(s)
+      >>> f.store([table])
+      >>> tables = list(f)
+      >>> tables[0]['1']
+      OrderedDict([('id', '1'), ('b', 'hi')])
+      >>> tables[0]['2']
+      OrderedDict([('id', '2'), ('b', 'lo')])
 
 .. py:class:: ILines
 

@@ -157,7 +157,7 @@ class MapProxy (MutableMapping):
     def __len__ (self): return self.__proxyfor__.__len__()
 
     # mixin
-    def __contains__ (self, key): self.__proxyfor__.__contains__(key)
+    def __contains__ (self, key): return self.__proxyfor__.__contains__(key)
     def get (self, key, dflt=None): return self.__proxyfor__.get(key, dflt)
     def keys (self): return self.__proxyfor__.keys()
     def values (self): return self.__proxyfor__.values()
