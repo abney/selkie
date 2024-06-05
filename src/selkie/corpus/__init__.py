@@ -909,12 +909,12 @@ class SentenceList (Item, Sequence):
 
 class Sentence (ListProxy):
 
-    def __init__ (self, sentences, sno, plist):
+    def __init__ (self, sentences, sno, plist, gloss=None):
         self._sentences = sentences
         self._sno = sno
         self._words = None
         self._timestamps = None
-        self._trans = None
+        self._gloss = gloss
         self.__proxyfor__ = None
 
         self._parse_contents(plist)
@@ -922,7 +922,7 @@ class Sentence (ListProxy):
     def _parse_contents (self, plist):
         self._words = []
         self._timestamps = []
-        self._trans = None
+        self._gloss = None
         self.__proxyfor__ = self._words
 
         for (key, value) in plist:
@@ -931,13 +931,13 @@ class Sentence (ListProxy):
             elif key == 't':
                 self._timestamps.append((len(self._words), value))
             elif key == 'g':
-                self._trans = value
+                self._gloss = value
 
     def text (self): return self._text
     def sno (self): return self._sno
     def words (self): return self._words
     def timestamps (self): return self._timestamps
-    def translation (self): return self._trans
+    def gloss (self): return self._gloss
 
     def intern_words (self, lex):
         words = self.__proxyfor__
@@ -1031,6 +1031,21 @@ class Lexent (object):
 
     def __eq__ (self, other):
         return self._form == other._form
+
+    def set (self, gloss=None, parts=None, cf=None):
+        obj = self._obj
+        mod = False
+        if gloss is not None:
+            obj['g'] = gloss
+            mod = True
+        if parts is not None:
+            obj['pp'] = ' '.join(part.form() for part in parts)
+            mod = True
+        if cf is not None:
+            obj['cf'] = cf
+            mod = True
+        if mod:
+            self._lexicon.modified()
 
     def __repr__ (self):
         return f'<Lexent {self.form()}>'
