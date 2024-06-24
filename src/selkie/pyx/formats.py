@@ -420,6 +420,24 @@ class Blocks (Format):
             for record in block:
                 yield '\t'.join(record) + '\n'
     
+    
+#--  Key-value separated by whitespace  ----------------------------------------
+
+def kvsplit (line):
+    for i in range(len(line)):
+        if line[i].isspace():
+            j = i+1
+            while j < len(line) and line[j].isspace():
+                j += 1
+            return (line[:i], line[j:])
+    return (line, '')
+            
+def spacefree (key):
+    for i in range(len(key)):
+        if key[i].isspace():
+            return False
+    return True
+
 
 #--  PLists  -------------------------------------------------------------------
 
@@ -431,11 +449,9 @@ class PLists (Format):
         for line in lines:
             line = line.rstrip('\r\n')
             if line:
-                i = Dicts._first_space(line)
-                if i is None:
+                (key, value) = kvsplit(line)
+                if not value:
                     raise Exception(f'Missing value: {repr(line)}')
-                key = line[:i]
-                value = line[i+1:]
                 d.append((key, value))
             else:
                 yield d
@@ -450,7 +466,7 @@ class PLists (Format):
             if first: first = False
             else: yield '\n'
             for (k,v) in d:
-                if not Dicts._spacefree(k):
+                if not spacefree(k):
                     raise Exception(f'Bad key: {repr(key)}')
                 yield k + ' ' + v
 
@@ -460,30 +476,30 @@ class PLists (Format):
 class Dicts (Format):
 
     @classmethod
+    def parse_value (self, value):
+        return value
+
+    @classmethod
+    def unparse_value (self, value):
+        return value
+
+    @classmethod
     def from_lines (self, lines, dicttype=dict):
         d = dicttype()
         for line in lines:
             line = line.rstrip('\r\n')
             if line:
-                i = self._first_space(line)
-                if i is None:
+                (key, value) = kvsplit(line)
+                if not value:
                     raise Exception(f'Missing value: {repr(line)}')
-                key = line[:i]
-                value = line[i+1:]
                 if key in d:
                     raise Exception(f'Duplicate key: {key}')
-                d[key] = value
+                d[key] = self.parse_value(value)
             else:
                 yield d
                 d = dicttype()
         if d:
             yield d
-    
-    @classmethod
-    def _first_space (self, line):
-        for i in range(len(line)):
-            if line[i].isspace():
-                return i
     
     @classmethod
     def to_lines (self, dicts):
@@ -492,16 +508,9 @@ class Dicts (Format):
             if first: first = False
             else: yield '\n'
             for (k,v) in d.items():
-                if not self._spacefree(k):
+                if not spacefree(k):
                     raise Exception(f'Bad key: {repr(key)}')
-                yield k + ' ' + v + '\n'
-            
-    @classmethod
-    def _spacefree (self, key):
-        for i in range(len(key)):
-            if key[i].isspace():
-                return False
-        return True
+                yield k + ' ' + self.unparse_value(v) + '\n'
     
 
 class OrderedDicts (Format):
@@ -634,11 +643,11 @@ class NestedDicts (Format):
                 i += 2
             else:
                 line = lst[i].strip()
-                k = _first_space(line)
-                if k is None:
-                    out = self._insert_item(None, line, list, out)
+                (key, value) = kvsplit(line)
+                if not value:
+                    out = self._insert_item(None, key, list, out)
                 else:
-                    out = self._insert_item(line[:k], line[k+1:].strip(), dict, out)
+                    out = self._insert_item(key, value, dict, out)
                 i += 1
         return out
     
