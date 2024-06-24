@@ -11,7 +11,7 @@ author = 'Steven Abney'
 
 # release: x.y, version: x.y.z
 release = '0.25'
-version = '0.25.1'
+version = '0.25.2'
 
 # -- General configuration
 
