@@ -6,13 +6,13 @@ from importlib import import_module
 
 class DistChecker (object):
 
-    def __init__ (self, fn, modname=None, installed=False):
+    def __init__ (self, fn, modname=None, dev_version=True):
         fn = normpath(abspath(fn))
 
         self.package_root = fn
         self.modules = {} # modname -> fn
         self.modname = modname
-        self.installed = installed
+        self.dev_version = dev_version
 
         if modname is None:
             names = listdir(join(fn, 'src'))
@@ -36,7 +36,7 @@ class DistChecker (object):
         if not fn.endswith('__init__.py'):
             raise Exception("Expecting filename to end with '__init__.py'")
         src = dirname(dirname(fn))
-        if not self.installed:
+        if self.dev_version:
             expected = join(self.package_root, 'src')
             if src != expected:
                 raise Exception(f'Expecting src directory to be {expected}')

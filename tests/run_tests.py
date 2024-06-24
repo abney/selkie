@@ -4,16 +4,22 @@
 ##
 
 import unittest, doctest
-from sys import stdout, argv
+from sys import stdout
 from os import walk
 from os.path import dirname, join, exists
 from checkdist import DistChecker
 
+def testing_development_version ():
+    import selkie
+    return selkie.__file__.endswith('/git/hub/selkie/src/selkie/__init__.py')
+
+
 here = dirname(__file__)
 rootdir = dirname(here)
 docdir = join(rootdir, 'docs', 'source')
+dev_version = testing_development_version()
 
-devflag = (len(argv) > 1 and argv[1] == 'dev')
+print('Testing development version?', dev_version)
 
 skip = ['nlp/glab.rst',
         'nlp/fst.rst',
@@ -77,32 +83,19 @@ def test_files ():
 
 #--  Execute  ------------------------------------------------------------------
 
-def run_tests ():
-    global rootdir, devflag
+def run_tests (rootdir, dev_version):
 
     # Each call signals an error if any test fails
 
-    (n_modules, n_automodules) = DistChecker(rootdir, installed=devflag)()
+    (n_modules, n_automodules) = DistChecker(rootdir, dev_version=dev_version)()
     n_doctests = run_doctests()
     n_unittests = run_unittests()
+    results = (n_modules, n_automodules, n_doctests, n_unittests)
 
-    if exists('previous_results'):
-        with open('previous_results') as f:
-            for line in f:
-                values = [int(field) for field in line.split()]
-                break
-    else:
-        values = (0, 0, 0, 0)
+    print_comparison(results)
 
-    print()
-    print( 'SUMMARY             Curr Prev')
-    print(f"Imported modules:   {n_modules:4d} {values[0]:4d} {'**' if n_modules != values[0] else ''}")
-    print(f"Documented modules: {n_automodules:4d} {values[1]:4d} {'**' if n_automodules != values[1] else ''}")
-    print(f"Doctests:           {n_doctests:4d} {values[2]:4d} {'**' if n_doctests != values[2] else ''}")
-    print(f"Unit tests:         {n_unittests:4d} {values[3]:4d} {'**' if n_unittests != values[3] else ''}")
-
-    with open('previous_results', 'w') as f:
-        print(' '.join(str(v) for v in (n_modules, n_automodules, n_doctests, n_unittests)), file=f)
+    if dev_version:
+        save_results(results)
 
 
 def run_doctests ():
@@ -142,6 +135,31 @@ def run_unittests ():
     return n_unittests
 
 
+def print_comparison (results):
+    (n_modules, n_automodules, n_doctests, n_unittests) = results
+
+    if exists('previous_results'):
+        with open('previous_results') as f:
+            for line in f:
+                values = [int(field) for field in line.split()]
+                break
+    else:
+        values = (0, 0, 0, 0)
+
+    print()
+    print( 'SUMMARY             Curr Prev')
+    print(f"Imported modules:   {n_modules:4d} {values[0]:4d} {'**' if n_modules != values[0] else ''}")
+    print(f"Documented modules: {n_automodules:4d} {values[1]:4d} {'**' if n_automodules != values[1] else ''}")
+    print(f"Doctests:           {n_doctests:4d} {values[2]:4d} {'**' if n_doctests != values[2] else ''}")
+    print(f"Unit tests:         {n_unittests:4d} {values[3]:4d} {'**' if n_unittests != values[3] else ''}")
+
+
+def save_results (n_modules, n_automodules, n_doctests, n_unittests):
+    print('[Updating results]')
+    with open('previous_results', 'w') as f:
+        print(' '.join(str(v) for v in (n_modules, n_automodules, n_doctests, n_unittests)), file=f)
+
+
 # def test_suite ():
 #     loader = unittest.TestLoader()
 #     suite = unittest.TestSuite()
@@ -155,4 +173,4 @@ def run_unittests ():
 #     runner.run(test_suite())
 
 
-run_tests()
+run_tests(rootdir, dev_version)
