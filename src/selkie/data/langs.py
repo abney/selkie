@@ -1,9 +1,10 @@
 
-import codecs, os, re
+import codecs, os, re, sys
 from itertools import chain
 from ..pyx.string import deaccent
 from .. import data
 from ..pyx.io import tabular
+from ..pyx.com import Main
 
 
 ##  Iterate over the records of the given data file.  A record is a list of strings.
@@ -279,7 +280,7 @@ def romanize_name (name):
         if not name.endswith(')'):
             raise Exception('Bad assumption')
         name = name[:i].strip()
-    return tuple(romanize_word(w) for w in re.split('\s|-', name))
+    return tuple(romanize_word(w) for w in re.split(r'\s|-', name))
 
 
 #--  LanguageTables  -----------------------------------------------------------
@@ -462,7 +463,7 @@ class Database (object):
         elif key in tab.byname:
             return tab.byname[key]
         else:
-            raise Exception('Not found: %s' % key)
+            raise KeyError('Not found: %s' % key)
 
     ##  Fetch a language by name.  Romanizes the name before searching.
 
@@ -515,12 +516,24 @@ class Database (object):
 languages = Database()
 
 
+class LangsMain (Main):
+
+    def com_get (self, *names):
+        if names:
+            for name in names:
+                self._get(name)
+        else:
+            for name in sys.stdin:
+                name = name.strip()
+                self._get(name)
+
+    def _get (self, name):
+        try:
+            print(languages[name])
+        except KeyError:
+            print(name, '(not found)')
+
+
 if __name__ == '__main__':
 
-    def _com_search (name):
-        for lg in languages.search(name):
-            print()
-            print(repr(lg))
-            print(lg)
-
-    run({'search': _com_search})
+    LangsMain()()

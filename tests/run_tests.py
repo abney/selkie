@@ -142,6 +142,32 @@ def run_unittests ():
     return n_unittests
 
 
+def print_comparison (results):
+    (n_modules, n_automodules, n_doctests, n_unittests) = results
+
+    if exists('previous_results'):
+        with open('previous_results') as f:
+            for line in f:
+                values = [int(field) for field in line.split()]
+                break
+    else:
+        values = (0, 0, 0, 0)
+
+    print()
+    print( 'SUMMARY             Curr Prev')
+    print(f"Imported modules:   {n_modules:4d} {values[0]:4d} {'**' if n_modules != values[0] else ''}")
+    print(f"Documented modules: {n_automodules:4d} {values[1]:4d} {'**' if n_automodules != values[1] else ''}")
+    print(f"Doctests:           {n_doctests:4d} {values[2]:4d} {'**' if n_doctests != values[2] else ''}")
+    print(f"Unit tests:         {n_unittests:4d} {values[3]:4d} {'**' if n_unittests != values[3] else ''}")
+
+
+def save_results (results):
+    (n_modules, n_automodules, n_doctests, n_unittests) = results
+    print('[Updating results]')
+    with open('previous_results', 'w') as f:
+        print(' '.join(str(v) for v in (n_modules, n_automodules, n_doctests, n_unittests)), file=f)
+
+
 # def test_suite ():
 #     loader = unittest.TestLoader()
 #     suite = unittest.TestSuite()

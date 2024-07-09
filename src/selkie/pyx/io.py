@@ -731,7 +731,7 @@ def colalign (rows, header=None, indent='', tostring=str, hlines=True):
 ##  Produces a string representation of a table with aligned columns,
 #   suitable for printing.
 
-def tabular (rows, header=None, indent='', tostring=str, hlines=True):
+def tabular (rows, header=None, indent='', tostring=str, hlines=False):
     return '\n'.join(colalign(rows, header, indent, tostring, hlines))
 
 

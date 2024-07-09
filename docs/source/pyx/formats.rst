@@ -410,9 +410,9 @@ Catalog of formats
       >>> f.store([table])
       >>> tables = list(f)
       >>> tables[0]['1']
-      OrderedDict([('id', '1'), ('b', 'hi')])
+      OrderedDict({'id': '1', 'b': 'hi'})
       >>> tables[0]['2']
-      OrderedDict([('id', '2'), ('b', 'lo')])
+      OrderedDict({'id': '2', 'b': 'lo'})
 
 .. py:class:: ILines
 

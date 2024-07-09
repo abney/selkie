@@ -7,6 +7,7 @@ Dataset interfaces
    :titlesonly:
 
    data
+   langs
    corpora
    panlex/index
    wiktionary

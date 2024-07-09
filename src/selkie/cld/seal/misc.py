@@ -1,10 +1,10 @@
 ##  @package seal.core.misc
 #   Miscellaneous useful Python extensions.
 
-import datetime, os, pty, unicodedata, sys, imp, threading, traceback, importlib
+import datetime, os, pty, unicodedata, sys, threading, traceback, importlib
 import signal
 from itertools import islice, chain
-from importlib import import_module
+from importlib import import_module as load_module
 from .version import Version, Revision, Patchlevel
 from io import StringIO
 from time import time
@@ -439,7 +439,7 @@ def sizestr (nbytes):
 def string_to_module (s):
     if not s:
         raise Exception('Require nonempty name')
-    return import_module(s)
+    return importlib.import_module(s)
 
 ##  Takes a fully-qualified name and gets the object.
 
@@ -1928,18 +1928,18 @@ class Progress (object):
 
 ##  Load a module, given a fully qualified name.
 
-def load_module (name):
-    names = name.split('.')
-    module = file = path = None
-    try:
-        for name in names:
-            (file, path, desc) = imp.find_module(name, path)
-            module = imp.load_module(name, file, path, desc)
-            if file is not None: file.close()
-            if hasattr(module, '__path__'): path = module.__path__
-    finally:
-        if file is not None: file.close()
-    return module
+# def load_module (name):
+#     names = name.split('.')
+#     module = file = path = None
+#     try:
+#         for name in names:
+#             (file, path, desc) = imp.find_module(name, path)
+#             module = imp.load_module(name, file, path, desc)
+#             if file is not None: file.close()
+#             if hasattr(module, '__path__'): path = module.__path__
+#     finally:
+#         if file is not None: file.close()
+#     return module
 
 ##  Import a class, given a fully qualified name.
 

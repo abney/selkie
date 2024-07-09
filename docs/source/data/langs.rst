@@ -1,18 +1,18 @@
 
-Ethnologue language listing
-***************************
+Ethnologue language listing — ``selkie.data.langs``
+===================================================
 
 Overview
 --------
 
-The database in selkie.data.langdb is compiled by merging data from
+The database in selkie.data.langs is compiled by merging data from
 the *Ethnologue,* from the Library of Congress's official
 ISO 639-2 database, and from Panlex.
 It uses the iso-639-2 and iso-639-3 packages.
 
 The database is called languages::
 
-   >>> from selkie.data.langdb import languages
+   >>> from selkie.data.langs import languages
 
 The information in languages exactly reflects the published
 databases, with the following exceptions:
@@ -65,16 +65,15 @@ Access by code
 The database can be accessed by ISO-639-3 code to get a language::
 
    >>> print(languages['spa'])
-   Code:      spa
-   Code2B:    spa
-   Code2T:    spa
-   Code1:     es
-   Type:      Living
+   Code:      spa     
+   Code2B:    spa     
+   Code2T:    spa     
+   Code1:     es      
+   Type:      Living  
    Scope:     Language
-   RefName:   Spanish
-   Name:      Spanish
-   Varieties: 
-   Dicts:     
+   RefName:   Spanish 
+   Name:      Spanish 
+   Varieties:         
 
 The four codes listed are 639-3, 639-2/B, 639-2/T, and 639-1, in that order.
 

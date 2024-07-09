@@ -1,7 +1,7 @@
 ##  @package seal.core.misc
 #   Miscellaneous useful Python extensions.
 
-import datetime, os, pty, unicodedata, sys, imp, threading, traceback, importlib
+import datetime, os, pty, unicodedata, sys, threading, traceback, importlib
 import signal
 from itertools import islice, chain
 from importlib import import_module

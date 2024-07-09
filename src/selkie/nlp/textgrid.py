@@ -1,7 +1,11 @@
 ##  \package seal.nlp.textgrid
 #   A structured representation of a Praat text grid.
 
-from numpy import empty
+try:
+    from numpy import empty
+except ModuleNotFoundError:
+    def empty (*args):
+        raise Exception('Numpy is not installed')
 
 
 ##  Symbol table.

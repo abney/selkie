@@ -8,7 +8,6 @@ Programmatic Interface
    corpus
    export
    corpus_resources
-   langdb
    language
    words
    lexicon
