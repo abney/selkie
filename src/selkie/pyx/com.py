@@ -326,7 +326,7 @@ def _docstring_lines (x):
             yield line
 
 
-class Main (object):
+class BaseMain (object):
     '''
     A command-line processor. Define a class that specializes this one. Any methods
     it has whose names begin with ``com_`` are taken to represent command-line commands.

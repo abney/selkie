@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+      async function main(){
+          let pyodide = await loadPyodide();
+	  console.log('Pyodide loaded');
+
+	  // The pyodide version of pip
+	  await pyodide.loadPackage('micropip');
+	  console.log('Micropip loaded');
+	  const micropip = pyodide.pyimport('micropip');
+
+	  // Pip-installing from PyPI
+	  await micropip.install('selkie');
+	  console.log('Selkie installed');
+
+	  // Load and run __main__.py
+	  let response = await fetch("http://localhost:8000/.lib/client.py");
+	  let contents = await response.text();
+	  console.log('client.py loaded');
+          pyodide.runPython(contents);
+      }
+      main();
+    </script>
+    <div id="root"></div>
+  </body>
+</html>
