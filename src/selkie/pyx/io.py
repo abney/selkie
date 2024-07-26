@@ -55,6 +55,41 @@ def get_suffix (fn):
         return ''
 
 
+#--  xopen  --------------------------------------------------------------------
+
+class xopen (object):
+
+    def __init__ (self, fn=None, mode='r'):
+        if fn == '-':
+            fn = None
+        self.filename = fn
+        self.mode = mode
+        self.open_file = None
+
+    def __enter__ (self):
+        assert self.open_file is None
+        if self.filename is None:
+            if self.mode == 'r':
+                self.open_file = sys.stdin
+            elif self.mode == 'w':
+                self.open_file = sys.stdout
+            else:
+                raise Exception(f'Unsupported mode: {self.mode}')
+        else:
+            self.open_file = open(self.filename, self.mode)
+        return self
+
+    def write (self, s):
+        self.open_file.write(s)
+
+    def __iter__ (self):
+        yield from self.open_file
+
+    def __exit__ (self, t, v, tb):
+        if self.filename is not None and self.open_file is not None:
+            self.open_file.close()
+
+
 #--  Contents  -----------------------------------------------------------------
 
 def contents (filename, encoding=None):

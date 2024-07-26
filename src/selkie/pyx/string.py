@@ -9,11 +9,46 @@ from time import time as now
 
 #--  Strings  ------------------------------------------------------------------
 
+def _safe_unicode_name (c):
+    try:
+        return unicodedata.name(c)
+    except:
+        return '(No name in database)'
+
 def unidescribe (s):
     '''Prints out a description of each (Unicode) character in a string.'''
     for (i,c) in enumerate(s):
-        print(i, hex(ord(c)), unicodedata.name(c))
+        print(i, hex(ord(c)), _safe_unicode_name(c))
 
+def udecode (s):
+    with StringIO() as out:
+        i = 0
+        while i < len(s):
+            if s[i] == '\\' and i+1 < len(s) and s[i+1] in 'Uu':
+                i += 2
+                if s[i-1] == 'u':
+                    j = i + 4
+                else:
+                    j = i + 8
+                out.write(chr(int(s[i:j], 16)))
+                i = j
+            else:
+                out.write(s[i])
+                i += 1
+        return out.getvalue()
+
+def uencode (s):
+    with StringIO() as out:
+        for c in s:
+            if (c < ' ' and c not in '\t\r\n') or c > '~':
+                cp = ord(c)
+                if cp > 0xffff:
+                    out.write(f'\\U{cp:08x}')
+                else:
+                    out.write(f'\\u{cp:04x}')
+            else:
+                out.write(c)
+        return out.getvalue()
 
 def isword (s):
     '''A *word* consists only of alphanumerics and underscore, and is not the empty string.'''

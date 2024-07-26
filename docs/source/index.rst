@@ -15,6 +15,7 @@ Version 0.25.2
    nlp/index
    data/index
    pyx/index
+   main
 
 .. toctree::
    :caption: API Reference

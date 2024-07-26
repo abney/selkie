@@ -6,7 +6,7 @@ from urllib.request import urlopen
 from io import StringIO
 from bs4 import BeautifulSoup
 from ..pyx.xml import lines_to_items
-from ..pyx.com import Main, Progress
+from ..pyx.com import BaseMain, Progress
 #from ..pyx.newio import Simples
 
 
@@ -667,7 +667,7 @@ class Kaikki (object):
 
 #==  Main  =====================================================================
 
-class WiktionaryMain (Main):
+class WiktionaryMain (BaseMain):
 
     def com_xlangs (self, dump_fn, tgtfn):
         WiktDump(dump_fn).extract_language_names(tgtfn)

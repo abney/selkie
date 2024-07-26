@@ -12,7 +12,7 @@ from ..pyx.seq import LazyList
 from ..pyx.object import ListProxy, MapProxy
 from ..pyx.formats import File, BaseFile, Dicts, PLists, Records, ObjectTables
 #from ..pyx.formats import Nested, NestedDict,
-from ..pyx.com import Main
+#from ..pyx.com import BaseMain
 from ..pyx.disk import VDisk
 from ..editor.webserver import Backend
 from .drill import Drill

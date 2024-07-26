@@ -1,9 +1,9 @@
 
-from ..pyx.com import Main
+from ..pyx.com import BaseMain
 from .gdev import GDev
 
 
-class SelkieMain (Main):
+class SelkieMain (BaseMain):
 
     # GDev
 

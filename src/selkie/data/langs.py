@@ -4,7 +4,7 @@ from itertools import chain
 from ..pyx.string import deaccent
 from .. import data
 from ..pyx.io import tabular
-from ..pyx.com import Main
+from ..pyx.com import BaseMain
 
 
 ##  Iterate over the records of the given data file.  A record is a list of strings.
@@ -516,7 +516,7 @@ class Database (object):
 languages = Database()
 
 
-class LangsMain (Main):
+class LangsMain (BaseMain):
 
     def com_get (self, *names):
         if names:

@@ -245,7 +245,11 @@ class Shift (object):
     ##  Whether the next argument is a flag.
 
     def isflag (self):
-        return self.ac < len(self.argv) and self.argv[self.ac].startswith('-')
+        if self.ac < len(self.argv):
+            arg = self.argv[self.ac]
+            return arg.startswith('-') and arg != '-' and arg != '--'
+        else:
+            return False
 
     ##  If the next argument is a flag, return it and advance.
 

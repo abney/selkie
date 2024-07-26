@@ -6,7 +6,7 @@ from collections import namedtuple
 from os import makedirs, listdir
 from os.path import expanduser, join, exists, abspath
 from zipfile import ZipFile
-from ..pyx.com import Main
+from ..pyx.com import BaseMain
 from ..pyx.formats import File, Format, Blocks, Dicts
 from ..pyx.io import pprint, redirect
 from ..pyx.object import MapProxy
@@ -433,7 +433,7 @@ class Bilex (MapProxy):
 
 #--  Main  ---------------------------------------------------------------------
 
-class PanlexMain (Main):
+class PanlexMain (BaseMain):
 
     def __init__ (self):
         Main.__init__(self)

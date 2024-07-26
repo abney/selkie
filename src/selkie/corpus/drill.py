@@ -5,7 +5,6 @@ from random import shuffle
 from heapq import heappush, heappop
 from ..pyx.object import MapProxy
 from ..pyx.formats import Tabular
-from ..pyx.com import Main
 
 
 min = 60.00
