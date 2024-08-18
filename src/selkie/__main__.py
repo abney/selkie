@@ -4,6 +4,7 @@ from .pyx.io import xopen
 from .pyx.string import unidescribe, uencode, udecode
 from .nlpx.gdev import GDev
 from .data.wiktionary import WiktDump, LanguageFile
+from .corpus.rom import Decoder
 
 
 class SelkieMain (BaseMain):
@@ -55,6 +56,20 @@ class SelkieMain (BaseMain):
                     print(lno, line, end='')
         except BrokenPipeError:
             pass
+
+    def com_rom (self, rom, fn='-'):
+        '''Decode using a named romanization'''
+        decode = Decoder(rom)
+        try:
+            with xopen(fn) as f:
+                for line in f:
+                    print(decode(line), end='')
+        except BrokenPipeError:
+            pass
+
+    def com_wb (self, fn='-'):
+        '''Decode worldbet.'''
+        self.com_rom('worldbet', fn)
 
 
 if __name__ == '__main__':

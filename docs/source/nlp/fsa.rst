@@ -13,7 +13,7 @@ Using automata
 The most familiar representation of a finite-state automaton is the
 state graph.  An example is given in the following figure:
 
-.. image: ../figs/fig8.jpg
+.. image:: ../figs/fig8.jpg
    :width: 200px
 
 One can create this automaton manually, as follows.
@@ -594,8 +594,8 @@ every string *x* either takes both states to a final state (in which case
 *x* is in *L*) or takes both to a nonfinal state (in which
 case *x* is not in *L*).
 To avoid having a special case for blocking, we add a special "sink"
-state ⊥.  For any state *q* and input symbol *w* such that *q*[*w*]
-is undefined, we define *q*[*w*] = ⊥.  In particular, ⊥[*w*] =
+state ⊥.  For any state *q* and input symbol *w* such that *q[w*]
+is undefined, we define *q[w*] = ⊥.  In particular, ⊥[*w*] =
 ⊥ for all input symbols *w*.  Once a string leads to ⊥, it
 stays there.  Moreover, ⊥ is nonfinal, so any string that leads
 to ⊥ is rejected.
@@ -611,32 +611,39 @@ states.
 Systematicity is achieved by recursing on string length.  We first
 identify all state pairs that are distinguished by strings of length
 zero.  There is only one string of length zero, the empty string, and
-it distinguishes a state pair only if one of the states is final and
+it distinguishes a state pair if and only if one of the states is final and
 the other is nonfinal.
 
 Then we recurse.  Assume that we know all state pairs that are
-distinguished by strings of length <= *n*.  We will identify any
+distinguished by strings of length &lt; *n*.  We will identify any
 additional state pairs that are distinguished by strings of length
 *n*.
 
-Consider an input symbol *w*, and states *q* and *r* with
+Consider an input symbol :math:`a`, and states :math:`q_1` and :math:`q_2` with:
 
-*q*[*w*] = *s*
-*r*[*w*] = *t*.
+| :math:`q_1[a] = r_1`
+| :math:`q_2[a] = r_2`.
 
-If *q* and *r* are equivalent, then clearly *s* and
-*t* are equivalent.  Namely, *q* and *r* being equivalent means that
-every string *x* = *wy* takes *q* and *r* to the same kind of state
-(final or nonfinal); hence every string *y* takes *s* and *t* to the
-same kind of state.
-Hence if *st* is an incompatible pair,
-then *qr* must be.  If we propagate incompatibility in this way, we
-will eventually identify every incompatible pair.  When the
+If :math:`q_1` and :math:`q_2` are equivalent, then :math:`r_1` and
+:math:`r_2` must also be equivalent. Namely, if :math:`q_1` and
+:math:`q_2` are equivalent, then every string :math:`ay` takes
+:math:`q_1` and :math:`q_2` to the same kind of state
+(final or nonfinal); hence every string :math:`y` takes :math:`r_1`
+and :math:`r_2` to the 
+same kind of state, which means that :math:`r_1` and :math:`r_2` are equivalent.
+
+Conversely, if :math:`r_1` and :math:`r_2` are **not** equivalent, it
+follows that :math:`q_1` and :math:`q_2` are not equivalent
+either. That is, if :math:`r_1` and :math:`r_2` are incompatible, we
+may deduce that :math:`q_1` and :math:`q_2` are incompatible. In this
+way, we can propagate incompatibility backwards. When the
 propagation peters out, any remaining pair is equivalent.
 
 We will illustrate using automaton ``fsa4``, shown in the following figure.
 
-(fig10.pdf = \Archive/2007-A/ling441/figs/fig3.pdf)
+.. image:: ../figs/fig3.pdf
+
+.. original source: 2007-A/ling441/figs/fig3.pdf
 
 The states of this automaton intuitively represent the most two
 recently encountered input symbols, and the automaton is in a final
@@ -645,11 +652,19 @@ automaton is equivalent to ``fsa2``.  The following figure shows the
 same automaton with single-letter state names, which will be more
 convenient for illustrating minimization.
 
-Propagation goes "backwards" along edges: incompatibility between 
-*q*[*w*] and *r*[*w*] implies incompatibility between *q* and *r*.
-Hence we construct an **incompatibility table** of "reverse edges."  The table is indexed
-by state and input symbol, and entry *(s,w)* contains all source
-states *q* such that *q*[*w*] = *s*.  Here is the table for ``fsa4``::
+.. image:: ../figs/fig7.pdf
+
+.. original source: 2007-A/ling441/figs/fig7.pdf
+
+Propagation goes "backwards" along edges. If there is an edge
+from :math:`q_1` to :math:`r_1` with label :math:`a`, and also from
+:math:`q_2` to :math:`r_2` with the same label, then incompatibility
+of :math:`r_1` and :math:`r_2` implies incompatibility of :math:`q_1`
+and :math:`q_2`.
+
+Accordingly, we construct an **incompatibility table** of "reverse edges."  The table is indexed
+by state and input symbol, and entry :math:`r,a` contains all source
+states :math:`q` such that :math:`q[a] = r`.  Here is the table for ``fsa4``::
    
        0    1
    a
@@ -660,20 +675,22 @@ states *q* such that *q*[*w*] = *s*.  Here is the table for ``fsa4``::
    f       dfg
    g       a
 
-For example, there is an edge from *c* to *d* on 1,
-hence the entry "*c*" in the cell (*d*,1).
+For example, there is an edge from :math:`c` to :math:`d` on 1,
+hence the entry ":math:`c`" in the cell :math:`d,1`. Intuitively,
+incompatibility between :math:`d` and any other state propagates
+(via "1") to :math:`c`.
 
-Here is how we use the incompatibility table.  Suppose we determine that *d* and *f*
+For example, suppose that we determine that *d* and *f*
 are incompatible.  Then we compare the rows for *d* and *f*::
    
    d      bce
    f      dfg
 
-Any states *q* and *r* in the same column are such that *q[w] = s* and
-*r[w] = t*, where *s = d* and *t = f* or the other way around.  In
-short, since *d* and *f* are incompatible, it follows that *q* and *r*
-are incompatible.  In particular, we propagate incompatibility to the
-following pairs: *bd, bf, bg, cd, cf, cg, ed, ef, eg*.
+Since the entries *bce* and *dfg* are in the same column (namely, the
+"1" column), the incompatibility between *d* and *f* propagates
+backwards to all pairs in *bce* x *dfg*. Namely, it propagates to the pairs:
+
+| *bd, bf, bg, cd, cf, cg, ed, ef, eg*.
 
 The incompatibility table is implemented as the class ``Incompatibility``.
 Here is an example of its use.  Note that states are represented by

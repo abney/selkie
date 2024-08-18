@@ -114,7 +114,7 @@ class Fsa (object):
             return out
     
         ##  String representation.  If the name is a set, it sorts the
-        #   element so that the name is uniquely determined by the set.
+        #   elements so that the name is uniquely determined by the set.
 
         def __str__ (self):
             if isinstance(self.name, frozenset):
@@ -489,6 +489,23 @@ class DFsa (Fsa):
             if q == None: return False
         return q.is_final
 
+    ##  Does a breadth-first walk of the language.
+    ##   - Start with to-do = configuration (start, '')
+    ##   - For each (q, x) in to-do:
+    ##      - For each edge (r, a) of q:
+    ##         - Add (r, xa) to new to-do. Note that it is exactly one symbol longer.
+    ##         - If r is final, yield xa
+
+    def __iter__ (self):
+        todo = [(self.start, ())]
+        while todo:
+            newtodo = []
+            for (q, x) in todo:
+                if q.is_final:
+                    yield x
+                for e in q.edges:
+                    newtodo.append((e.dest, x + (e.label,)))
+            todo = newtodo
 
 ##  Determinize an fsa.  Non-destructive.  Returns a DFsa.
 
@@ -518,7 +535,7 @@ def determinize (old_fsa, rename_states=True):
 
 ##  An incompatibility table, used in minimization.
 
-class Incompatibility:
+class Incompatibility (object):
 
     ##  Constructor.
 
@@ -580,7 +597,7 @@ class Incompatibility:
 
 ##  A lower triangular matrix, used in minimization.
 
-class LTM:
+class LTM (object):
 
     ##  Constructor.
 
@@ -651,7 +668,7 @@ def minimize (fsa):
 
 ##  A minimizer.
 
-class Minimizer:
+class Minimizer (object):
 
     ##  Constructor.
 
@@ -664,7 +681,9 @@ class Minimizer:
         self.itab = Incompatibility(fsa)
 
         ##  An LTM indicating which pairs are marked.
-        self.marked = LTM(len(fsa))
+        ##  The +1 is for the added sink state.
+
+        self.marked = LTM(len(fsa)+1)
 
         ##  Pairs to propagate.
         self.todo = []
@@ -694,17 +713,18 @@ class Minimizer:
     ##  Run.
 
     def propagate (self):
-        fsa = self.fsa
-        itab = self.itab
+        while self.todo:
+            self.step()
+
+    def step (self):
         marked = self.marked
         todo = self.todo
 
-        while todo:
-            p = todo.pop()
-            for newp in itab.propagate(p):
-                if not marked[newp]:
-                    todo.append(newp)
-                    marked[newp] = True
+        p = todo.pop()
+        for newp in self.itab.propagate(p):
+            if not marked[newp]:
+                todo.append(newp)
+                marked[newp] = True
 
     ##  Create a map from old states to new states.
 
@@ -744,6 +764,8 @@ class Minimizer:
         for i in range(self.new_nstates):
             newfsa.state(str(i))
 
+        newfsa.start = newfsa.states[state_map[oldfsa.start.index]]
+
         for q in oldfsa.states:
             q1 = newfsa.states[state_map[q.index]]
             for e in q.edges:
@@ -759,6 +781,70 @@ class Minimizer:
         self.propagate()
         self.create_map()
         return self.create_newfsa()
+
+
+class MinimizationTracer (object):
+    
+    def __init__ (self, fsa):
+        self.fsa = fsa
+        
+    def iter_marked (self):
+        marked = self.minimizer.marked
+        for pair in marked:
+            if marked[pair]:
+                yield pair
+
+    def marked (self):
+        return set(self.iter_marked())
+
+    def start (self):
+        self.minimizer = Minimizer(self.fsa)
+        self.old = self.marked()
+        self.stepno = 0
+        
+        self.fsa.dump()
+        print()
+        print('Incompatibility table:')
+        self.minimizer.itab.dump()
+        print()
+        print('Marked:', sorted(self.old))
+        print()
+        print('Todo:', self.minimizer.todo)
+
+    def step (self):
+        self.stepno += 1
+        print('Step', self.stepno, ':', self.minimizer.todo[-1])
+        self.minimizer.step()
+        new = self.marked()
+        diff = new - self.old
+        if diff:
+            print('Marked:')
+            print('    Old:', sorted(self.old))
+            print('    New:', sorted(diff))
+            self.old = new
+        print('Todo:', self.minimizer.todo)
+
+    def run (self):
+        self.start()
+        while self.minimizer.todo:
+            self.step()
+        print()
+        print('Done')
+        print('Marked:', sorted(self.old))
+        self.minimizer.create_map()
+        print()
+        print('State map:', self.minimizer.state_map)
+        newfsa = self.minimizer.create_newfsa()
+        print()
+        newfsa.dump()
+
+    def goto (self, stepno):
+        self.minimizer = Minimizer(self.fsa)
+        for _ in range(stepno-1):
+            self.minimizer.step()
+        self.old = self.marked()
+        print('Marked:', self.old)
+        print('Todo:', self.minimizer.todo)
 
 
 ##  A configuration in a non-deterministic fsa computation.
