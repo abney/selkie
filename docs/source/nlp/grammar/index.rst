@@ -5,6 +5,7 @@ Grammars
 .. toctree::
    :titlesonly:
 
+   intro
    grammar
    gdev
    features
