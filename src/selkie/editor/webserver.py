@@ -2,17 +2,16 @@
 import webbrowser, json
 from os.path import join, dirname
 import tornado.web
-from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
 from tornado.ioloop import IOLoop
 
 
 # static_path = join(dirname(selkie.__file__), 'static')
 
-static_path = '/Users/abney/git/selkie/dev/_js/app/build'
+# static_path = '/Users/abney/git/selkie/dev/_js/app/build'
 
 
-class MainHandler (RequestHandler):
+class RequestHandler (tornado.web.RequestHandler):
 
     def initialize (self, port=None):
         if port is None:
@@ -21,25 +20,6 @@ class MainHandler (RequestHandler):
 
     def get (self):
         self.render('static/index.html', port=self.port)
-
-
-class ConfigHandler (RequestHandler):
-
-    def initialize (self, port=None):
-        if port is None:
-            raise Exception('No port')
-        self.port = port
-
-    def get (self):
-        self.set_header('Content-Type', 'application/javascript')
-        self.render('src/config.js', port=self.port)
-
-
-class JSFileHandler (RequestHandler):
-
-    def get (self, fn):
-        self.set_header('Content-Type', 'application/javascript')
-        self.render(join('src', fn))
 
 
 class EchoWebSocket (WebSocketHandler):
