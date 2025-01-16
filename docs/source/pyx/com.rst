@@ -37,22 +37,27 @@ Shell calls
 Command-line processing
 -----------------------
 
-.. py:class:: Main
+.. py:class:: BaseMain
 
-   Main provides command-line processing for a Python script.  To use it,
+   BaseMain provides command-line processing for a Python script.  To use it,
    subclass it and define methods whose name begins with ``com_``.  For
    example::
    
-      class MyMain (Main):
+      class Main (BaseMain):
+          '''A script to do some stuff.'''   
+
+          def com_foo (self, x, y, t=None):
+              '''Foo it up.'''
+              ...
+
+          def com_foo_bar (self, y):
+              '''Foo-bar it.'''
+              ...
    
-          def com_foo (self, x, y, t=None): ...
-          def com_foo_bar (self, y): ...
-   
-   To use it::
+   To use it, instantiate and call::
    
       if __name__ == '__main__':
-          main = MyMain()
-          main()
+          Main()()
       
    When calling the script::
    
@@ -68,11 +73,14 @@ Command-line processing
       main.com_foo('hi', 'bye')
       main.com_foo_bar('bye')
    
+   A help message is automatically generated:
    
-   A help command (invoked by ``-?`` or ``--help``) is automatically
-   generated from the method signatures, the documentation string of the
-   class, and the documentation strings of the methods.
+      python -m mymodule -?
+      python -m mymodule --help
 
+   The two forms are equivalent. The output is the class documentation
+   string, if it exists. Documentation is also generated for each
+   command from the method's signature and documentation string.
 
    .. py:method:: __call__(comline)
 

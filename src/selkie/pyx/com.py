@@ -403,18 +403,20 @@ class BaseMain (object):
                 kwargs[key] = value
             args.extend(shift.rest())
     
-        com = None
+
+        com = getattr(self, 'com') if hasattr(self, 'com') else None
         nwords = 0
-        if not args:
-            print('** No command given')
-            sys.exit(1)
+
         for n in range(1, len(args)+1):
             methodname = 'com_' + '_'.join(args[:n])
             if hasattr(self, methodname):
                 com = getattr(self, methodname)
                 nwords = n
         if com is None:
-            print('** Not a command:', args[0])
+            if args:
+                print('** Command not recognized:', ' '.join(args))
+            else:
+                print('** No command given')
             sys.exit(1)
         args = args[nwords:]
         com(*args, **kwargs)
