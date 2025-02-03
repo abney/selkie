@@ -380,6 +380,9 @@ class BaseMain (object):
                     for line in _docstring_lines(method):
                         yield '    ' + line
 
+    def __help__ (self):
+        print('\n'.join(self._usage_message()))
+
     def __call__ (self, comline=None):
         if comline is None:
             args = sys.argv

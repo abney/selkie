@@ -102,6 +102,10 @@ Command-line processing
 	 begin with ``com_``).
        * the documentation strings of the command methods.
 
+   .. py:method:: __help__()
+
+      Prints out the usage message.
+
 .. py:class:: selkie.com.Shift
 
    A command-line processor that Main uses internally.  Use it in a
