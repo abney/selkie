@@ -784,6 +784,13 @@ After that, no futher propagation is possible.
 (6, 3) True
 (6, 4) True
 (6, 5) True
+(7, 0) True
+(7, 1) True
+(7, 2) True
+(7, 3) True
+(7, 4) True
+(7, 5) True
+(7, 6) True
 
 When the final list of incompatible pairs has been computed, every
 pair not on the list is equivalent.  One creates a mapping from old

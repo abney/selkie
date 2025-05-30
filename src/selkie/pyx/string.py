@@ -20,6 +20,10 @@ def unidescribe (s):
     for (i,c) in enumerate(s):
         print(i, hex(ord(c)), _safe_unicode_name(c))
 
+def uchars (s):
+    '''Returns a string consisting of space-separated code points (4-digit).'''
+    return ' '.join(f'{ord(c):04X}' for c in s)
+
 def udecode (s):
     with StringIO() as out:
         i = 0

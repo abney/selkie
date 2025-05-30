@@ -140,6 +140,7 @@ Module Documentation
 General functionality
 .....................
 
+.. autofunction:: uchars
 .. autofunction:: unidescribe
 .. autofunction:: isword
 .. autofunction:: lines
@@ -164,5 +165,4 @@ Expand environment variables
 ............................
 
 .. autofunction:: expand_envvars
-
 

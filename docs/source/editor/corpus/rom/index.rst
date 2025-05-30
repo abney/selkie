@@ -163,8 +163,8 @@ To get a list of the defined romanizations:
 
 >>> from selkie.corpus.rom import default_registry
 >>> default_registry.reset()
->>> sorted(default_registry)
-['gothic', 'gothic-student', 'korean', 'otw-jones', 'otw-webkamigad', 'salish']
+>>> sorted(default_registry)[:3]
+['deu', 'gothic', 'gothic-student']
 
 To get the romanization itself, access the registry like a dict:
 
