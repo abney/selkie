@@ -340,7 +340,7 @@ class BaseMain (object):
     '''
 
     def _usage_message (self):
-        yield 'Usage: COMMAND [-FLAG[=VAL]*] [ARG*]'
+        yield 'Usage: COMMAND ARG* KEY=VAL*'
 
         if self.__doc__:
             yield ''
@@ -380,49 +380,59 @@ class BaseMain (object):
                     for line in _docstring_lines(method):
                         yield '    ' + line
 
-    def __help__ (self):
+    def com_help (self):
+        print('com_help')
         print('\n'.join(self._usage_message()))
 
-    def __call__ (self, comline=None):
-        if comline is None:
-            args = sys.argv
-        else:
-            args = [None] + comline.split()
+    def __getcall__ (self, comline=None, args=None, kwargs=None):
+        if args is None:
+            if comline is None:
+                args = sys.argv[1:]
+            else:
+                args = comline.split()
 
-        with Shift(args) as shift:
-            shift.set_usage('\n'.join(self._usage_message()))
-            args = []
-            while not (shift.isdone() or shift.isflag()):
-                args.append(shift())
+        if kwargs is None:
             kwargs = {}
-            while shift.isflag():
-                flag = shift()
-                key = flag[1:]
-                i = key.find('=')
-                value = True
-                if i >= 0:
-                    value = key[i+1:]
-                    key = key[:i]
-                kwargs[key] = value
-            args.extend(shift.rest())
-    
+            for i in range(len(args)):
+                if '=' in args[i]:
+                    kwargs = dict(self._kwarg_items(args, i))
+                    args = args[:i]
+                    break
 
-        com = getattr(self, 'com') if hasattr(self, 'com') else None
+        com = getattr(self, 'com', None)
         nwords = 0
-
         for n in range(1, len(args)+1):
             methodname = 'com_' + '_'.join(args[:n])
             if hasattr(self, methodname):
                 com = getattr(self, methodname)
                 nwords = n
+        args = args[nwords:]
+
         if com is None:
             if args:
                 print('** Command not recognized:', ' '.join(args))
             else:
                 print('** No command given')
             sys.exit(1)
-        args = args[nwords:]
-        com(*args, **kwargs)
+        elif isinstance(com, self.__class__):
+            return com.__getcall__(args=args, kwargs=kwargs)
+        else:
+            return (com, args, kwargs)
+
+    def __call__ (self, comline=None, args=None, kwargs=None):
+        (com, args, kwargs) = self.__getcall__(comline, args, kwargs)
+        return com(*args, **kwargs)
+
+    def _kwarg_items (self, args, i):
+        for arg in args:
+            j = arg.find('=')
+            if j < 0:
+                key = arg
+                value = True
+            else:
+                key = arg[:j]
+                value = arg[j+1:]
+            yield (key, value)
 
 
 #--  Timeout  ------------------------------------------------------------------
