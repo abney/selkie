@@ -1,7 +1,7 @@
 
 import os, json
 
-__version__ = '0.25.pre4'
+__version__ = '0.26.dev1'
 
 config = {}
 

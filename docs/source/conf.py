@@ -10,8 +10,8 @@ copyright = '2022, University of Michigan'
 author = 'Steven Abney'
 
 # release: x.y, version: x.y.z
-release = '0.25'
-version = '0.25.2'
+release = '0.26'
+version = '0.26.dev1'
 
 # -- General configuration
 

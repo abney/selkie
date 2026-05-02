@@ -3,19 +3,14 @@ requires = [ "hatchling" ]
 build-backend = "hatchling.build"
 
 [project]
-name = "selkie"
+name = "pd2"
 
-# When changing the version, remember to update:
-#     setup.cfg
-#     src/selkie/__init__.py
-#     docs/source/conf.py
-
-version = "0.26.dev1"
+version = "0.0.1"
 
 authors = [
   { name="Steven Abney", email="abney@umich.edu" },
 ]
-description = "Natural language processing and digital language description"
+description = "Development files"
 readme = "README.rst"
 requires-python = ">=3.7"
 classifiers = [
