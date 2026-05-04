@@ -101,6 +101,10 @@ class CallHandler (RequestHandler):
             self._write_zipfile(self._get_selkie_filename())
         elif name == 'app':
             self._write_zipfile(self.app_filename)
+        elif name == 'close':
+            print('Received close message')
+            self.write('Server stop')
+            self.stop()
         else:
             set_status(404)
 
