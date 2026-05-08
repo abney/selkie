@@ -17,17 +17,19 @@ def write (*objs):
     root.appendChild(js.document.createTextNode(s))
     root.appendChild(js.document.createElement('BR'))
 
-async def file_contents (fn):
-    res = await pyfetch(f'http://localhost:{PORT}/{fn}')
+async def call (msg):
+    res = await pyfetch(f'http://localhost:{PORT}/{msg}')
     if res.status != 200:
         raise Exception(f'Received status {res.status}: {fn}')
+    return res
+
+async def file_contents (fn):
+    res = await call(fn)
     text = await res.text()
     return text
 
 async def file_bytes (fn):
-    res = await pyfetch(f'http://localhost:{PORT}/{fn}')
-    if res.status != 200:
-        raise Exception(f'Received status {res.status}: {fn}')
+    res = await call(fn)
     b = await res.bytes()
     return b
 

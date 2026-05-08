@@ -1,7 +1,9 @@
 
 from .config import in_browser
 
-if not in_browser:
+if in_browser:
+    from .ui_bootstrap import call
+else:
     import webbrowser
     from .server import Server
 
@@ -55,3 +57,7 @@ class WapApplication:
         self._prep_document_dir()
         self._start_server()
         self._visit_start_page()
+
+    async def quit (self):
+        await call('stop')
+
