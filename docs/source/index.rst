@@ -11,7 +11,7 @@ Version 0.25.2
 
    intro/index
    cld/index
-   editor/index
+   corpus/index
    nlp/index
    data/index
    pyx/index

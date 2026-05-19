@@ -10,6 +10,7 @@ from zipfile import ZipFile
 from importlib import import_module
 
 PORT = 8000
+APP_MODULE_NAME = None
 
 def write (*objs):
     s = ' '.join(str(x) for x in objs)
@@ -32,6 +33,20 @@ async def file_bytes (fn):
     res = await call(fn)
     b = await res.bytes()
     return b
+
+async def get_text (fn):
+    res = await pyfetch(f'http://localhost:{PORT}/call/text?fn={fn}')
+    if res.status != 200:
+        raise Exception(f'Received status {res.status}: text {fn}')
+    text = await res.text()
+    return text
+
+async def post_text (fn, contents):
+    res = await pyfetch(f'http://localhost:{PORT}/call/text?fn={fn}',
+                        {'method': 'POST',
+                         'body': contents})
+    if res.status != 200:
+        raise Exception(f'Received status {res.status}: post text {fn}')
 
 class PseudoModule:
 
@@ -66,13 +81,16 @@ async def install (name):
     zf.extractall()
     #p.unlink()
     fnames = zf.namelist()
-    # the actual module name
+    # the name of the directory that was created
     return fnames[0].split('/')[0]
 
 async def launch_app ():
+    global APP_MODULE_NAME
+    write('Launch App:', APP_MODULE_NAME)
     await install('selkie')
-    app_name = await install('app')
+    if not APP_MODULE_NAME.startswith('selkie.'):
+        await install('app')
     ls()
-    mod = import_module(app_name + '.__main__')
+    mod = import_module(APP_MODULE_NAME)
     app = mod.Application()
     await app.ui()

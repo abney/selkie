@@ -1,7 +1,11 @@
 ##  @package seal.app.request
 #   Provides the Request class and supporting functionality.
 
-import cgi, random
+try:
+    import cgi
+except:
+    pass
+import random
 from io import StringIO
 from os.path import expanduser
 from ..seal.io import pprint, PPrinter

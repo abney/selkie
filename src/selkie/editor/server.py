@@ -1,65 +1,160 @@
 
-import asyncio
-from tornado.web import RequestHandler, StaticFileHandler, Application, url
-from os.path import join, dirname, exists
-from ..pyx.disk import VDisk
-from ..pyx.com import BaseMain
+# This module can only be loaded server-side
+
+import asyncio, tornado, os, sys
+from threading import Thread
+from pathlib import Path
+from importlib import import_module
+from tornado.web import Application, RequestHandler, StaticFileHandler
+from urllib.parse import parse_qsl
+from zipfile import ZipFile
+
+DEFAULT_DOCS = '~/.cache/wap'
+PORT = 8000
 
 
-class FileHandler (RequestHandler):
+#--  Server  -------------------------------------------------------------------
 
-    def initialize (self, diskdir, libdir):
-        self.diskdir = diskdir
-        self.libdir = libdir
+class Server:
+
+    def __init__ (self, app_module_name, app_filename, docs_directory=DEFAULT_DOCS, port=PORT):
+        if not isinstance(app_module_name, str):
+            raise Exception('app_module_name must be a string')
+        if isinstance(docs_directory, str):
+            docs_directory = Path(docs_directory).expanduser()
+        elif not isinstance(docs_directory, Path):
+            raise Exception('Docs_directory must be either a string or a Path')
+        if isinstance(port, str):
+            port = int(port)
+        elif not isinstance(port, int):
+            raise Exception('Port must be either a string or an int')
+
+        self.app_module_name = app_module_name
+        self.app_filename = app_filename
+        self.docs_directory = docs_directory
+        self.port = port
+        self.thread = None
+        self.shutdown_event = None
+        self.wd = Path(os.getcwd())
+
+    async def main (self):
+        print('Server started')
+        print('    app_module_name :', self.app_module_name)
+        print('    app_filename    :', self.app_filename)
+        print('    port            :', self.port)
+        print('    docs_directory  :', self.docs_directory)
+        print('    wd              :', self.wd)
+        handlers = [
+            (r'/call/(.*)', CallHandler, {'wd': self.wd,
+                                          'docs_directory': self.docs_directory,
+                                          'app_module_name': self.app_module_name,
+                                          'app_filename': self.app_filename}),
+            (r'/wd/(.*)', StaticFileHandler, {'path': self.wd}),
+            (r'/(.*)', StaticFileHandler, {'path': self.docs_directory,
+                                           'default_filename': 'index.html'})]
+        self.tornado = Application(handlers)
+        self.tornado.listen(self.port)
+        self.shutdown_event = asyncio.Event()
+        #print('shutdown_event=', self.shutdown_event)
+        await self.shutdown_event.wait()
+        print('Server stopped')
+
+    def run_loop (self):
+        print('Start event loop')
+        self.loop = loop = asyncio.new_event_loop()
+        loop.run_until_complete(self.main())
+        loop.close()
+        print('End event loop')
+
+    def start (self):
+        self.thread = Thread(target=self.run_loop)
+        self.thread.start()
+
+    def stop (self):
+        if self.shutdown_event and self.loop and self.loop.is_running():
+            print('Shutting down')
+            self.loop.call_soon_threadsafe(self.shutdown_event.set)
+        else:
+            print('Server not running')
+            
+    def status (self):
+        if self.thread and self.thread.is_alive():
+            print('Running')
+        else:
+            print('Not running')
+
+
+class CallHandler (RequestHandler):
+
+    def initialize (self, wd, docs_directory, app_module_name, app_filename):
+        self.wd = wd
+        self.docs_directory = docs_directory
+        self.app_module_name = app_module_name
+        self.app_filename = app_filename
 
     def get (self, name):
-        print('[FileHandler.get]', repr(name))
-        if name == '' or name == 'index.html':
-            fn = join(self.libdir, 'client.html')
-        elif name == 'favicon.ico':
-            fn = join(self.libdir, 'favicon.ico')
-        elif name.startswith('.lib/'):
-            fn = join(self.libdir, name[5:])
+        com = 'get_' + name
+        if hasattr(self, com):
+            f = getattr(self, com)
+            return f()
         else:
-            fn = join(self.diskdir, name)
-        print('fn=', repr(fn))
-        if exists(fn):
-            self.set_status(200)
-            if fn.endswith('.css'):
-                self.set_header('Content-Type', 'text/css')
-            with open(fn) as f:
-                for line in f:
-                    self.write(line)
-            self.finish()
+            set_status(404)
 
+    def get_bootstrap (self):
+        self._write_file_text(self._get_bootstrap_filename())
+        self.write('\nAPP_MODULE_NAME = ')
+        self.write(repr(self.app_module_name))
+        self.write('\n')
 
-class Server (object):
+    def get_selkie (self):
+        self._write_zipfile(self._get_selkie_filename())
 
-    def __init__ (self, diskdir='.', port=8000):
-        self.diskdir = diskdir
-        self.libdir = join(dirname(dirname(__file__)), 'cld', 'lib')
-        self.port = port
+    def get_app (self):
+        self._write_zipfile(self.app_filename)
 
-    async def start (self):
-        app = Application([url(r'/(.*)', FileHandler, dict(diskdir=self.diskdir, libdir=self.libdir))])
-        app.listen(self.port)
-        print('Running on port', self.port)
-        return asyncio.Event()
+    def get_close (self):
+        print('Received close message')
+        self.write('Server stop')
+        self.stop()
 
-    async def serve (self):
-        #webbrowser.open(f'http://localhost:{port}/')
-        shutdown = self.start()
-        await shutdown
+    def get_text (self):
+        fn = self.get_query_argument('fn')
+        self._write_file_text(fn)
 
-    def run (self):
-        asyncio.run(self.serve())
+    def _get_bootstrap_filename (self):
+        # module.__file__ is __init__.py
+        wapdir = Path(__file__).parent
+        return wapdir / 'ui_bootstrap.py'
+        
+    def _write_file_text (self, fn):
+        with open(fn) as f:
+            self.write(f.read())
+        
+    def _get_selkie_filename (self):
+        import selkie
+        return Path(selkie.__file__).parent
 
-
-class Main (BaseMain):
-
-    def com_run (self, **kwargs):
-        DiskServer(**kwargs).run()
+    def _write_zipfile (self, sourcedir):
+        name = sourcedir.name
+        cache = self.docs_directory / 'cache'
+        if not cache.exists():
+            cache.mkdir()
+        zfn = cache / (name + '.zip')
+        if zfn.exists():
+            zfn.unlink()
+        oldwd = os.getcwd()
+        try:
+            os.chdir(sourcedir.parent)
+            with ZipFile(zfn, 'w') as zf:
+                for (d, _, names) in Path(name).walk():
+                    for nm in names:
+                        zf.write(d / nm)
+        finally:
+            os.chdir(oldwd)
+        with open(zfn, 'br') as f:
+            self.write(f.read())
 
 
 if __name__ == '__main__':
-    Main()()
+    app = sys.argv[1] if len(sys.argv) > 1 else 'no app'
+    Server(app).start()

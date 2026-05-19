@@ -1,11 +1,12 @@
 
-Next Corpus Editor
-==================
+Corpus (New)
+============
 
 The main goal of the revision is simplification and streamlining.
 
 .. toctree::
    :titlesonly:
 
-   corpus/index
-   server/index
+   corpus
+   rom/index
+   old/index

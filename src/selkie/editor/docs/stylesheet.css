@@ -93,6 +93,32 @@ table.display {
   border: 1px solid #808080;
   padding: 3px;
 }
+table.grid {
+    margin: 0px;
+    border: 0px;
+    border-spacing: 0px;
+    table-layout: fixed;
+}
+.grid td {
+    min-width: 450px;
+    padding-right: 5px;
+    vertical-align: top;
+    border: 1px solid white;
+}
+.grid td:hover {
+    border: 1px dotted;
+    background-color: #f0ffff;
+}
+table.PlainText {
+    width: 550px;
+    margin: 0px;
+    table-layout: fixed;
+}
+table.ParallelText {
+    width: 1000px;
+    margin: 0px;
+    table-layout: fixed;
+}
 .title {
   text-align: center;
   font-size: 24px;
@@ -263,4 +289,33 @@ dd {
   background: #f1f5f9;
   margin: 0 0 4px 0;
   padding: 2px 2px 2px 40px;
+}
+.editable {
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+    padding: 2px;
+    min-height: 10px;
+}
+.sentid {
+    font-size: smaller;
+    width: 16px;
+}
+.sent {
+    width: 100%;
+    vertical-align: top;
+}
+.littleButton {
+    font-size: x-small;
+    padding-left: 2px;
+    padding-right: 2px;
+    border: 1px solid #d0d0d0;
+    margin-left: 2px;
+    cursor: pointer;
+}
+.littleButton:hover {
+    color: white;
+    background-color: #d0d0d0;
+}
+.littleButton:active {
+    background-color: blue;
 }

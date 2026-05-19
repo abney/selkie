@@ -10,25 +10,28 @@ else:
 from pathlib import Path
 from importlib import import_module
 from shutil import copyfile
-import selkie.wap
+
+
+#  Suppose we specialize WapApplication as MyApplication, in module foo.bar
+#  We execute it: python -m foo.bar
+#  Python -m does NOT import foo.bar, but rather loads the module into __main__
+#  As far as I can determine, "python -m" does not store the module name anywhere.
+#  So it must be provided explicitly, when Application is defined.
 
 class WapApplication:
 
-    def __init__ (self):
+    def __init__ (self, module_name):
+        cpts = module_name.split('.')
+
+        self.module_name = module_name
+        self.toplevel_module = cpts[0]
+        self.name = cpts[-1]
         self.document_dir = Path('~/.cache/wap').expanduser()
-        self.document_source_dir = Path(selkie.wap.__file__).parent / 'docs'
+        self.document_source_dir = Path(__file__).parent / 'docs'
         self.pyodide_source = None
         self.port = 8000
-        self.filename = None
-        self.name = None
         self.server = None
         self.in_browser = in_browser
-
-        mod = import_module(self.__module__)
-        fn = Path(mod.__file__)
-        assert fn.name == '__main__.py'
-        self.filename = fn.parent
-        self.name = self.filename.name
 
     async def ui (self):
         write(f'{self.name}:', 'Hello, world!')
@@ -45,7 +48,15 @@ class WapApplication:
         copyfile(src/'stylesheet.css', docs/'stylesheet.css')
 
     def _start_server (self):
-        self.server = Server(self.filename, docs_directory=self.document_dir, port=self.port)
+        mod = import_module(self.toplevel_module)
+        app_filename = Path(mod.__file__)
+        if app_filename.name == '__init__.py':
+            app_filename = app_filename.parent
+
+        self.server = Server(self.module_name,
+                             app_filename,
+                             docs_directory=self.document_dir,
+                             port=self.port)
         self.server.start()
 
     def _visit_start_page (self):

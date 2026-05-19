@@ -17,4 +17,4 @@ Python extensions
    com
    data
    xml
-
+   store
