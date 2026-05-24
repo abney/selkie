@@ -108,6 +108,7 @@ table.grid {
 .grid td:hover {
     border: 1px dotted;
     background-color: #f0ffff;
+    cursor: pointer;
 }
 table.PlainText {
     width: 550px;
@@ -223,12 +224,6 @@ table.tabbing td {
   line-height: 18px;
   padding-right: 12px;
 }
-.menubar {
-    background-color: #fff0e0;
-    border: 1px solid #ffd0c0;
-    padding: 5px;
-    margin-bottom: 12px;
-}
 table.noborder {
   border: 0px;
   border-spacing: 0px;
@@ -243,24 +238,6 @@ div.path {
 }
 div.path a {
   text-decoration: none;
-}
-.menuitem {
-  padding-top: 0px;
-  padding-bottom: 0px;
-  padding-left: 3px;
-  padding-right: 3px;
-  border: 1px solid #c0c0c0;
-  margin: 0px;
-}
-.menuitem:hover {
-  background-color: #202020;
-  color: white;
-  cursor: pointer;
-}
-.menutable {
-  padding: 0px;
-  border-spacing: 0px;
-  border-collapse: collapse;
 }
 .groupingDiv {
     border: 0px;
@@ -318,4 +295,51 @@ dd {
 }
 .littleButton:active {
     background-color: blue;
+}
+
+/* Menu-bar */
+.menu-bar {
+  display: flex;
+  list-style: none;
+  background-color: #000080;
+  margin-bottom: 12px;
+}
+.dropdown-menu {
+  position: relative; /* Important! */
+  font-family: sans-serif;
+}
+.dropdown-menu > a {
+  display: block;
+  padding: 15px 20px;
+  cursor: pointer;
+  color: white;
+  text-decoration: none;
+}
+.dropdown-menu > a:hover {
+  background-color: #FFCB05;
+  color: #00274C;
+}
+.dropdown-menu:hover .dropdown-items {
+  display: block;
+}
+.dropdown-items {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  padding: 0;
+  list-style-type: none;
+  background-color: #fff;
+  box-shadow: 0 10px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+.dropdown-items li a {
+  display: block;
+  padding: 10px 20px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #00274C;
+}
+.dropdown-items li a:hover {
+  background-color: #f0f0f0;
 }

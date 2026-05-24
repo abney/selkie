@@ -6,7 +6,5 @@ if in_browser:
 
 else:
 
-    def write (*args): pass
-    def get_text (*args): pass
-    def post_text (*args): pass
-    
+    server = None
+

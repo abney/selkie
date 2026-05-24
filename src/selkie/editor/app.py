@@ -2,7 +2,7 @@
 from .config import in_browser
 
 if in_browser:
-    from .ui_bootstrap import call
+    from .ui_bootstrap import server
 else:
     import webbrowser
     from .server import Server
@@ -70,5 +70,4 @@ class WapApplication:
         self._visit_start_page()
 
     async def quit (self):
-        await call('stop')
-
+        await server.close()

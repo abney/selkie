@@ -12,70 +12,68 @@ from importlib import import_module
 PORT = 8000
 APP_MODULE_NAME = None
 
-def write (*objs):
-    s = ' '.join(str(x) for x in objs)
-    root = js.document.getElementById("root")
-    root.appendChild(js.document.createTextNode(s))
-    root.appendChild(js.document.createElement('BR'))
 
-async def call (msg):
-    res = await pyfetch(f'http://localhost:{PORT}/{msg}')
-    if res.status != 200:
-        raise Exception(f'Received status {res.status}: {fn}')
-    return res
+class Server:
 
-async def file_contents (fn):
-    res = await call(fn)
-    text = await res.text()
-    return text
+    async def call (self, msg, binary=False, **kwargs):
+        global PORT
+        words = [msg] + [f'{key}={value}' for (key, value) in kwargs.items()]
+        msg = '?'.join(words)
+        res = await pyfetch(f'http://localhost:{PORT}/call/{msg}')
+        if res.status != 200:
+            raise Exception(f'Received status {res.status}')
+        if binary:
+            return await res.bytes()
+        else:
+            return await res.text()
+    
+    async def bootstrap (self):
+        return await self.call('bootstrap')
 
-async def file_bytes (fn):
-    res = await call(fn)
-    b = await res.bytes()
-    return b
+    async def close (self):
+        await self.call('close')
 
-async def get_text (fn):
-    res = await pyfetch(f'http://localhost:{PORT}/call/text?fn={fn}')
-    if res.status != 200:
-        raise Exception(f'Received status {res.status}: text {fn}')
-    text = await res.text()
-    return text
+    async def get_zipfile (self, name):
+        assert name in ('selkie', 'app')
+        return await self.call(name, binary=True)
+    
+    async def load (self, fn):
+        return await self.call('text', fn=fn)
+    
+    async def save (self, fn, contents):
+        global PORT
+        res = await pyfetch(f'http://localhost:{PORT}/call/text?fn={fn}',
+                            {'method': 'POST',
+                             'body': contents})
+        if res.status != 200:
+            raise Exception(f'Received status {res.status}: post text {fn}')
 
-async def post_text (fn, contents):
-    res = await pyfetch(f'http://localhost:{PORT}/call/text?fn={fn}',
-                        {'method': 'POST',
-                         'body': contents})
-    if res.status != 200:
-        raise Exception(f'Received status {res.status}: post text {fn}')
 
-class PseudoModule:
+server = Server()
 
-    def __init__ (self, env):
-        self.__dict__ = env
-
-    def __getattr__ (self, attr):
-        return self.__dict__[attr]
-
-async def load (fn):
-    env = {}
-    source = await file_contents(fn)
-    await eval_code_async(source, env)
-    return PseudoModule(env)
-
-def ls (fn='.'):
-    p = Path(fn)
-    if p.is_dir():
-        names = [str(n) for n in p.iterdir()]
-        write(f'List dir {str(p)}:', *names)
-    elif p.exists():
-        write('List file:', str(p))
-    else:
-        write('No such file:', str(p))
+# class PseudoModule:
+# 
+#     def __init__ (self, env):
+#         self.__dict__ = env
+# 
+#     def __getattr__ (self, attr):
+#         return self.__dict__[attr]
+# 
+# 
+# class Context:
+# 
+#     async def load (self, fn):
+#         env = {}
+#         source = await file_contents(fn)
+#         await eval_code_async(source, env)
+#         return PseudoModule(env)
+    
 
 async def install (name):
+    global server
     home = Path.home()
     p = (home / name).with_suffix('.zip')
-    b = await file_bytes('call/' + name)
+    b = await server.get_zipfile(name)
     p.write_bytes(b)
     zf = ZipFile(p)
     zf.extractall()
@@ -86,11 +84,14 @@ async def install (name):
 
 async def launch_app ():
     global APP_MODULE_NAME
-    write('Launch App:', APP_MODULE_NAME)
+    print('Launch App:', APP_MODULE_NAME)
     await install('selkie')
+    print('Installed selkie')
     if not APP_MODULE_NAME.startswith('selkie.'):
         await install('app')
-    ls()
+        print('Installed', APP_MODULE_NAME)
     mod = import_module(APP_MODULE_NAME)
+    print('Instantiating Application')
     app = mod.Application()
+    print('Calling app.ui()')
     await app.ui()

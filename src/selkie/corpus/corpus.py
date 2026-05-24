@@ -42,16 +42,19 @@ class Dict:
     __keys__ = None
 
     def __init__ (self, fn=None, contents=None, create=False):
-        self._filename = None if fn is None else Path(fn)
+        self._filename = fn
         self._contents = {}
 
-        if fn:
-            if contents:
-                raise Exception('Do not specify both fn and contents')
-            self.load(fn, create)
-        elif contents:
+        # In the browser, we create a Corpus that has a filename and contents,
+        # but the contents came from the server, not a local file
+
+        if contents is None:
+            if fn:
+                self.load(fn, create)
+        else:
             self.read(contents.split('\n'))
 
+    def filename (self): return self._filename
     def __len__ (self): return len(self._contents)
     def __getitem__ (self, key): return self._contents[key]
     def __iter__ (self): return iter(self._contents)
@@ -106,7 +109,7 @@ class Dict:
             f.write(' ')
 
     def __repr__ (self):
-        return repr(self._contents)
+        return f'<{self.__class__.__name__} {self._filename}>'
 
     def __str__ (self):
         with StringIO() as f:
@@ -145,100 +148,167 @@ class _LoadContext:
 
 
 #--  KeyPath  ------------------------------------------------------------------
-
-class KeyPath:
-
-    def __init__ (self, corpus):
-        self._corpus = corpus
-        self._menus = []
-        self._node = corpus
-
-    def __len__ (self): return len(self._menus)
-    def __iter__ (self): return iter(self._menus)
-    def __getitem__ (self, i): return self._menus[i]
-    def corpus (self): return self._corpus
-    def menus (self): return self._menus
-    def node (self): return self._node
-    def string (self): return ' '.join(menu[0] for menu in self._menus)
-
-    def join (self, key):
-        d = self._node
-        menu = [key] + sorted(k for (k,v) in d.items() if k != key and not isinstance(v, str))
-        path = KeyPath(self._corpus)
-        path._menus = self._menus + [menu]
-        path._node = d[key]
-        return path
-
-    def __repr__ (self):
-        return f'<KeyPath {self.string()}>'
-
+# 
+# class KeyPath:
+# 
+#     def __init__ (self, corpus):
+#         self._corpus = corpus
+#         self._menus = []
+#         self._node = corpus
+# 
+#     def __len__ (self): return len(self._menus)
+#     def __iter__ (self): return iter(self._menus)
+#     def __getitem__ (self, i): return self._menus[i]
+#     def corpus (self): return self._corpus
+#     def menus (self): return self._menus
+#     def node (self): return self._node
+#     def string (self): return ' '.join(menu[0] for menu in self._menus)
+# 
+#     def join (self, key):
+#         d = self._node
+#         menu = [key] + sorted(k for (k,v) in d.items() if k != key and not isinstance(v, str))
+#         path = KeyPath(self._corpus)
+#         path._menus = self._menus + [menu]
+#         path._node = d[key]
+#         return path
+# 
+#     def __repr__ (self):
+#         return f'<KeyPath {self.string()}>'
+# 
 
 #--  Node  ---------------------------------------------------------------------
 
+class CorpusLocation:
+
+    def __init__ (self, item=None, corpus=None, language=None, text=None,
+                  sentence=None, token=None, word=None):
+        self.item = item
+        self.corpus = corpus
+        self.language = language
+        self.text = text
+        self.sentence = sentence
+        self.token = token
+        self.word = word
+        self.view = None
+
+
 class Node:
 
-    __nodetype__ = None
-    __keys__ = None
+    child_class = None
+    child_prefix = None
+    properties = None
 
-    def __init__ (self, parent, name=None):
-        key = self.__nodetype__
-        if name:
-            key = key + '.' + name
+    def __init__ (self, parent, key):
         self.parent = parent
-        self.name = name
-        self._path = parent.path().join(key)
-        self.meta = self._path.node()
+        self.key = key
+        self.meta = None if parent is None else parent.meta[key]
+        self.table = Table(self)
+        self.props = Props(self)
 
-    def path (self): return self._path
-    def corpus (self): return self._path.corpus()
-    def node (self): return self._path.node()
-    def keys (self): return self.__keys__
+    def __eq__ (self, other):
+        return self.meta is other.meta and self.key == other.key
 
-    def is_legal_key (self, key):
-        return self.__keys__ is None or key in self.__keys__
-
-    def get (self, key):
-        if not self.is_legal_key(key):
-            raise KeyError('Unrecognized key')
-        return self._path._node[str(key)]
-
-    def set (self, key, value):
-        if not self.is_legal_key(key):
-            raise KeyError('Unrecognized key')
-        self._path._node[str(key)] = value
-
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {self._path.string()}>'
-
-
-class ListNode (Node):
-
-    __childtype__ = None
-    __childclass__ = None
-
-    def _child_names (self):
-        pfx = self.__childtype__ + '.'
-        n = len(pfx)
-        for key in self.meta:
-            if key.startswith(pfx):
-                yield key[n:]
+    def _child_keys (self):
+        if self.child_prefix is None:
+            raise ValueError('No child keys')
+        for key in self.meta.keys():
+            if key.startswith(self.child_prefix):
+                yield key
 
     def __iter__ (self):
-        for name in self._child_names():
-            yield self.__childclass__(self, name)
+        for key in self._child_keys():
+            yield self.child_class(self, key)
+        
+    def __len__ (self):
+        return sum(1 for _ in self._child_keys())
+
+    def __getitem__ (self, i):
+        childkey = None
+        if i < 0:
+            childkey = list(self._child_keys())[i]
+        else:
+            for (k, key) in enumerate(self._child_keys()):
+                if k == i:
+                    childkey = key
+        if childkey is None:
+            raise KeyError('Key not found')
+        return self.child_class(self, childkey)
+
+    def ancestors (self):
+        if self.parent:
+            yield from self.parent.ancestors()
+        yield self
+
+    def key_type (self):
+        return self.key.split('.')[0]
+
+    def full_name (self):
+        return ' '.join([anc.key for anc in self.ancestors() if anc.key])
+
+    def __repr__ (self):
+        return f'<{self.__class__.__name__} {self.key}>'
+
+
+class Table:
+
+    def __init__ (self, node):
+        self.node = node
 
     def __len__ (self):
-        return sum(1 for _ in self._child_names())
-        
-    def __getitem__ (self, i):
-        name = nth(self._child_names(), i)
-        return self.__childclass__(self, name)
+        return self.node.__len__()
 
+    def __iter__ (self):
+        return self.node._child_keys()
+
+    def __getitem__ (self, key):
+        cls = self.node.child_class
+        return cls(self.node, key)
+
+    def keys (self):
+        return self.node._child_keys()
+
+    def values (self):
+        return self.node
+
+    def items (self):
+        for child in self.node.__iter__():
+            yield (child.key, child)
+
+
+class Props:
+
+    def __init__ (self, node):
+        self.node = node
+
+    def __len__ (self):
+        return len(node.properties)
+
+    def __iter__ (self):
+        return iter(node.properties)
+
+    def __getitem__ (self, key):
+        if key in self.node.properties:
+            return self.node.meta.get(key, '')
+        else:
+            raise KeyError('Unrecognized key')
+
+    def keys (self):
+        return self.node.properties
+
+    def values (self):
+        meta = self.node.meta
+        for key in self.node.properties:
+            yield meta.get(key, '')
+
+    def items (self):
+        meta = self.node.meta
+        for key in self.node.properties:
+            yield (key, meta.get(key, ''))
 
 
 #--  Corpus  -------------------------------------------------------------------
 
-class Corpus (Dict):
+class CorpusDict (Dict):
 
     __keys__ = {
         'lang': 0,
@@ -253,17 +323,41 @@ class Corpus (Dict):
     	'times': 3
     }
 
-    def path (self):
-        return KeyPath(self)
 
-    def language (self, name):
-        return Language(self, name)
+class Corpus (Node):
+
+    def __init__ (self, fn=None, **kwargs):
+        Node.__init__(self, None, None)
+        self.meta = CorpusDict(fn=fn, **kwargs)
+        self.parent = None
+        self.key = 'corpus'
+
+    def filename (self):
+        return self.meta.filename()
+
+    def location (self):
+        return CorpusLocation(self, corpus=self)
+
+
+class Language (Node):
+
+    def location (self):
+        return CorpusLocation(self, language=self, corpus=self.parent)
+
+
+class Text (Node):
+
+    def location (self):
+        return CorpusLocation(self, text=self, language=self.parent, corpus=self.parent.parent)
 
 
 class Sentence (Node):
 
-    __nodetype__ = 'sent'
-    __keys__ = {'w', 'g'}
+    def location (self):
+        text = self.parent
+        lang = text.parent
+        corp = lang.parent
+        return CorpusLocation(self, sentence=self, text=text, language=lang, corpus=corp)
 
     def text (self):
         return self.parent
@@ -280,6 +374,9 @@ class Sentence (Node):
     def string (self):
         return self.meta['w']
 
+    def set_string (self, s):
+        self.meta['w'] = s
+
     def __len__ (self):
         return len(self.meta['w'].split())
 
@@ -292,43 +389,10 @@ class Sentence (Node):
         return Token(self, i, strs[i])
 
 
-class Text (ListNode):
-
-    __nodetype__ = 'text'
-    __keys__ = {'ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video'}
-    __childtype__ = 'sent'
-    __childclass__ = Sentence
-
-    def language (self):
-        return self.parent
-
-    def sentence (self, name):
-        return Sentence(self, name)
-
-
-class Language (ListNode):
-
-    __nodetype__ = 'lang'
-    __keys__ = {'name', 'glot', 'iso3', 'rom'}
-    __childtype__ = 'text'
-    __childclass__ = Text
-
-    def text (self, name):
-        return Text(self, name)
-
-    def lexicon (self):
-        return Lexicon(self)
-       
-
 class Times (Node):
-
-    __nodetype__ = 'times'
 
     def sentence (self):
         return self.parent
-
-    def is_legal_key (self, key):
-        return isinstance(key, int)
 
 
 class Token:
@@ -344,4 +408,24 @@ class Token:
 
 class Lexicon (Node):
 
-    __nodetype__ = 'lexicon'
+    pass
+
+
+class Word (Node):
+
+    pass
+
+
+Corpus.child_class = Language
+Corpus.child_prefix = 'lang.'
+Corpus.properties = []
+
+Language.child_class = Text
+Language.child_prefix = 'text.'
+Language.properties = ['name', 'glot', 'iso3', 'rom']
+
+Text.child_class = Sentence
+Text.child_prefix = 'sent.'
+Text.properties = ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video']
+
+Word.properties = ['ty', 'g', 'c', 'pp', 'cf', 'of']

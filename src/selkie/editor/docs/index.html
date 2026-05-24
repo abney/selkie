@@ -2,8 +2,9 @@
 <html>
   <head>
     <script src="http://localhost:8000/pyodide/pyodide.js"></script>
+    <link rel='stylesheet', type='text/css', href='stylesheet.css'/>
   </head>
-  <body>
+  <body onload="main();">
     <script type="text/javascript">
       async function main(){
           let pyodide = await loadPyodide();
@@ -33,14 +34,10 @@
               code = await res.text()
               bootstrap = {}
               await eval_code_async(code, bootstrap)
-              write = bootstrap['write']
-              write('Bootstrap loaded')
               launch_app = bootstrap['launch_app']
               await launch_app()
           `);
       }
-      main();
     </script>
-    <div id="root"></div>
   </body>
 </html>

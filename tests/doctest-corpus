@@ -1,6 +1,6 @@
 >>> from selkie.corpus import Corpus
 >>> corpus = Corpus('../dev/example.cld')
->>> print(corpus)
+>>> print(corpus.meta)
 lang.deu
   name German
   glot stan1295
@@ -54,9 +54,12 @@ lang.deu
     form.-gen
       g <genitive>
 <BLANKLINE>
->>> deu = corpus.language('deu')
+>>> deu = corpus[0]
 >>> deu
 <Language lang.deu>
+>>> deu2 = corpus.table['lang.deu']
+>>> corpus.table['lang.deu'] == deu
+True
 >>> sorted(deu.meta)
 ['glot', 'iso3', 'lexicon', 'name', 'text.1', 'text.2', 'text.3']
 >>> deu.meta['glot']
@@ -64,28 +67,26 @@ lang.deu
 >>> len(deu)
 3
 >>> list(deu)
-[<Text lang.deu text.1>, <Text lang.deu text.2>, <Text lang.deu text.3>]
->>> text = deu.text('2')
+[<Text text.1>, <Text text.2>, <Text text.3>]
+>>> text = deu[1]
 >>> text
-<Text lang.deu text.2>
->>> deu[1]
-<Text lang.deu text.2>
+<Text text.2>
+>>> deu.table['text.2'] == text
+True
 >>> len(text)
 2
->>> text[0]
-<Sentence lang.deu text.2 sent.1>
->>> text[0].name
-'1'
->>> len(text)
-2
->>> s = text[0]
->>> s
-<Sentence lang.deu text.2 sent.1>
->>> s.meta['w']
+>>> sent = text[0]
+>>> sent
+<Sentence sent.1>
+>>> text.table['sent.1'] == sent
+True
+>>> sent.key
+'sent.1'
+>>> sent.meta['w']
 'in einem kleinen Dorf am Fluss wohnte ein Schuster'
->>> len(s)
+>>> len(sent)
 9
->>> s[0]
+>>> sent[0]
 <Token 0 in>
->>> s[0].string
+>>> sent[0].string
 'in'
