@@ -57,6 +57,9 @@ class Element:
             self.append(elt)
         return elt
 
+    def set_attribute (self, key, value):
+        self._js.setAttribute(key, value)
+
     def append (self, elt):
         elt.parent = self
         self._js.appendChild(elt._js)
@@ -119,11 +122,23 @@ class Element:
     def Div (self, classname=None, attach=True):
         return self.Element('div', classname=classname, attach=attach)
 
-    def H1 (self, string=None, **kwargs):
-        h1 = self.Element('h1', **kwargs)
+    def _heading (self, label, string=None, **kwargs):
+        elt = self.Element(label, **kwargs)
         if string:
-            h1.write(string)
-        return h1
+            elt.write(string)
+        return elt
+
+    def H1 (self, string=None, **kwargs):
+        return self._heading('h1', string, **kwargs)
+
+    def H2 (self, string=None, **kwargs):
+        return self._heading('h2', string, **kwargs)
+
+    def H3 (self, string=None, **kwargs):
+        return self._heading('h3', string, **kwargs)
+
+    def H4 (self, string=None, **kwargs):
+        return self._heading('h4', string, **kwargs)
 
     def PlainTextPanel (self, text, **kwargs):
         return self.create(PlainTextPanel, text, **kwargs)
@@ -281,9 +296,10 @@ class PlainTextPanel (Element):
 class PropertyCell (EditableCell):
 
     def __init__ (self, parent, meta, key):
-        EditableCell.__init__(parent, self.get, self.set)
+        # EditableCell.__init__ is going to call self.get in order to display itself
         self.meta = meta
         self.key = key
+        EditableCell.__init__(self, parent, self.get, self.set, classname='editable')
 
     def get (self):
         return self.meta[self.key]
@@ -295,14 +311,15 @@ class PropertyCell (EditableCell):
 class PropertyTable (Element):
 
     def __init__ (self, parent, meta):
-        Element.__init__(self, parent, 'table', classname='grid')
+        Element.__init__(self, parent, 'table', classname='noborder')
         self.meta = meta
 
-        for key in self.meta:
-            row = self.Row()
-            cell = row.TD()
-            cell.write(key)
-            self.create(PropertyCell, self.meta, key)
+        for (key, value) in self.meta.items():
+            if not isinstance(value, dict):
+                row = self.Row()
+                cell = row.TD()
+                cell.write(key)
+                row.create(PropertyCell, self.meta, key)
 
 
 #--  Menu bar  -----------------------------------------------------------------
@@ -341,7 +358,11 @@ class MenuItem (Element):
 
         a = self.Element('a')
         a.write(string)
-        a.add_listener('click', self.on_click)
+        if action is None:
+            a.set_attribute('class', 'disabled');
+            print('a', string, 'disabled')
+        else:
+            a.add_listener('click', self.on_click)
 
     def on_click (self, _):
         self.action(*self.args)
@@ -377,12 +398,14 @@ class Editor (Element):
         self.create(page)
 
     def construct_menu (self):
+        loc = self.location
         menubar = self.document.MenuBar()
 
         menu = menubar.Menu('File')
         menu.MenuItem('Open', self.choose_file)
+        menu.MenuItem('Corpus', None if loc.corpus is None else self.edit_corpus)
+        print('loc.corpus=', loc.corpus)
 
-        loc = self.location
         if loc.corpus:
 
             title = 'Langs' if loc.language is None else loc.language.key
@@ -397,6 +420,8 @@ class Editor (Element):
                 for name in loc.language.table:
                     if name != title:
                         menu.MenuItem(name, self.edit_text, name)
+
+        
 
     def choose_file (self):
         self.goto_page('open')
@@ -418,6 +443,9 @@ class Editor (Element):
         view = loc.view or item.key_type()
         self.goto_page(view)
 
+    def edit_corpus (self):
+        self.edit(self.location.corpus)
+
     def edit_language (self, name):
         lang = self.location.corpus.table[name]
         self.edit(lang)
@@ -426,6 +454,8 @@ class Editor (Element):
         text = self.location.language.table[name]
         self.edit(text)
         
+    
+
         
 #--  Pages  --------------------------------------------------------------------
 
@@ -450,13 +480,18 @@ class CorpusPage (Page):
     def __init__ (self, editor, **kwargs):
         Page.__init__(self, editor, **kwargs)
         corpus = editor.location.corpus
+        self.H2('Corpus')
         self.write('Filename: ', corpus.filename())
 
 
 class LanguagePage (Page):
 
-    pass
-            
+    def __init__ (self, editor, **kwargs):
+        Page.__init__(self, editor, **kwargs)
+        lang = self.language = editor.location.language
+        self.H2('Language')
+        self.create(PropertyTable, lang.meta)
+
 
 class TextPage (Page):
 
