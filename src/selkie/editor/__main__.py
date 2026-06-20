@@ -1,5 +1,5 @@
 from .app import WapApplication
-from .ui import Editor
+from .editor import Editor
 
 
 class Application (WapApplication):

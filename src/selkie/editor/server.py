@@ -17,9 +17,7 @@ PORT = 8000
 
 class Server:
 
-    def __init__ (self, app_module_name, app_filename, docs_directory=DEFAULT_DOCS, port=PORT):
-        if not isinstance(app_module_name, str):
-            raise Exception('app_module_name must be a string')
+    def __init__ (self, app_info, docs_directory=DEFAULT_DOCS, port=PORT):
         if isinstance(docs_directory, str):
             docs_directory = Path(docs_directory).expanduser()
         elif not isinstance(docs_directory, Path):
@@ -29,8 +27,7 @@ class Server:
         elif not isinstance(port, int):
             raise Exception('Port must be either a string or an int')
 
-        self.app_module_name = app_module_name
-        self.app_filename = app_filename
+        self.app_info = app_info
         self.docs_directory = docs_directory
         self.port = port
         self.thread = None
@@ -39,16 +36,14 @@ class Server:
 
     async def main (self):
         print('Server started')
-        print('    app_module_name :', self.app_module_name)
-        print('    app_filename    :', self.app_filename)
-        print('    port            :', self.port)
-        print('    docs_directory  :', self.docs_directory)
-        print('    wd              :', self.wd)
+        print('    app_info       :', self.app_info)
+        print('    port           :', self.port)
+        print('    docs_directory :', self.docs_directory)
+        print('    wd             :', self.wd)
         handlers = [
             (r'/call/(.*)', CallHandler, {'wd': self.wd,
                                           'docs_directory': self.docs_directory,
-                                          'app_module_name': self.app_module_name,
-                                          'app_filename': self.app_filename}),
+                                          'app_info': self.app_info}),
             (r'/wd/(.*)', StaticFileHandler, {'path': self.wd}),
             (r'/(.*)', StaticFileHandler, {'path': self.docs_directory,
                                            'default_filename': 'index.html'})]
@@ -86,11 +81,10 @@ class Server:
 
 class CallHandler (RequestHandler):
 
-    def initialize (self, wd, docs_directory, app_module_name, app_filename):
+    def initialize (self, wd, docs_directory, app_info):
         self.wd = wd
         self.docs_directory = docs_directory
-        self.app_module_name = app_module_name
-        self.app_filename = app_filename
+        self.app_info = app_info
 
     def get (self, name):
         com = 'get_' + name
@@ -102,8 +96,8 @@ class CallHandler (RequestHandler):
 
     def get_bootstrap (self):
         self._write_file_text(self._get_bootstrap_filename())
-        self.write('\nAPP_MODULE_NAME = ')
-        self.write(repr(self.app_module_name))
+        self.write('\nAPP_FUNCTION_NAME = ')
+        self.write(repr(self.app_function_name))
         self.write('\n')
 
     def get_selkie (self):
@@ -153,6 +147,10 @@ class CallHandler (RequestHandler):
             os.chdir(oldwd)
         with open(zfn, 'br') as f:
             self.write(f.read())
+
+
+def launch (cls):
+    pass
 
 
 if __name__ == '__main__':

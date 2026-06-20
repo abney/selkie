@@ -12,6 +12,32 @@ from importlib import import_module
 from shutil import copyfile
 
 
+class AppInfo:
+
+    def __init__ (self, module_name, function_name):
+        '''
+        E.g., filename='/Users/abney/git/hub/selkie/src/selkie'
+              module_name='selkie.editor.__main__'
+              function_name='Application'
+        '''
+
+        assert isinstance(module_name, str)
+        assert isinstance(function_name, str)
+
+        cpts = module_name.split('.')
+        mod = import_module(cpts[0])
+        filename = Path(mod.__file__)
+        if filename.name == '__init__.py':
+            filename = filename.parent
+
+        self.filename = filename
+        self.module_name = module_name
+        self.function_name = function_name
+
+    def __repr__ (self):
+        return f'<AppInfo {self.filename} {self.module_name} {self.function_name}>'
+
+
 #  Suppose we specialize WapApplication as MyApplication, in module foo.bar
 #  We execute it: python -m foo.bar
 #  Python -m does NOT import foo.bar, but rather loads the module into __main__
@@ -20,11 +46,9 @@ from shutil import copyfile
 
 class WapApplication:
 
-    def __init__ (self, module_name):
-        cpts = module_name.split('.')
-
+    def __init__ (self, module_name, function_name):
         self.module_name = module_name
-        self.toplevel_module = cpts[0]
+        self.function_name = function_name
         self.name = cpts[-1]
         self.document_dir = Path('~/.cache/wap').expanduser()
         self.document_source_dir = Path(__file__).parent / 'docs'
@@ -48,13 +72,8 @@ class WapApplication:
         copyfile(src/'stylesheet.css', docs/'stylesheet.css')
 
     def _start_server (self):
-        mod = import_module(self.toplevel_module)
-        app_filename = Path(mod.__file__)
-        if app_filename.name == '__init__.py':
-            app_filename = app_filename.parent
-
-        self.server = Server(self.module_name,
-                             app_filename,
+        info = AppInfo(self.module_name, self.function_name)
+        self.server = Server(info,
                              docs_directory=self.document_dir,
                              port=self.port)
         self.server.start()

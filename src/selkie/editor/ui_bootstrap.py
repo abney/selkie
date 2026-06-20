@@ -11,6 +11,7 @@ from importlib import import_module
 
 PORT = 8000
 APP_MODULE_NAME = None
+APP_FUNCTION_NAME = None
 
 
 class Server:
@@ -83,8 +84,8 @@ async def install (name):
     return fnames[0].split('/')[0]
 
 async def launch_app ():
-    global APP_MODULE_NAME
-    print('Launch App:', APP_MODULE_NAME)
+    global APP_MODULE_NAME, APP_FUNCTION_NAME
+    print('Launch App:', APP_MODULE_NAME, APP_FUNCTION_NAME)
     await install('selkie')
     print('Installed selkie')
     if not APP_MODULE_NAME.startswith('selkie.'):
@@ -92,6 +93,6 @@ async def launch_app ():
         print('Installed', APP_MODULE_NAME)
     mod = import_module(APP_MODULE_NAME)
     print('Instantiating Application')
-    app = mod.Application()
-    print('Calling app.ui()')
-    await app.ui()
+    fnc = mod.__dict__[APP_FUNCTION_NAME]
+    print('Calling', APP_FUNCTION_NAME)
+    fnc()

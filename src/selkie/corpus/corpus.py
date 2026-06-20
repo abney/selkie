@@ -180,15 +180,14 @@ class _LoadContext:
 
 class CorpusLocation:
 
-    def __init__ (self, item=None, corpus=None, language=None, text=None,
-                  sentence=None, token=None, word=None):
+    def __init__ (self, item, **kwargs):
         self.item = item
-        self.corpus = corpus
-        self.language = language
-        self.text = text
-        self.sentence = sentence
-        self.token = token
-        self.word = word
+        self.corpus = kwargs.get('corpus')
+        self.language = kwargs.get('language')
+        self.text = kwargs.get('text')
+        self.sentence = kwargs.get('sentence')
+        self.token = kwargs.get('token')
+        self.word = kwargs.get('word')
         self.view = None
 
 
@@ -208,7 +207,7 @@ class Node:
     def __eq__ (self, other):
         return self.meta is other.meta and self.key == other.key
 
-    def _child_keys (self):
+    def child_keys (self):
         if self.child_prefix is None:
             raise ValueError('No child keys')
         for key in self.meta.keys():
@@ -216,18 +215,21 @@ class Node:
                 yield key
 
     def __iter__ (self):
-        for key in self._child_keys():
+        for key in self.child_keys():
             yield self.child_class(self, key)
         
+    def children (self):
+        return self.__iter__()
+
     def __len__ (self):
-        return sum(1 for _ in self._child_keys())
+        return sum(1 for _ in self.child_keys())
 
     def __getitem__ (self, i):
         childkey = None
         if i < 0:
-            childkey = list(self._child_keys())[i]
+            childkey = list(self.child_keys())[i]
         else:
-            for (k, key) in enumerate(self._child_keys()):
+            for (k, key) in enumerate(self.child_keys()):
                 if k == i:
                     childkey = key
         if childkey is None:
@@ -258,14 +260,14 @@ class Table:
         return self.node.__len__()
 
     def __iter__ (self):
-        return self.node._child_keys()
+        return self.node.child_keys()
 
     def __getitem__ (self, key):
         cls = self.node.child_class
         return cls(self.node, key)
 
     def keys (self):
-        return self.node._child_keys()
+        return self.node.child_keys()
 
     def values (self):
         return self.node
@@ -330,7 +332,7 @@ class Corpus (Node):
         Node.__init__(self, None, None)
         self.meta = CorpusDict(fn=fn, **kwargs)
         self.parent = None
-        self.key = 'corpus'
+        self.key = 'corp.' + Path(fn).stem
 
     def filename (self):
         return self.meta.filename()
