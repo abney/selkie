@@ -49,7 +49,6 @@ class WapApplication:
     def __init__ (self, module_name, function_name):
         self.module_name = module_name
         self.function_name = function_name
-        self.name = cpts[-1]
         self.document_dir = Path('~/.cache/wap').expanduser()
         self.document_source_dir = Path(__file__).parent / 'docs'
         self.pyodide_source = None
@@ -57,15 +56,11 @@ class WapApplication:
         self.server = None
         self.in_browser = in_browser
 
-    async def ui (self):
-        write(f'{self.name}:', 'Hello, world!')
-
     def _prep_document_dir (self):
         docs = self.document_dir
         src = self.document_source_dir
         if not docs.exists():
-            # docs.mkdir()
-            raise Exception('Not implemented: create docs directory and install pyodide')
+            docs.mkdir()
         # TODO: if pyodide source file is not available, change the fourth line
         # of index.html to use the copy of pyodide on the web
         copyfile(src/'index.html', docs/'index.html')
@@ -90,3 +85,8 @@ class WapApplication:
 
     async def quit (self):
         await server.close()
+
+
+def start (fnc):
+    app = WapApplication(fnc.__module__, fnc.__name__)
+    app.start()

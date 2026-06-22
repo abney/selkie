@@ -1,9 +1,9 @@
 
 from asyncio import ensure_future
 from ..corpus.corpus import Corpus, CorpusLocation, Language, Text, Sentence
-from .ui import Document, Element, EditableCell
+from ..ui.ui import Document, Element, EditableCell
 
-from .bootstrap import server
+from ..ui.bootstrap import server
 
 
 def first (g):

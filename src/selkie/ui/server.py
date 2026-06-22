@@ -96,8 +96,10 @@ class CallHandler (RequestHandler):
 
     def get_bootstrap (self):
         self._write_file_text(self._get_bootstrap_filename())
+        self.write('\nAPP_MODULE_NAME = ')
+        self.write(repr(self.app_info.module_name))
         self.write('\nAPP_FUNCTION_NAME = ')
-        self.write(repr(self.app_function_name))
+        self.write(repr(self.app_info.function_name))
         self.write('\n')
 
     def get_selkie (self):
