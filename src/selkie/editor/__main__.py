@@ -1,4 +1,4 @@
-from ..ui import start
+from ..wap import start
 from .editor import Editor
 
 start(Editor)
