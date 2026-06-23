@@ -2,7 +2,7 @@
 from .config import in_browser
 
 if in_browser:
-    from .ui_bootstrap import server
+    from .ui_bootstrap import server_proxy
 else:
     import webbrowser
     from .server import Server
@@ -12,30 +12,39 @@ from importlib import import_module
 from shutil import copyfile
 
 
-class AppInfo:
+def app_config (start_fnc, **kwargs):
+    '''
+    E.g., filename='/Users/abney/git/hub/selkie/src/selkie'
+          module_name='selkie.editor.__main__'
+          function_name='Application'
+    '''
 
-    def __init__ (self, module_name, function_name):
-        '''
-        E.g., filename='/Users/abney/git/hub/selkie/src/selkie'
-              module_name='selkie.editor.__main__'
-              function_name='Application'
-        '''
+    start_fnc_module = start_fnc.__module__
+    start_fnc_name = start_fnc.__name__
 
-        assert isinstance(module_name, str)
-        assert isinstance(function_name, str)
+    cpts = start_fnc_module.split('.')
+    topmod = import_module(cpts[0])
+    app_filename = Path(topmod.__file__)
+    if app_filename.name == '__init__.py':
+        app_filename = app_filename.parent
 
-        cpts = module_name.split('.')
-        mod = import_module(cpts[0])
-        filename = Path(mod.__file__)
-        if filename.name == '__init__.py':
-            filename = filename.parent
+    document_directory = kwargs.get('document_directory')
+    if document_directory is None:
+        document_directory = Path('~/.cache/wap').expanduser()
 
-        self.filename = filename
-        self.module_name = module_name
-        self.function_name = function_name
+    zip_cache = kwargs.get('zip_cache')
+    if zip_cache is None:
+        zip_cache = Path('~/.cache/wap/zip').expanduser()
 
-    def __repr__ (self):
-        return f'<AppInfo {self.filename} {self.module_name} {self.function_name}>'
+    port = kwargs.get('port', 8000)
+
+    return {'app_filename': app_filename,
+            'start_fnc_module': start_fnc_module,
+            'start_fnc_name': start_fnc_name,
+            'document_directory': document_directory,
+            'document_source_directory': Path(__file__).parent / 'docs',
+            'zip_cache': zip_cache,
+            'port': port}
 
 
 #  Suppose we specialize WapApplication as MyApplication, in module foo.bar
@@ -46,19 +55,14 @@ class AppInfo:
 
 class WapApplication:
 
-    def __init__ (self, module_name, function_name):
-        self.module_name = module_name
-        self.function_name = function_name
-        self.document_dir = Path('~/.cache/wap').expanduser()
-        self.document_source_dir = Path(__file__).parent / 'docs'
-        self.pyodide_source = None
-        self.port = 8000
+    def __init__ (self, start_fnc, **kwargs):
+        self.config = app_config(start_fnc, **kwargs)
         self.server = None
         self.in_browser = in_browser
 
     def _prep_document_dir (self):
-        docs = self.document_dir
-        src = self.document_source_dir
+        docs = self.config['document_directory']
+        src = self.config['document_source_directory']
         if not docs.exists():
             docs.mkdir()
         # TODO: if pyodide source file is not available, change the fourth line
@@ -67,14 +71,11 @@ class WapApplication:
         copyfile(src/'stylesheet.css', docs/'stylesheet.css')
 
     def _start_server (self):
-        info = AppInfo(self.module_name, self.function_name)
-        self.server = Server(info,
-                             docs_directory=self.document_dir,
-                             port=self.port)
+        self.server = Server(self.config)
         self.server.start()
 
     def _visit_start_page (self):
-        webbrowser.open(f'http://localhost:{self.port}/')
+        webbrowser.open(f'http://localhost:{self.config['port']}/')
 
     def start (self):
         if in_browser:
@@ -84,9 +85,9 @@ class WapApplication:
         self._visit_start_page()
 
     async def quit (self):
-        await server.close()
+        await self.server.close()
 
 
 def start (fnc):
-    app = WapApplication(fnc.__module__, fnc.__name__)
+    app = WapApplication(fnc)
     app.start()

@@ -10,11 +10,11 @@ from zipfile import ZipFile
 from importlib import import_module
 
 PORT = 8000
-APP_MODULE_NAME = None
-APP_FUNCTION_NAME = None
+START_FNC_MODULE = None
+START_FNC_NAME = None
 
 
-class Server:
+class ServerProxy:
 
     async def call (self, msg, binary=False, **kwargs):
         global PORT
@@ -50,7 +50,7 @@ class Server:
             raise Exception(f'Received status {res.status}: post text {fn}')
 
 
-server = Server()
+server_proxy = ServerProxy()
 
 # class PseudoModule:
 # 
@@ -71,10 +71,10 @@ server = Server()
     
 
 async def install (name):
-    global server
+    global server_proxy
     home = Path.home()
     p = (home / name).with_suffix('.zip')
-    b = await server.get_zipfile(name)
+    b = await server_proxy.get_zipfile(name)
     p.write_bytes(b)
     zf = ZipFile(p)
     zf.extractall()
@@ -84,15 +84,15 @@ async def install (name):
     return fnames[0].split('/')[0]
 
 async def launch_app ():
-    global APP_MODULE_NAME, APP_FUNCTION_NAME
-    print('Launch App:', APP_MODULE_NAME, APP_FUNCTION_NAME)
+    global START_FNC_MODULE, START_FNC_NAME
+    print('Launch App:', START_FNC_MODULE, START_FNC_NAME)
     await install('selkie')
     print('Installed selkie')
-    if not APP_MODULE_NAME.startswith('selkie.'):
+    if not START_FNC_MODULE.startswith('selkie.'):
         await install('app')
-        print('Installed', APP_MODULE_NAME)
-    mod = import_module(APP_MODULE_NAME)
+        print('Installed', START_FNC_MODULE)
+    mod = import_module(START_FNC_MODULE)
     print('Instantiating Application')
-    fnc = mod.__dict__[APP_FUNCTION_NAME]
-    print('Calling', APP_FUNCTION_NAME)
+    fnc = mod.__dict__[START_FNC_NAME]
+    print('Calling', START_FNC_NAME)
     fnc()

@@ -9,46 +9,31 @@ from tornado.web import Application, RequestHandler, StaticFileHandler
 from urllib.parse import parse_qsl
 from zipfile import ZipFile
 
-DEFAULT_DOCS = '~/.cache/wap'
-PORT = 8000
-
 
 #--  Server  -------------------------------------------------------------------
 
 class Server:
 
-    def __init__ (self, app_info, docs_directory=DEFAULT_DOCS, port=PORT):
-        if isinstance(docs_directory, str):
-            docs_directory = Path(docs_directory).expanduser()
-        elif not isinstance(docs_directory, Path):
-            raise Exception('Docs_directory must be either a string or a Path')
-        if isinstance(port, str):
-            port = int(port)
-        elif not isinstance(port, int):
-            raise Exception('Port must be either a string or an int')
-
-        self.app_info = app_info
-        self.docs_directory = docs_directory
-        self.port = port
+    def __init__ (self, config):
+        self.config = config
+        self.wd = Path(os.getcwd())
         self.thread = None
         self.shutdown_event = None
-        self.wd = Path(os.getcwd())
 
     async def main (self):
         print('Server started')
-        print('    app_info       :', self.app_info)
-        print('    port           :', self.port)
-        print('    docs_directory :', self.docs_directory)
-        print('    wd             :', self.wd)
+        print('    wd     :', self.wd)
+        print('    config :')
+        w = max(len(k) for k in self.config) + 1
+        for (k,v) in self.config.items():
+            print(f'        {k:{w}}: {v}')
         handlers = [
-            (r'/call/(.*)', CallHandler, {'wd': self.wd,
-                                          'docs_directory': self.docs_directory,
-                                          'app_info': self.app_info}),
+            (r'/call/(.*)', CallHandler, {'server': self}),
             (r'/wd/(.*)', StaticFileHandler, {'path': self.wd}),
-            (r'/(.*)', StaticFileHandler, {'path': self.docs_directory,
+            (r'/(.*)', StaticFileHandler, {'path': self.config['document_directory'],
                                            'default_filename': 'index.html'})]
         self.tornado = Application(handlers)
-        self.tornado.listen(self.port)
+        self.tornado.listen(self.config['port'])
         self.shutdown_event = asyncio.Event()
         #print('shutdown_event=', self.shutdown_event)
         await self.shutdown_event.wait()
@@ -81,10 +66,9 @@ class Server:
 
 class CallHandler (RequestHandler):
 
-    def initialize (self, wd, docs_directory, app_info):
-        self.wd = wd
-        self.docs_directory = docs_directory
-        self.app_info = app_info
+    def initialize (self, server):
+        self.server = server
+        self.config = server.config
 
     def get (self, name):
         com = 'get_' + name
@@ -92,14 +76,14 @@ class CallHandler (RequestHandler):
             f = getattr(self, com)
             return f()
         else:
-            set_status(404)
+            self.set_status(404)
 
     def get_bootstrap (self):
         self._write_file_text(self._get_bootstrap_filename())
-        self.write('\nAPP_MODULE_NAME = ')
-        self.write(repr(self.app_info.module_name))
-        self.write('\nAPP_FUNCTION_NAME = ')
-        self.write(repr(self.app_info.function_name))
+        self.write('\nSTART_FNC_MODULE = ')
+        self.write(repr(self.config['start_fnc_module']))
+        self.write('\nSTART_FNC_NAME = ')
+        self.write(repr(self.config['start_fnc_name']))
         self.write('\n')
 
     def get_selkie (self):
@@ -111,7 +95,7 @@ class CallHandler (RequestHandler):
     def get_close (self):
         print('Received close message')
         self.write('Server stop')
-        self.stop()
+        self.server.stop()
 
     def get_text (self):
         fn = self.get_query_argument('fn')
@@ -132,7 +116,7 @@ class CallHandler (RequestHandler):
 
     def _write_zipfile (self, sourcedir):
         name = sourcedir.name
-        cache = self.docs_directory / 'cache'
+        cache = self.config['document_directory'] / 'cache'
         if not cache.exists():
             cache.mkdir()
         zfn = cache / (name + '.zip')
@@ -149,10 +133,6 @@ class CallHandler (RequestHandler):
             os.chdir(oldwd)
         with open(zfn, 'br') as f:
             self.write(f.read())
-
-
-def launch (cls):
-    pass
 
 
 if __name__ == '__main__':

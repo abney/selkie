@@ -7,7 +7,7 @@ if in_browser:
     from urllib.parse import urlencode
     from pyodide.ffi import create_proxy
     from pyodide.http import pyfetch
-    from .bootstrap import server
+    from .bootstrap import server_proxy
 
 
 # class Application:
@@ -163,8 +163,9 @@ class Document (Element):
         self.close()
 
     async def close (self):
+        global server_proxy
         print('Closing')
-        server.close()
+        server_proxy.close()
 
 
 #--  EditableCell  -------------------------------------------------------------

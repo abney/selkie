@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from ..corpus.corpus import Corpus, CorpusLocation, Language, Text, Sentence
-from ..wap import server, Document, Element, EditableCell
+from ..wap import server_proxy, Document, Element, EditableCell
 
 
 def first (g):
@@ -111,7 +111,7 @@ class Editor (EditorElement):
 
     async def _open_corpus (self, fn):
         print('Enter _open_corpus', fn)
-        contents = await server.load(fn)
+        contents = await server_proxy.load(fn)
         print('Got contents')
         self.edit(Corpus(fn, contents=contents))
 

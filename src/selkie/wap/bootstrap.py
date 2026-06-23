@@ -6,5 +6,5 @@ if in_browser:
 
 else:
 
-    server = None
+    server_proxy = None
 
