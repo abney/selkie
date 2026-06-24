@@ -70,14 +70,28 @@ class CallHandler (RequestHandler):
         self.server = server
         self.wap = WAPHandler(self)
 
+    def get (self, name):
+        self.wap.get_by_name(name)
+
+    def server_stop (self):
+        self.server.stop()
+
 
 class WAPHandler:
+    '''
+    The call handler must support:
+
+    get_query_argument(str)
+    write(str)
+    set_status(int)
+    server_stop()
+    '''
 
     def __init__ (self, rh):
         self.rh = rh
         self.config = rh.server.config
 
-    def get (self, name):
+    def get_by_name (self, name):
         com = 'get_' + name
         if hasattr(self, com):
             f = getattr(self, com)
@@ -138,7 +152,7 @@ class WAPHandler:
         finally:
             os.chdir(oldwd)
         with open(zfn, 'br') as f:
-            self.write(f.read())
+            self.rh.write(f.read())
 
 
 if __name__ == '__main__':
