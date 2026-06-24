@@ -68,7 +68,14 @@ class CallHandler (RequestHandler):
 
     def initialize (self, server):
         self.server = server
-        self.config = server.config
+        self.wap = WAPHandler(self)
+
+
+class WAPHandler:
+
+    def __init__ (self, rh):
+        self.rh = rh
+        self.config = rh.server.config
 
     def get (self, name):
         com = 'get_' + name
@@ -76,29 +83,28 @@ class CallHandler (RequestHandler):
             f = getattr(self, com)
             return f()
         else:
-            self.set_status(404)
+            self.rh.set_status(404)
 
     def get_bootstrap (self):
         self._write_file_text(self._get_bootstrap_filename())
-        self.write('\nSTART_FNC_MODULE = ')
-        self.write(repr(self.config['start_fnc_module']))
-        self.write('\nSTART_FNC_NAME = ')
-        self.write(repr(self.config['start_fnc_name']))
-        self.write('\n')
+        self.rh.write('\nSTART_FNC_MODULE = ')
+        self.rh.write(repr(self.config['start_fnc_module']))
+        self.rh.write('\nSTART_FNC_NAME = ')
+        self.rh.write(repr(self.config['start_fnc_name']))
+        self.rh.write('\n')
 
     def get_selkie (self):
         self._write_zipfile(self._get_selkie_filename())
 
     def get_app (self):
-        self._write_zipfile(self.app_filename)
+        self._write_zipfile(self.config['app_filename'])
 
     def get_close (self):
-        print('Received close message')
-        self.write('Server stop')
-        self.server.stop()
+        self.rh.write('Server stop')
+        self.rh.server_stop()
 
     def get_text (self):
-        fn = self.get_query_argument('fn')
+        fn = self.rh.get_query_argument('fn')
         self._write_file_text(fn)
 
     def _get_bootstrap_filename (self):
@@ -108,7 +114,7 @@ class CallHandler (RequestHandler):
         
     def _write_file_text (self, fn):
         with open(fn) as f:
-            self.write(f.read())
+            self.rh.write(f.read())
         
     def _get_selkie_filename (self):
         import selkie
