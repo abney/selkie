@@ -6,8 +6,7 @@ from threading import Thread
 from pathlib import Path
 from importlib import import_module
 from tornado.web import Application, RequestHandler, StaticFileHandler
-from urllib.parse import parse_qsl
-from zipfile import ZipFile
+from .app import ApplicationServlet
 
 
 #--  Server  -------------------------------------------------------------------
@@ -68,91 +67,20 @@ class CallHandler (RequestHandler):
 
     def initialize (self, server):
         self.server = server
-        self.wap = WAPHandler(self)
+        self.config = server.config
+        self.wap = ApplicationServlet(self)
 
     def get (self, name):
-        self.wap.get_by_name(name)
+        self.wap.get_path(name)
+
+    def write_text (self, msg):
+        self.write(msg)
+
+    def write_bytes (self, msg):
+        self.write(msg)
 
     def server_stop (self):
         self.server.stop()
-
-
-class WAPHandler:
-    '''
-    The call handler must support:
-
-    get_query_argument(str)
-    write(str)
-    set_status(int)
-    server_stop()
-    '''
-
-    def __init__ (self, rh):
-        self.rh = rh
-        self.config = rh.server.config
-
-    def get_by_name (self, name):
-        com = 'get_' + name
-        if hasattr(self, com):
-            f = getattr(self, com)
-            return f()
-        else:
-            self.rh.set_status(404)
-
-    def get_bootstrap (self):
-        self._write_file_text(self._get_bootstrap_filename())
-        self.rh.write('\nSTART_FNC_MODULE = ')
-        self.rh.write(repr(self.config['start_fnc_module']))
-        self.rh.write('\nSTART_FNC_NAME = ')
-        self.rh.write(repr(self.config['start_fnc_name']))
-        self.rh.write('\n')
-
-    def get_selkie (self):
-        self._write_zipfile(self._get_selkie_filename())
-
-    def get_app (self):
-        self._write_zipfile(self.config['app_filename'])
-
-    def get_close (self):
-        self.rh.write('Server stop')
-        self.rh.server_stop()
-
-    def get_text (self):
-        fn = self.rh.get_query_argument('fn')
-        self._write_file_text(fn)
-
-    def _get_bootstrap_filename (self):
-        # module.__file__ is __init__.py
-        wapdir = Path(__file__).parent
-        return wapdir / 'ui_bootstrap.py'
-        
-    def _write_file_text (self, fn):
-        with open(fn) as f:
-            self.rh.write(f.read())
-        
-    def _get_selkie_filename (self):
-        import selkie
-        return Path(selkie.__file__).parent
-
-    def _write_zipfile (self, sourcedir):
-        name = sourcedir.name
-        cache = self.config['document_directory'] / 'cache'
-        if not cache.exists():
-            cache.mkdir()
-        zfn = cache / (name + '.zip')
-        if zfn.exists():
-            zfn.unlink()
-        oldwd = os.getcwd()
-        try:
-            os.chdir(sourcedir.parent)
-            with ZipFile(zfn, 'w') as zf:
-                for (d, _, names) in Path(name).walk():
-                    for nm in names:
-                        zf.write(d / nm)
-        finally:
-            os.chdir(oldwd)
-        with open(zfn, 'br') as f:
-            self.rh.write(f.read())
 
 
 if __name__ == '__main__':

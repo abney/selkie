@@ -1,4 +1,4 @@
-from ..wap import start
+from ..wap import exec_app
 from .editor import Editor
 
-start(Editor)
+exec_app(Editor)

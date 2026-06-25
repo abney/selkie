@@ -1,5 +1,4 @@
 
-from types import NoneType
 from .config import in_browser
 
 if in_browser:

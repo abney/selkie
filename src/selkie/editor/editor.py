@@ -19,8 +19,9 @@ class EditorElement (Element):
 
 class Editor (EditorElement):
 
-    def __init__ (self):
+    def __init__ (self, server_proxy):
         EditorElement.__init__(self, None, None)
+        self.server_proxy = server_proxy
         self.document = Document()
         self.location = CorpusLocation(None)
         self.location.view = 'open'

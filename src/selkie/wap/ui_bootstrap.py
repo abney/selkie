@@ -9,20 +9,29 @@ from pathlib import Path
 from zipfile import ZipFile
 from importlib import import_module
 
-PORT = 8000
-START_FNC_MODULE = None
-START_FNC_NAME = None
+app_config = None
+server_proxy = None
 
 
 class ServerProxy:
 
+    def __init__ (self, config):
+        self.config = config
+
+    def url (self, name, **kwargs):
+        script_name = self.config['script_name']
+        if kwargs:
+            query = '?' + '&'.join(f'{key}={value}' for (key, value) in kwargs.items())
+        else:
+            query = ''
+        return f'{script_name}/{name}{query}'
+
     async def call (self, msg, binary=False, **kwargs):
-        global PORT
-        words = [msg] + [f'{key}={value}' for (key, value) in kwargs.items()]
-        msg = '?'.join(words)
-        res = await pyfetch(f'http://localhost:{PORT}/call/{msg}')
+        url = self.url(msg, **kwargs)
+        print('Call: url=', repr(url), 'binary=', binary)
+        res = await pyfetch(url)
         if res.status != 200:
-            raise Exception(f'Received status {res.status}')
+            raise Exception(f'Received status {res.status}: call {msg} {kwargs}')
         if binary:
             return await res.bytes()
         else:
@@ -35,6 +44,7 @@ class ServerProxy:
         await self.call('close')
 
     async def get_zipfile (self, name):
+        print('Get Zipfile: name=', repr(name))
         assert name in ('selkie', 'app')
         return await self.call(name, binary=True)
     
@@ -42,15 +52,45 @@ class ServerProxy:
         return await self.call('text', fn=fn)
     
     async def save (self, fn, contents):
-        global PORT
-        res = await pyfetch(f'http://localhost:{PORT}/call/text?fn={fn}',
+        res = await pyfetch(self.url('text', fn=fn),
                             {'method': 'POST',
                              'body': contents})
         if res.status != 200:
             raise Exception(f'Received status {res.status}: post text {fn}')
 
+    ##
 
-server_proxy = ServerProxy()
+    async def install (self, name):
+        home = Path.home()
+        p = (home / name).with_suffix('.zip')
+        print('Install: name=', repr(name), 'p=', repr(p))
+        b = await self.get_zipfile(name)
+        print('Got zipfile:', len(b))
+        p.write_bytes(b)
+        zf = ZipFile(p)
+        zf.extractall()
+        #p.unlink()
+        fnames = zf.namelist()
+        # the name of the directory that was created
+        return fnames[0].split('/')[0]
+
+    async def start (self):
+        start_fnc_module = self.config['start_fnc_module']
+        start_fnc_name = self.config['start_fnc_name']
+        print('server_proxy.start:', start_fnc_module, start_fnc_name)
+        await self.install('selkie')
+        print('Installed selkie')
+        if not start_fnc_module.startswith('selkie.'):
+            await self.install('app')
+            print('Installed', start_fnc_module)
+        mod = import_module(start_fnc_module)
+        print('Instantiating Application')
+        fnc = mod.__dict__[start_fnc_name]
+        print('Calling', start_fnc_name)
+        fnc(self)
+
+
+
 
 # class PseudoModule:
 # 
@@ -70,29 +110,7 @@ server_proxy = ServerProxy()
 #         return PseudoModule(env)
     
 
-async def install (name):
-    global server_proxy
-    home = Path.home()
-    p = (home / name).with_suffix('.zip')
-    b = await server_proxy.get_zipfile(name)
-    p.write_bytes(b)
-    zf = ZipFile(p)
-    zf.extractall()
-    #p.unlink()
-    fnames = zf.namelist()
-    # the name of the directory that was created
-    return fnames[0].split('/')[0]
-
-async def launch_app ():
-    global START_FNC_MODULE, START_FNC_NAME
-    print('Launch App:', START_FNC_MODULE, START_FNC_NAME)
-    await install('selkie')
-    print('Installed selkie')
-    if not START_FNC_MODULE.startswith('selkie.'):
-        await install('app')
-        print('Installed', START_FNC_MODULE)
-    mod = import_module(START_FNC_MODULE)
-    print('Instantiating Application')
-    fnc = mod.__dict__[START_FNC_NAME]
-    print('Calling', START_FNC_NAME)
-    fnc()
+# The server adds:
+#
+# app_config = {...}
+# server_proxy = ServerProxy(app_config)

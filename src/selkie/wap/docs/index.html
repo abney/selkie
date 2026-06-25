@@ -11,32 +11,15 @@
           let pyodide = await loadPyodide();
 	  console.log('Pyodide loaded');
 
-	  // The pyodide version of pip
-	  //await pyodide.loadPackage('micropip');
-	  //console.log('Micropip loaded');
-	  //const micropip = pyodide.pyimport('micropip');
-
-	  // Pip-installing from PyPI
-	  //await micropip.install('selkie');
-	  //console.log('Selkie installed');
-
-	  //await micropip.install("http://localhost:8000/pd2-0.0.1-py3-none-any.whl");
-	  //console.log('pd2 installed');
-
-	  // Load and run __main__.py
-	  //let response = await fetch("http://localhost:8000/bootstrap.py");
-	  //let contents = await response.text();
-	  //console.log('bootstrap loaded');
-
           pyodide.runPythonAsync(`
               from pyodide.http import pyfetch
               from pyodide.code import eval_code_async
-              res = await pyfetch(f'http://localhost:8000/call/bootstrap')
+              res = await pyfetch('$SCRIPT_NAME/bootstrap')
               code = await res.text()
               bootstrap = {}
               await eval_code_async(code, bootstrap)
-              launch_app = bootstrap['launch_app']
-              await launch_app()
+              server_proxy = bootstrap['server_proxy']
+              await server_proxy.start()
           `);
       }
     </script>
