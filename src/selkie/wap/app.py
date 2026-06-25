@@ -1,15 +1,11 @@
 
-from .config import in_browser
+from .config import in_browser, tornado_available
 
 if in_browser:
     from .ui_bootstrap import server_proxy
-else:
-    # When running CGI, tornado may not be installed, so .server won't load
-    try:
-        import webbrowser
-        from .server import Server
-    except:
-        pass
+elif tornado_available:
+    import webbrowser
+    from .server import Server
 
 import os, io, sys
 from pathlib import Path
@@ -127,7 +123,7 @@ class WapApplication:
         copyfile(src/'stylesheet.css', fn)
 
     def _start_server (self):
-        self.server = Server(self.config)
+        self.server = Server(self.config, ApplicationServlet)
         self.server.start()
 
     def _visit_start_page (self):

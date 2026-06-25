@@ -6,15 +6,15 @@ from threading import Thread
 from pathlib import Path
 from importlib import import_module
 from tornado.web import Application, RequestHandler, StaticFileHandler
-from .app import ApplicationServlet
 
 
 #--  Server  -------------------------------------------------------------------
 
 class Server:
 
-    def __init__ (self, config):
+    def __init__ (self, config, app_servlet):
         self.config = config
+        self.app_servlet = app_servlet
         self.wd = Path(os.getcwd())
         self.thread = None
         self.shutdown_event = None
@@ -68,10 +68,10 @@ class CallHandler (RequestHandler):
     def initialize (self, server):
         self.server = server
         self.config = server.config
-        self.wap = ApplicationServlet(self)
+        self.wap = server.app_servlet(self)
 
     def get (self, name):
-        self.wap.get_path(name)
+        self.wap.call('get', name, {})
 
     def write_text (self, msg):
         self.write(msg)
