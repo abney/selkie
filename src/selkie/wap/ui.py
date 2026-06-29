@@ -4,7 +4,7 @@ from .config import in_browser
 if in_browser:
     import js
     from urllib.parse import urlencode
-    from pyodide.ffi import create_proxy
+    from pyodide.ffi import create_proxy, to_js
     from pyodide.http import pyfetch
     from .bootstrap import server_proxy
 
@@ -116,6 +116,9 @@ class Element:
     def TextEntry (self, **kwargs):
         return self.create(TextEntry, **kwargs)
 
+    def EditableCell (self, **kwargs):
+        return self.create(EditableCell, **kwargs)
+
     def Div (self, classname=None, attach=True):
         return self.Element('div', classname=classname, attach=attach)
 
@@ -139,6 +142,31 @@ class Element:
 
     def MenuBar (self, **kwargs):
         return self.create(MenuBar, **kwargs)
+
+    def UL (self, **kwargs):
+        return self.Element('ul', **kwargs)
+
+    def LI (self, **kwargs):
+        return self.Element('li', **kwargs)
+
+    def A (self, **kwargs):
+        return self.Element('a', **kwargs)
+
+    def P (self, **kwargs):
+        return self.Element('p', **kwargs)
+
+    def download_file (self, name, contents):
+        headers = to_js({'type': 'text/plain'}, dict_converter=js.Object.fromEntries)
+        contents = to_js([contents])
+        blob = js.Blob.new(contents, headers)
+        url = js.URL.createObjectURL(blob)
+        link = js.document.createElement('a')
+        link.href = url
+        link.download = name
+        js.document.body.appendChild(link)
+        link.click()
+        js.document.body.removeChild(link)
+        js.URL.revokeObjectURL(url)
 
 
 class Document (Element):
@@ -323,3 +351,12 @@ class MenuItem (Element):
     def on_click (self, _):
         self.action(*self.args)
 
+
+
+#--  Variables  ----------------------------------------------------------------
+
+if in_browser:
+    document = Document()
+
+else:
+    document = None

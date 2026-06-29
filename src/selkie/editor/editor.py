@@ -1,7 +1,8 @@
 
 from asyncio import ensure_future
+from pathlib import Path
 from ..corpus.corpus import Corpus, CorpusLocation, Language, Text, Sentence
-from ..wap import Document, Element, EditableCell
+from ..wap import Element, EditableCell
 
 
 def first (g):
@@ -22,7 +23,6 @@ class Editor (EditorElement):
     def __init__ (self, server_proxy):
         EditorElement.__init__(self, None, None)
         self.server_proxy = server_proxy
-        self.document = Document()
         self.location = CorpusLocation(None)
         self.location.view = 'open'
         self.viewers = {
@@ -68,12 +68,16 @@ class Editor (EditorElement):
         menubar = self.document.MenuBar()
         views = []
 
-        if loc.corpus is not None:
+        if loc.corpus is None:
+
+            menu = menubar.Menu('open')
+
+        else:
 
             menu = menubar.Menu(loc.corpus.key, self.edit_corpus)
-            #menu.MenuItem('Corpus', None if loc.corpus is None else self.edit_corpus)
+            menu.MenuItem('+', self.choose_file)
 
-            views.append('corp')
+#            views.append('corp')
 
             title = 'Langs'
             if loc.language is not None:
@@ -94,12 +98,12 @@ class Editor (EditorElement):
                     if name != title:
                         menu.MenuItem(name, self.edit_text, name)
 
-        view = loc.view
-        menu = menubar.Menu(view)
-
-        for alt in views:
-            if alt != view:
-                menu.MenuItem(alt, self.goto_page, alt)
+#         view = loc.view
+#         menu = menubar.Menu(view)
+# 
+#         for alt in views:
+#             if alt != view:
+#                 menu.MenuItem(alt, self.goto_page, alt)
 
     def choose_file (self):
         self.goto_page('open')
@@ -142,6 +146,7 @@ class PlainTextPanel (EditorElement):
         Element.__init__(self, parent, 'div')
         assert isinstance(text, Text)
         self.text = text
+        self.H2('Text')
         self.table = self.Table(classname='grid')
 
         for sent in text:
@@ -191,9 +196,28 @@ class OpenPage (Page):
 
     def __init__ (self, editor, **kwargs):
         Page.__init__(self, editor, **kwargs)
-        self.write('Corpus: ')
-        box = self.TextEntry(submit=self.editor.open_corpus)
+        self.H2('Open')
+        div = self.Div()
+        self.ul = div.UL()
+        li = self.ul.LI()
+        li.write('Corpus: ')
+        box = li.TextEntry(submit=self.editor.open_corpus)
         box.focus()
+        ensure_future(self.list_dir())
+
+    async def list_dir (self):
+        print('List Dir')
+        text = await self.editor.server_proxy.list_dir()
+        lst = [fn for fn in text.split('\n') if fn.endswith('.cld')]
+        print('lst=', repr(lst))
+        for fn in lst:
+            li = self.ul.LI()
+            button = li.Button(value=fn)
+            button.write(fn)
+            button.add_listener('click', self.submit)
+
+    def submit (self, evt):
+        self.editor.open_corpus(evt.target.value)
 
 
 class CorpusPage (Page):
@@ -203,6 +227,16 @@ class CorpusPage (Page):
         corpus = editor.location.corpus
         self.H2('Corpus')
         self.write('Filename: ', corpus.filename())
+        p = self.P()
+        button = p.Button()
+        button.write('Download')
+        button.add_listener('click', self.download)
+
+    def download (self, evt):
+        print('Click Download')
+        corpus = self.editor.location.corpus
+        self.download_file(corpus.name, corpus.cld_format())
+        print('End Click')
 
 
 class LanguagePage (Page):

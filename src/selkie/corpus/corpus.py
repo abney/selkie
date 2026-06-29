@@ -20,12 +20,13 @@ def _split_at_ws (line):
     if i >= len(line):
         return (line, None)
     else:
-        return (line[:i], line[i+1:])
+        return (line[:i], line[i+1:].strip())
 
 def _nested_dict_push (d, key):
     if key in d:
-        d1 = d[key]
-        assert isinstance(d1, dict)
+        raise Exception(f'Duplicate node name {key}')
+        #d1 = d[key]
+        #assert isinstance(d1, dict)
     else:
         d1 = {}
         d[key] = d1
@@ -72,10 +73,10 @@ class Dict:
 
     def read (self, f):
         ctx = _LoadContext(self)
-        for line in f:
-            line = line.strip()
+        for (lno, line) in enumerate(f, 1):
+            line = line.strip().replace('\t', ' ')
             if line and not line.startswith('#'):
-                ctx.process(line)
+                ctx.process(line, lno)
 
     def save (self, fn=None):
         if fn is None:
@@ -122,13 +123,18 @@ class _LoadContext:
     def __init__ (self, corpus):
         self.corpus = corpus
         self.path = [corpus._contents]
+        self.lno = 0
 
-    def process (self, line):
-        (key, value) = _split_at_ws(line)
-        if value is None:
-            self.process_node(key)
-        else:
-            self.process_datum(key, value)
+    def process (self, line, lno):
+        self.lno = lno
+        try:
+            (key, value) = _split_at_ws(line)
+            if value is None:
+                self.process_node(key)
+            else:
+                self.process_datum(key, value)
+        except Exception as e:
+            print(f'** [line {self.lno}] Read error: {e}')
 
     def process_node (self, name):
         level = self.corpus._node_level(name)
@@ -144,7 +150,10 @@ class _LoadContext:
         path.append(d)
                 
     def process_datum (self, key, value):
-        self.path[-1][key] = value
+        d = self.path[-1]
+        if key in d:
+            raise Exception(f'Duplicate key: {key}')
+        d[key] = value
 
 
 #--  KeyPath  ------------------------------------------------------------------
@@ -330,15 +339,20 @@ class Corpus (Node):
 
     def __init__ (self, fn=None, **kwargs):
         Node.__init__(self, None, None)
+        fn = Path(fn)
         self.meta = CorpusDict(fn=fn, **kwargs)
         self.parent = None
-        self.key = 'corp.' + Path(fn).stem
+        self.name = fn.name
+        self.key = 'corp.' + fn.stem
 
     def filename (self):
         return self.meta.filename()
 
     def location (self):
         return CorpusLocation(self, corpus=self)
+
+    def cld_format (self):
+        return str(self.meta)
 
 
 class Language (Node):

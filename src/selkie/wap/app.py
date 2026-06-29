@@ -34,8 +34,15 @@ def make_config (start_fnc, **kwargs):
           function_name='Application'
     '''
 
-    start_fnc_module = start_fnc.__module__
-    start_fnc_name = start_fnc.__name__
+    print('make_config', 'kwargs=', kwargs)
+
+    if isinstance(start_fnc, str):
+        cpts = start_fnc.split('.')
+        start_fnc_module = '.'.join(cpts[:-1])
+        start_fnc_name = cpts[-1]
+    else:
+        start_fnc_module = start_fnc.__module__
+        start_fnc_name = start_fnc.__name__
 
     cpts = start_fnc_module.split('.')
     topmod = import_module(cpts[0])
@@ -193,8 +200,9 @@ def read_config_file (more_kwargs):
         return more_kwargs
 
 
-def exec_app (fnc, more_kwargs=None):
-    if more_kwargs is None:
+def exec_app (fnc, use_sys_argv=True, more_kwargs={}):
+    if use_sys_argv:
+        assert not more_kwargs
         more_kwargs = parse_command_line(sys.argv)
     kwargs = read_config_file(more_kwargs)
     app = WapApplication(fnc, **kwargs)
@@ -241,11 +249,16 @@ class ApplicationServlet:
         self._write_zipfile(self._get_selkie_filename())
 
     def get_app (self):
-        self._write_zipfile(self.config['app_filename'])
+        self._write_zipfile(Path(self.config['app_filename']))
 
     def get_close (self):
         self.rh.write_text('Server stop')
         self.rh.server_stop()
+
+    def get_dirlist (self):
+        for fn in Path('.').iterdir():
+            self.rh.write_text(str(fn))
+            self.rh.write_text('\n')
 
     def get_text (self):
         fn = self.rh.get_query_argument('fn')

@@ -5,7 +5,7 @@
 body {
   margin: 20px;
   width: 550px;
-  background-color: yellow;
+  background-color: white;
   color: #202020;
 /*  font-family: Optima,Verdana,Geneva,Arial,Helvetica,sans-serif; */
   font-size: 14px;
@@ -48,16 +48,6 @@ a {
 a :visited {
     color: #b04040;
     text-decoration: underline dotted;
-}
-body {
-  margin: 20px;
-  width: 550px;
-  background-color: white;
-  color: #202020;
-/*  font-family: Optima,Verdana,Geneva,Arial,Helvetica,sans-serif; */
-  font-size: 14px;
-  font-weight: normal;
-  line-height: 18px;
 }
 code {
   color: green;

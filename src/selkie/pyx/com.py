@@ -395,7 +395,7 @@ class BaseMain (object):
             kwargs = {}
             for i in range(len(args)):
                 if '=' in args[i]:
-                    kwargs = dict(self._kwarg_items(args, i))
+                    kwargs = dict(self._kwarg_items(args[i:]))
                     args = args[:i]
                     break
 
@@ -423,7 +423,7 @@ class BaseMain (object):
         (com, args, kwargs) = self.__getcall__(comline, args, kwargs)
         return com(*args, **kwargs)
 
-    def _kwarg_items (self, args, i):
+    def _kwarg_items (self, args):
         for arg in args:
             j = arg.find('=')
             if j < 0:

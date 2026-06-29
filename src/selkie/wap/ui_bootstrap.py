@@ -8,6 +8,7 @@ from pyodide.code import eval_code_async
 from pathlib import Path
 from zipfile import ZipFile
 from importlib import import_module
+from asyncio import ensure_future
 
 app_config = None
 server_proxy = None
@@ -47,7 +48,10 @@ class ServerProxy:
         print('Get Zipfile: name=', repr(name))
         assert name in ('selkie', 'app')
         return await self.call(name, binary=True)
-    
+
+    async def list_dir (self):
+        return await self.call('dirlist')
+
     async def load (self, fn):
         return await self.call('text', fn=fn)
     

@@ -11,6 +11,7 @@ Version 0.25.2
 
    intro/index
    cld/index
+   wap/index
    corpus/index
    nlp/index
    data/index

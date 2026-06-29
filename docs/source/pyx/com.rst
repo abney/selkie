@@ -47,7 +47,7 @@ Command-line processing
           '''A script to do some stuff.'''   
 
           def com_foo (self, x, y, t=None):
-              '''Foo it up.'''
+              '''Foo it.'''
               ...
 
           def com_foo_bar (self, y):
@@ -61,7 +61,7 @@ Command-line processing
       
    When calling the script::
    
-      python -m mymodule foo -t=42 hi bye
+      python -m mymodule foo hi bye t=42
       python -m mymodule foo hi bye
       python -m mymodule foo bar bye
    
