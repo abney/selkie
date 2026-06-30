@@ -292,10 +292,10 @@ class Props:
         self.node = node
 
     def __len__ (self):
-        return len(node.properties)
+        return len(self.node.properties)
 
     def __iter__ (self):
-        return iter(node.properties)
+        return iter(self.node.properties)
 
     def __getitem__ (self, key):
         if key in self.node.properties:
@@ -430,6 +430,23 @@ class Lexicon (Node):
 class Word (Node):
 
     pass
+
+
+class TOC:
+
+    def __init__ (self, lang):
+        self.language = lang
+        self.parent_tab = self._build_parent_tab()
+        
+    def _build_parent_tab (self):
+        texts = list(self.language)
+        parent_tab = {}
+        for parent in texts:
+            if 'ch' in parent.meta:
+                for n in parent.meta['ch'].split():
+                    ck = 'text.' + n
+                    parent_tab[ck] = parent
+        return parent_tab
 
 
 Corpus.child_class = Language
