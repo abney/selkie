@@ -1,0 +1,190 @@
+>>> from selkie.corpus.corpus import signature
+>>> sig = signature
+>>> sorted(sig.children('corpus'))
+['lang', 'rom']
+>>> sig.level('lang')
+1
+>>> sig.level('corpus')
+0
+>>> sig.parent('text')
+'lang'
+
+>>> from selkie.data import ex
+>>> corpfn = ex('corp27.cld')
+>>> from selkie.corpus import File
+>>> fi = File(corpfn)
+>>> print(fi)
+lang.deu
+  name German
+  glot stan1295
+  iso3 deu
+  text.1
+    ti Eine kleine Geschichte
+    ty story
+    ch 2 3
+  text.2
+    ti p1
+    ty page
+    sent.1
+      w in einem kleinen Dorf am Fluss wohnte ein Schuster
+      tr in a little village on a river there lived a cobbler
+    sent.2
+      w der Schuster war sehr arm
+      tr the cobbler was very poor
+  text.3
+    ti p2
+    ty page
+    sent.1
+      w eines Tages begegnete der Schuster einen Bettler
+      tr one day the cobbler met a beggar
+      times
+        t.0 1.495800
+        t.2 1.939400
+        t.5 2.783300
+        t.7 3.326900
+    sent.2
+      w Ende
+      tr the end
+      times
+        t.0 3.688200
+        t.1 3.928300
+  lexicon
+    form.begegnete
+    form.Bettler
+    form.der
+      c det
+      g the
+    form.einen
+      g a(n)
+    form.eines
+      g of a(n)
+    form.Schuster
+      g cobbler
+    form.Tag
+      g day
+    form.Tages
+      pp Tag .gen
+    form.-gen
+      g <genitive>
+<BLANKLINE>
+>>> fi.export_json()[:40]
+'{"lang.deu": {"name": "German", "glot": '
+
+>>> from selkie.corpus import Corpus
+>>> corpus = Corpus(corpfn)
+>>> print(corpus.file)
+lang.deu
+  name German
+  glot stan1295
+  iso3 deu
+  text.1
+    ti Eine kleine Geschichte
+    ty story
+    ch 2 3
+  text.2
+    ti p1
+    ty page
+    sent.1
+      w in einem kleinen Dorf am Fluss wohnte ein Schuster
+      tr in a little village on a river there lived a cobbler
+    sent.2
+      w der Schuster war sehr arm
+      tr the cobbler was very poor
+  text.3
+    ti p2
+    ty page
+    sent.1
+      w eines Tages begegnete der Schuster einen Bettler
+      tr one day the cobbler met a beggar
+      times
+        t.0 1.495800
+        t.2 1.939400
+        t.5 2.783300
+        t.7 3.326900
+    sent.2
+      w Ende
+      tr the end
+      times
+        t.0 3.688200
+        t.1 3.928300
+  lexicon
+    form.begegnete
+    form.Bettler
+    form.der
+      c det
+      g the
+    form.einen
+      g a(n)
+    form.eines
+      g of a(n)
+    form.Schuster
+      g cobbler
+    form.Tag
+      g day
+    form.Tages
+      pp Tag .gen
+    form.-gen
+      g <genitive>
+<BLANKLINE>
+
+>>> corpus.file
+<File corp27.cld>
+>>> s = str(corpus)
+>>> print(s[:22])
+lang.deu
+  name German
+>>> s = corpus.export_json()
+>>> s[:30]
+'{"lang.deu": {"name": "German"'
+
+>>> len(corpus)
+1
+>>> list(corpus)
+[<Lang lang.deu>]
+>>> deu = corpus[0]
+>>> deu
+<Lang lang.deu>
+
+>>> deu2 = corpus.table['lang.deu']
+>>> deu2 == deu
+True
+>>> deu2 is deu
+False
+
+>>> sorted(deu.props)
+['glot', 'iso3', 'name', 'userom']
+>>> deu.props['glot']
+'stan1295'
+
+>>> len(deu)
+3
+>>> list(deu)
+[<Text text.1>, <Text text.2>, <Text text.3>]
+>>> text = deu[1]
+>>> text
+<Text text.2>
+>>> deu.table['text.2'] == text
+True
+>>> sorted(deu.table)
+['text.1', 'text.2', 'text.3']
+
+>>> deu.lexicon()
+<Lexicon lexicon>
+
+>>> len(text)
+2
+>>> sent = text[0]
+>>> sent
+<Sent sent.1>
+>>> text.table['sent.1'] == sent
+True
+>>> sent.key
+'sent.1'
+>>> sent.cob['w']
+'in einem kleinen Dorf am Fluss wohnte ein Schuster'
+>>> len(sent)
+9
+>>> sent[0]
+<Token 0 in>
+>>> sent[0].string
+'in'

@@ -1,4 +1,4 @@
 
 #from .core import Corpus, Item, ItemDisk, Language, Text, Token, Lexent
 
-from .corpus import Corpus
+from .corpus import File, Corpus

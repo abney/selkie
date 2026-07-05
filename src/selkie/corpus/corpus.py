@@ -8,12 +8,13 @@
 #  Keep a stack of dicts
 #  
 
+import json
 from io import StringIO
 from pathlib import Path
 from itertools import islice
 
 
-def _split_at_ws (line):
+def split_at_ws (line):
     i = 0
     while i < len(line) and not line[i].isspace():
         i += 1
@@ -22,29 +23,102 @@ def _split_at_ws (line):
     else:
         return (line[:i], line[i+1:].strip())
 
-def _nested_dict_push (d, key):
-    if key in d:
-        raise Exception(f'Duplicate node name {key}')
-        #d1 = d[key]
-        #assert isinstance(d1, dict)
+def split_at_period (key):
+    i = key.find('.')
+    if i < 0:
+        ty = key
+        val = None
     else:
-        d1 = {}
-        d[key] = d1
-    return d1
-
-def nth (g, i):
-    return next(islice(g, i, None))
+        ty = key[:i]
+        val = key[i+1:]
+    return (ty, val)
 
 
-#--  Dict  ---------------------------------------------------------------------
+class Signature:
+    
+    default_spec = {
+        'corpus': ['lang', 'rom'],
+        'lang': ['name', 'glot', 'iso3', 'userom', 'text', 'lexicon', 'trans'],
+        'rom': ['u'],
+        'text': ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'sent'],
+        'lexicon': ['form'],
+        'trans': ['xlexicon', 'xtext'],
+        'sent': ['w', 'tr', 'times'],
+        'form': ['fy', 'g', 'c', 'pp', 'cf', 'of'],
+        'xlexicon': ['fg'],
+        'xtext': ['sg'],
+        'times': ['t']
+    }
 
-class Dict:
+    def __init__ (self, spec=None):
+        self._children = spec or self.default_spec
+        self._levels = {}
+        self._parents = {}
 
-    __keys__ = None
+        self._set_level_recurse('corpus', 0)
 
-    def __init__ (self, fn=None, contents=None, create=False):
+    def _set_level_recurse (self, ty, lvl):
+        if ty in self._levels:
+            raise Exception(f'Recursion in signature: {ty}')
+        self._levels[ty] = lvl
+        if ty in self._children:
+            for child in self._children[ty]:
+                if child in self._parents:
+                    raise Exception(f'Type with multiple parents: {child}')
+                self._parents[child] = ty
+                self._set_level_recurse(child, lvl+1)
+
+    def level (self, ty):
+        return self._levels[ty]
+
+    def children (self, ty):
+        return self._children.get(ty)
+
+    def parent (self, ty):
+        return self._parents[ty]
+
+    def child_type (self, ty):
+        for ct in self._children[ty]:
+            if ct in self._children:
+                return ct
+
+    def properties (self, ty):
+        for ct in self._children[ty]:
+            if ct not in self._children:
+                yield ct
+
+    def __str__ (self):
+        return str(self._children)
+
+    def _update_node_classes (self):
+        tab = globals()
+        for pt in self._children:
+            ct = self.child_type(pt)
+            pcls = tab[pt.capitalize()]
+            pcls.properties = list(self.properties(pt))
+            if ct:
+                ccls = tab[ct.capitalize()]
+                pcls.child_class = ccls
+                pcls.child_prefix = ct + '.'
+
+
+signature = Signature()
+
+
+#--  File  ---------------------------------------------------------------------
+
+class File:
+
+    __formats__ = None
+
+    def __init__ (self, fn, signature=signature, contents=None, format='cld', create=False):
+        if format not in self.__formats__:
+            raise Exception(f'Unrecognized format: {format}')            
+
         self._filename = fn
-        self._contents = {}
+        self._signature = signature
+        self._format = self.__formats__[format](self._signature)
+        self.cob = None
 
         # In the browser, we create a Corpus that has a filename and contents,
         # but the contents came from the server, not a local file
@@ -52,31 +126,31 @@ class Dict:
         if contents is None:
             if fn:
                 self.load(fn, create)
+            else:
+                self.cob = {}
         else:
-            self.read(contents.split('\n'))
+            self.parse(contents)
 
     def filename (self): return self._filename
-    def __len__ (self): return len(self._contents)
-    def __getitem__ (self, key): return self._contents[key]
-    def __iter__ (self): return iter(self._contents)
-    def keys (self): return self._contents.keys()
-    def values (self): return self._contents.values()
-    def items (self): return self._contents.items()
+    def __len__ (self): return len(self.cob)
+    def __getitem__ (self, key): return self.cob[key]
+    def __iter__ (self): return iter(self.cob)
+    def keys (self): return self.cob.keys()
+    def values (self): return self.cob.values()
+    def items (self): return self.cob.items()
 
     def load (self, fn, create=False):
         fn = Path(fn)
-        if fn.exists():
-            with open(fn) as f:
-                self.read(f)
-        elif not create:
-            raise Exception('File not found')
+        if not (fn.exists() or create):
+            raise Exception(f'File not found: {fn}')
+        with open(fn) as f:
+            self.read(f)
 
     def read (self, f):
-        ctx = _LoadContext(self)
-        for (lno, line) in enumerate(f, 1):
-            line = line.strip().replace('\t', ' ')
-            if line and not line.startswith('#'):
-                ctx.process(line, lno)
+        self.parse(f.read())
+
+    def parse (self, s):
+        self.cob = self._format.decode(s)
 
     def save (self, fn=None):
         if fn is None:
@@ -85,109 +159,97 @@ class Dict:
             self.write(f)
 
     def write (self, f):
-        self._write_dict(self._contents, f, False, 0)
+        f.write(self._format.encode(self.cob, pretty=False))
+
+    def __str__ (self):
+        return self._format.encode(self.cob, pretty=True)
+
+    def __repr__ (self):
+        return f'<{self.__class__.__name__} {self._filename.name}>'
+
+    def export_cld (self):
+        return CLDFormat(self._signature).encode(self.cob)
+
+    def export_json (self):
+        return JSONFormat(self._signature).encode(self.cob)
+
+
+class JSONFormat:
+
+    def __init__ (self, signature):
+        pass
+
+    def encode (self, contents, pretty=False):
+        return json.dumps(contents, indent=(2 if pretty else None))
+
+    def decode (self, s):
+        return json.loads(s)
+
+
+class CLDFormat:
+
+    def __init__ (self, signature):
+        self._signature = signature
+        
+    def decode (self, s):
+        stack = [{}]
+        for (lno, k, v) in self._records(s):
+            try:
+                (ty, _) = split_at_period(k)
+                lvl = self._signature.level(ty)
+                if lvl == 0:
+                    raise Exception(f'Invalid root key {k}')
+                while len(stack) > lvl:
+                    stack.pop()
+                if len(stack) < lvl:
+                    raise Exception(f'No parent for {k}')
+                parent = stack[-1]
+                if k in parent:
+                    raise Exception(f'Duplicate key: {k}')
+                if self._signature.children(ty):
+                    v = {}
+                    parent[k] = v
+                    stack.append(v)
+                else:
+                    parent[k] = v
+            except Exception as e:
+                print(f'** [line {lno}]', str(e))
+        return stack[0]
+
+    def _records (self, text):
+        for (lno, line) in enumerate(text.split('\n')):
+            line = line.strip().replace('\t', ' ')
+            if line and not line.startswith('#'):
+                (k,v) = split_at_ws(line)
+                yield (lno, k, v)
+
+    def encode (self, contents, pretty=False):
+        with StringIO() as f:
+            self._write_dict(contents, f, pretty, -1)
+            return f.getvalue()
 
     def _write_dict (self, d, f, pretty, level):
         assert isinstance(d, dict)
         for (k,v) in d.items():
+            if pretty: self._write_indent(level+1, f)
             if isinstance(v, str):
-                if pretty: self._write_indent(level+1, f)
                 print(k, v, file=f)
             else:
-                chlevel = self._node_level(k)
-                if pretty: self._write_indent(chlevel, f)
                 print(k, file=f)
-                self._write_dict(v, f, pretty, chlevel)
-
-    def _node_level (self, name):
-        typ = name.split('.')[0]
-        if typ not in self.__keys__:
-            raise Exception(f'Unrecognized node type {typ}')
-        return self.__keys__[typ]
+                self._write_dict(v, f, pretty, level+1)
 
     def _write_indent (self, level, f):
         for _ in range(2 * level):
             f.write(' ')
 
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {self._filename}>'
 
-    def __str__ (self):
-        with StringIO() as f:
-            self._write_dict(self._contents, f, True, 0)
-            return f.getvalue()
+File.__formats__ = {'cld': CLDFormat,
+                    'json': JSONFormat}
 
-
-class _LoadContext:
-
-    def __init__ (self, corpus):
-        self.corpus = corpus
-        self.path = [corpus._contents]
-        self.lno = 0
-
-    def process (self, line, lno):
-        self.lno = lno
-        try:
-            (key, value) = _split_at_ws(line)
-            if value is None:
-                self.process_node(key)
-            else:
-                self.process_datum(key, value)
-        except Exception as e:
-            print(f'** [line {self.lno}] Read error: {e}')
-
-    def process_node (self, name):
-        level = self.corpus._node_level(name)
-        idx = level + 1
-        assert idx > 0
-        path = self.path
-        while len(path) > idx:
-            path.pop()
-        d = path[-1]
-        while len(path) < idx:
-            path.append(d)
-        d = _nested_dict_push(d, name)
-        path.append(d)
-                
-    def process_datum (self, key, value):
-        d = self.path[-1]
-        if key in d:
-            raise Exception(f'Duplicate key: {key}')
-        d[key] = value
-
-
-#--  KeyPath  ------------------------------------------------------------------
-# 
-# class KeyPath:
-# 
-#     def __init__ (self, corpus):
-#         self._corpus = corpus
-#         self._menus = []
-#         self._node = corpus
-# 
-#     def __len__ (self): return len(self._menus)
-#     def __iter__ (self): return iter(self._menus)
-#     def __getitem__ (self, i): return self._menus[i]
-#     def corpus (self): return self._corpus
-#     def menus (self): return self._menus
-#     def node (self): return self._node
-#     def string (self): return ' '.join(menu[0] for menu in self._menus)
-# 
-#     def join (self, key):
-#         d = self._node
-#         menu = [key] + sorted(k for (k,v) in d.items() if k != key and not isinstance(v, str))
-#         path = KeyPath(self._corpus)
-#         path._menus = self._menus + [menu]
-#         path._node = d[key]
-#         return path
-# 
-#     def __repr__ (self):
-#         return f'<KeyPath {self.string()}>'
-# 
 
 #--  Node  ---------------------------------------------------------------------
 
-class CorpusLocation:
+class Location:
 
     def __init__ (self, item, **kwargs):
         self.item = item
@@ -207,19 +269,20 @@ class Node:
     properties = None
 
     def __init__ (self, parent, key):
+        self.file = None if parent is None else parent.file
         self.parent = parent
         self.key = key
-        self.meta = None if parent is None else parent.meta[key]
+        self.cob = None if parent is None else parent.cob[key]
         self.table = Table(self)
         self.props = Props(self)
 
     def __eq__ (self, other):
-        return self.meta is other.meta and self.key == other.key
+        return self.cob is other.cob and self.key == other.key
 
     def child_keys (self):
         if self.child_prefix is None:
             raise ValueError('No child keys')
-        for key in self.meta.keys():
+        for key in self.cob.keys():
             if key.startswith(self.child_prefix):
                 yield key
 
@@ -245,13 +308,16 @@ class Node:
             raise KeyError('Key not found')
         return self.child_class(self, childkey)
 
+    def location (self):
+        raise NotImplementedError()
+
     def ancestors (self):
         if self.parent:
             yield from self.parent.ancestors()
         yield self
 
     def key_type (self):
-        return self.key.split('.')[0]
+        return split_at_period(self.key)[0]
 
     def full_name (self):
         return ' '.join([anc.key for anc in self.ancestors() if anc.key])
@@ -299,7 +365,7 @@ class Props:
 
     def __getitem__ (self, key):
         if key in self.node.properties:
-            return self.node.meta.get(key, '')
+            return self.node.cob.get(key, '')
         else:
             raise KeyError('Unrecognized key')
 
@@ -307,73 +373,85 @@ class Props:
         return self.node.properties
 
     def values (self):
-        meta = self.node.meta
+        cob = self.node.cob
         for key in self.node.properties:
-            yield meta.get(key, '')
+            yield cob.get(key, '')
 
     def items (self):
-        meta = self.node.meta
+        cob = self.node.cob
         for key in self.node.properties:
-            yield (key, meta.get(key, ''))
+            yield (key, cob.get(key, ''))
 
 
 #--  Corpus  -------------------------------------------------------------------
-
-class CorpusDict (Dict):
-
-    __keys__ = {
-        'lang': 0,
-        'rom': 0,
-        'text': 1,
-        'lexicon': 1,
-        'trans': 1,
-    	'sent': 2,
-        'form': 2,
-        'xlexicon': 2,
-        'xtext': 2,
-    	'times': 3
-    }
-
 
 class Corpus (Node):
 
     def __init__ (self, fn=None, **kwargs):
         Node.__init__(self, None, None)
-        fn = Path(fn)
-        self.meta = CorpusDict(fn=fn, **kwargs)
-        self.parent = None
-        self.name = fn.name
-        self.key = 'corp.' + fn.stem
+        if fn is not None:
+            fn = Path(fn)
+            self.key = 'corp.' + fn.stem
+        self.file = File(fn, **kwargs)
+        self.cob = self.file.cob
 
     def filename (self):
-        return self.meta.filename()
+        return self.cob.filename()
 
     def location (self):
-        return CorpusLocation(self, corpus=self)
+        return Location(self, corpus=self)
 
-    def cld_format (self):
-        return str(self.meta)
+    def __str__ (self):
+        return str(self.file)
+
+    def export_cld (self):
+        return self.file.export_cld()
+
+    def export_json (self):
+        return self.file.export_json()
+
+    def save (self, fn=None):
+        self.file.save(fn=fn)
 
 
-class Language (Node):
+class Lang (Node):
 
     def location (self):
-        return CorpusLocation(self, language=self, corpus=self.parent)
+        return Location(self, language=self, corpus=self.parent)
+
+    def lexicon (self):
+        return Lexicon(self)
+
+
+class Rom (Node):
+
+    pass
 
 
 class Text (Node):
 
     def location (self):
-        return CorpusLocation(self, text=self, language=self.parent, corpus=self.parent.parent)
+        return Location(self, text=self, language=self.parent, corpus=self.parent.parent)
 
 
-class Sentence (Node):
+class Lexicon (Node):
+
+    def __init__ (self, parent):
+        Node.__init__(self, parent, 'lexicon')
+
+
+class Trans (Node):
+
+    pass
+
+
+class Sent (Node):
 
     def location (self):
         text = self.parent
         lang = text.parent
         corp = lang.parent
-        return CorpusLocation(self, sentence=self, text=text, language=lang, corpus=corp)
+        return Location(self, sentence=self, text=text, language=lang, corpus=corp)
 
     def text (self):
         return self.parent
@@ -388,21 +466,36 @@ class Sentence (Node):
         return list(self)
 
     def string (self):
-        return self.meta['w']
+        return self.cob['w']
 
     def set_string (self, s):
-        self.meta['w'] = s
+        self.cob['w'] = s
 
     def __len__ (self):
-        return len(self.meta['w'].split())
+        return len(self.cob['w'].split())
 
     def __iter__ (self):
-        for (i, s) in enumerate(self.meta['w'].split()):
+        for (i, s) in enumerate(self.cob['w'].split()):
             yield Token(self, i, s)
 
     def __getitem__ (self, i):
-        strs = self.meta['w'].split()
+        strs = self.cob['w'].split()
         return Token(self, i, strs[i])
+
+
+class Form (Node):
+
+    pass
+
+
+class Xlexicon (Node):
+
+    pass
+
+
+class Xtext (Node):
+
+    pass
 
 
 class Times (Node):
@@ -422,19 +515,10 @@ class Token:
         return f'<Token {self.idx} {self.string}>'
 
 
-class Lexicon (Node):
-
-    pass
-
-
-class Word (Node):
-
-    pass
-
-
-class TOC:
+class TOC (Node):
 
     def __init__ (self, lang):
+        Node.__init__(self, lang)
         self.language = lang
         self.parent_tab = self._build_parent_tab()
         
@@ -442,23 +526,26 @@ class TOC:
         texts = list(self.language)
         parent_tab = {}
         for parent in texts:
-            if 'ch' in parent.meta:
-                for n in parent.meta['ch'].split():
+            if 'ch' in parent.cob:
+                for n in parent.cob['ch'].split():
                     ck = 'text.' + n
                     parent_tab[ck] = parent
         return parent_tab
 
 
-Corpus.child_class = Language
-Corpus.child_prefix = 'lang.'
-Corpus.properties = []
+signature._update_node_classes()
 
-Language.child_class = Text
-Language.child_prefix = 'text.'
-Language.properties = ['name', 'glot', 'iso3', 'rom']
-
-Text.child_class = Sentence
-Text.child_prefix = 'sent.'
-Text.properties = ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video']
-
-Word.properties = ['ty', 'g', 'c', 'pp', 'cf', 'of']
+# Corpus.child_class = Lang
+# Corpus.child_prefix = 'lang.'
+# Corpus.properties = []
+# 
+# Lang.child_class = Text
+# Lang.child_prefix = 'text.'
+# Lang.properties = ['name', 'glot', 'iso3', 'rom']
+# 
+# Text.child_class = Sent
+# Text.child_prefix = 'sent.'
+# Text.properties = ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video']
+# 
+# Form.properties = ['ty', 'g', 'c', 'pp', 'cf', 'of']
+# 

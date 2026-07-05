@@ -58,6 +58,7 @@ class Tester:
         self.docdir = join(self.rootdir, 'docs', 'source')
         self.is_dev_version = self.testing_development_version()
         self.skip = set(join(self.docdir, path) for path in self.__class__.skip)
+        self.any_errors = None
     
         print('Testing development version?', self.is_dev_version)
 
@@ -73,88 +74,108 @@ class Tester:
                     if fn not in self.skip:
                         yield fn
     
-    def test_files (self):
-        for (root, dnames, fnames) in walk(self.here):
+    def local_test_files (self, dirname, prefix='', suffix=''):
+        for (root, dnames, fnames) in walk(dirname):
             for name in fnames:
-                if name.endswith('.py') and name.startswith('test_'):
+                if name.endswith(suffix) and name.startswith(prefix):
                     fn = join(root, name)
-                    yield '.'.join(fn[len(self.here)+1:-3].split('/'))
+                    yield fn
+
+    def unit_test_files (self):
+        for fn in self.local_test_files('unittests', prefix='test_', suffix='.py'):
+            cpts = fn[:-3].split('/')
+            modname = '.'.join(cpts)
+            print('fn=', repr(fn), 'modname=', repr(modname))
+            yield (modname, fn)
+
+    def doctest_files (self):
+        yield from self.local_test_files('doctests', suffix='.doctest')
     
     
     #--  Execute  ------------------------------------------------------------------
     
-    def run_test (self, name):
+    def __call__ (self, name):
+        self.any_errors = False
         if name.startswith(':'):
             if name == ':all':
                 self.run_all_tests()
             elif name == ':dist':
-                return DistChecker(self.rootdir, dev_version=self.is_dev_version)()
-            elif name == ':docs':
-                return self.run_doctests()
+                return self.run_dist_test()
+            elif name == ':rst':
+                return self.run_rst_tests()
             elif name == ':unit':
                 return self.run_unittests()
+            elif name == ':doc':
+                return self.run_doctests()
             else:
                 print('Unrecognized test:', name)
-        else:
-            self.run_local_doctest(name)
     
     def run_all_tests (self):
-    
-        # Each call signals an error if any test fails
-    
-        (n_modules, n_automodules) = self.run_dist_test()
-        n_doctests = self.run_doctests()
-        n_unittests = self.run_unittests()
-        results = (n_modules, n_automodules, n_doctests, n_unittests)
+        (n_modules, n_automodules, n_mod_errors) = self.run_dist_test()
+        (n_rsttests, n_rst_errors) = self.run_rst_tests()
+        (n_unittests, n_unit_errors) = self.run_unittests()
+        (n_doctests, n_doc_errors) = self.run_doctests()
+        results = (n_modules, n_automodules, n_rsttests, n_unittests, n_doctests)
     
         self.print_comparison(results)
     
         if self.is_dev_version:
-            self.save_results(results)
+            if n_mod_errors + n_doc_errors + n_unit_errors + n_doc_errors == 0:
+                self.save_results(results)
+            else:
+                print('[Errors encountered, not saving results]')
 
-    def run_doctests ():
+    def run_dist_test (self):
         print()
-        print('DOCTESTS')
-    
-        n_doctests = 0
-        for fn in rst_files():
+        print('Test :dist')
+        chk = DistChecker(self.rootdir, dev_version=self.is_dev_version)
+        return chk()
+
+    def run_rst_tests (self):
+        print()
+        print('Test :rst')
+        return self._run_doctests(self.rst_files())
+
+    def _run_doctests (self, fns):
+        n_doctests = n_errors = 0
+        for fn in fns:
             (nfails, ntests) = doctest.testfile(fn, module_relative=False)
             n_doctests += ntests
             if nfails:
                 print('doctest:', f'{ntests:3d} tests', f'{nfails:3d} failures')
-                raise Exception('doctest failed')
+                n_errors += nfails
             else:
                 print('doctest:', f'{ntests:3d} tests', f'[{fn}]')
-        print('TOTAL:', n_doctests, 'tests')
-        return n_doctests
-    
-    
-    def run_unittests ():
+        print('TOTAL:', n_doctests, 'tests', n_errors, 'errors')
+        return (n_doctests, n_errors)
+
+    def run_unittests (self):
         print()
-        print('UNIT TESTS')
+        print('Test :unit')
     
-        n_unittests = 0
+        n_unittests = n_errors = 0
         load = unittest.defaultTestLoader.loadTestsFromName
         run = unittest.TextTestRunner().run
-        for modname in test_files():
+        for (modname, fn) in self.unit_test_files():
             print()
             print('----------------------------------------------------------------------')
-            print('TEST', modname)
+            print('TEST', modname, fn)
             result = run(load(modname))
             if result.wasSuccessful():
                 n_unittests += result.testsRun
             else:
-                raise Exception('Unit test failed')
-        print('TOTAL:', n_unittests, 'tests')
-        return n_unittests
+                print('Unit test failed')
+                n_errors += 1
+        print('TOTAL:', n_unittests, 'tests', n_errors, 'errors')
+        return (n_unittests, n_errors)
     
-    def run_local_doctest (self, name):
-        (nfails, ntests) = doctest.testfile(name, module_relative=False)
-        print('Failures:  ', nfails)
-        print('Tests run: ', ntests)
-    
-    def print_comparison (results):
-        (n_modules, n_automodules, n_doctests, n_unittests) = results
+    def run_doctests (self):
+        print()
+        print('Test :doc')
+        return self._run_doctests(self.doctest_files())
+
+    def print_comparison (self, results):
+        (n_modules, n_automodules, n_rsttests, n_unittests, n_doctests) = results
     
         if exists('previous_results'):
             with open('previous_results') as f:
@@ -162,21 +183,21 @@ class Tester:
                     values = [int(field) for field in line.split()]
                     break
         else:
-            values = (0, 0, 0, 0)
+            values = (0, 0, 0, 0, 0)
     
         print()
         print( 'SUMMARY             Curr Prev')
         print(f"Imported modules:   {n_modules:4d} {values[0]:4d} {'**' if n_modules != values[0] else ''}")
         print(f"Documented modules: {n_automodules:4d} {values[1]:4d} {'**' if n_automodules != values[1] else ''}")
-        print(f"Doctests:           {n_doctests:4d} {values[2]:4d} {'**' if n_doctests != values[2] else ''}")
+        print(f"RST tests:          {n_rsttests:4d} {values[2]:4d} {'**' if n_rsttests != values[2] else ''}")
         print(f"Unit tests:         {n_unittests:4d} {values[3]:4d} {'**' if n_unittests != values[3] else ''}")
+        print(f"Doctests:           {n_doctests:4d} {values[4]:4d} {'**' if n_doctests != values[4] else ''}")
     
-    
-    def save_results (results):
-        (n_modules, n_automodules, n_doctests, n_unittests) = results
+    def save_results (self, results):
+        (n_modules, n_automodules, n_rsttests, n_unittests, n_doctest) = results
         print('[Updating results]')
         with open('previous_results', 'w') as f:
-            print(' '.join(str(v) for v in (n_modules, n_automodules, n_doctests, n_unittests)), file=f)
+            print(' '.join(str(v) for v in (n_modules, n_automodules, n_rsttests, n_unittests, n_doctests)), file=f)
     
     
     # def test_suite ():
@@ -193,5 +214,5 @@ class Tester:
     
 
 import sys
-name = sys.argv[1] if len(sys.argv) > 0 else ':all'
-Tester().run_test(name)
+name = sys.argv[1] if len(sys.argv) >= 2 else ':all'
+Tester()(name)

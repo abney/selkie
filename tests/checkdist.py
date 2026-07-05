@@ -22,14 +22,15 @@ class DistChecker (object):
                 raise Exception(f'Cannot determine module name; src contains: {names}')
 
     def __call__ (self):
-        n_imports = self.check_imports()
+        (n_imports, n_errors) = self.check_imports()
         n_docmodules = self.check_docmodules()
-        return (n_imports, n_docmodules)
+        return (n_imports, n_docmodules, n_errors)
 
     def check_imports (self):
         print()
         print('Check imports')
-        n_imports = 0
+        n_imports = n_errors = 0
+
         root_module = import_module(self.modname)
         fn = root_module.__file__
         print(f"Filename of module '{self.modname}':", fn)
@@ -43,14 +44,18 @@ class DistChecker (object):
 
         for (fn, modname) in self.iter_imports(src):
             print('import', modname, f'[{fn}]')
-            assert modname not in self.modules
-            module = import_module(modname)
-            if module.__file__ != fn:
-                raise Exception('Module imported from wrong file: {module.__file__}')
-            self.modules[modname] = fn
+            try:
+                assert modname not in self.modules
+                module = import_module(modname)
+                if module.__file__ != fn:
+                    raise Exception('Module imported from wrong file: {module.__file__}')
+                self.modules[modname] = fn
+            except Exception as e:
+                print('  **', str(e))
+                n_errors += 1
             n_imports += 1
 
-        return n_imports
+        return (n_imports, n_errors)
 
     def iter_imports (self, src):
         for (rp, ds, fs) in walk(join(src, self.modname)):
