@@ -15,11 +15,11 @@ lang.deu
 
     sent.1
       w in einem kleinen Dorf am Fluss wohnte ein Schuster
-      g in a little village on a river there lived a cobbler
+      tr in a little village on a river there lived a cobbler
 
     sent.2
       w der Schuster war sehr arm
-      g the cobbler was very poor
+      tr the cobbler was very poor
 
   text.3
     ti p2
@@ -27,19 +27,19 @@ lang.deu
 
     sent.1
       w eines Tages begegnete der Schuster einen Bettler
-      g one day the cobbler met a beggar
+      tr one day the cobbler met a beggar
       times
-        0 1.495800
-        2 1.939400
-        5 2.783300
-        7 3.326900
+        t.0 1.495800
+        t.2 1.939400
+        t.5 2.783300
+        t.7 3.326900
 
     sent.2
       w Ende
-      g the end
+      tr the end
       times
-        0 3.688200
-        1 3.928300
+        t.0 3.688200
+        t.1 3.928300
 
   lexicon
 

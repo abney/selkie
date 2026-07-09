@@ -40,7 +40,7 @@ class Signature:
         'corpus': ['lang', 'rom'],
         'lang': ['name', 'glot', 'iso3', 'userom', 'text', 'lexicon', 'trans'],
         'rom': ['u'],
-        'text': ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'sent'],
+        'text': ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'sent', 'xid'],
         'lexicon': ['form'],
         'trans': ['xlexicon', 'xtext'],
         'sent': ['w', 'tr', 'times'],
@@ -114,6 +114,8 @@ class File:
     def __init__ (self, fn, signature=signature, contents=None, format='cld', create=False):
         if format not in self.__formats__:
             raise Exception(f'Unrecognized format: {format}')            
+        if fn and not isinstance(fn, Path):
+            fn = Path(fn)
 
         self._filename = fn
         self._signature = signature
@@ -251,7 +253,7 @@ File.__formats__ = {'cld': CLDFormat,
 
 class Location:
 
-    def __init__ (self, item, **kwargs):
+    def __init__ (self, item=None, **kwargs):
         self.item = item
         self.corpus = kwargs.get('corpus')
         self.language = kwargs.get('language')
@@ -259,19 +261,42 @@ class Location:
         self.sentence = kwargs.get('sentence')
         self.token = kwargs.get('token')
         self.word = kwargs.get('word')
-        self.view = None
 
 
-class Node:
+class Item:
+
+    def __init__ (self, parent, key):
+        self.file = None if parent is None else parent.file
+        self.parent = parent
+        self.key = key
+        self.view = self.key_type()
+
+    def location (self):
+        raise NotImplementedError()
+
+    def ancestors (self):
+        if self.parent:
+            yield from self.parent.ancestors()
+        yield self
+
+    def key_type (self):
+        return split_at_period(self.key)[0]
+
+    def full_name (self):
+        return ' '.join([anc.key for anc in self.ancestors() if anc.key])
+
+    def __repr__ (self):
+        return f'<{self.__class__.__name__} {self.key}>'
+
+
+class Node (Item):
 
     child_class = None
     child_prefix = None
     properties = None
 
     def __init__ (self, parent, key):
-        self.file = None if parent is None else parent.file
-        self.parent = parent
-        self.key = key
+        Item.__init__(self, parent, key)
         self.cob = None if parent is None else parent.cob[key]
         self.table = Table(self)
         self.props = Props(self)
@@ -307,23 +332,6 @@ class Node:
         if childkey is None:
             raise KeyError('Key not found')
         return self.child_class(self, childkey)
-
-    def location (self):
-        raise NotImplementedError()
-
-    def ancestors (self):
-        if self.parent:
-            yield from self.parent.ancestors()
-        yield self
-
-    def key_type (self):
-        return split_at_period(self.key)[0]
-
-    def full_name (self):
-        return ' '.join([anc.key for anc in self.ancestors() if anc.key])
-
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {self.key}>'
 
 
 class Table:
@@ -388,7 +396,7 @@ class Props:
 class Corpus (Node):
 
     def __init__ (self, fn=None, **kwargs):
-        Node.__init__(self, None, None)
+        Node.__init__(self, None, 'corp')
         if fn is not None:
             fn = Path(fn)
             self.key = 'corp.' + fn.stem
@@ -396,7 +404,7 @@ class Corpus (Node):
         self.cob = self.file.cob
 
     def filename (self):
-        return self.cob.filename()
+        return self.file.filename()
 
     def location (self):
         return Location(self, corpus=self)
@@ -422,6 +430,9 @@ class Lang (Node):
     def lexicon (self):
         return Lexicon(self)
 
+    def toc (self):
+        return Toc(self)
+
 
 class Rom (Node):
 
@@ -432,6 +443,17 @@ class Text (Node):
 
     def location (self):
         return Location(self, text=self, language=self.parent, corpus=self.parent.parent)
+
+    def children (self):
+        return list(self.iter_children())
+    
+    def iter_children (self):
+        if 'ch' in self.cob:
+            lang = self.parent
+            for n in self.cob['ch'].split():
+                ck = 'text.' + n
+                if ck in lang.cob:
+                    yield Text(lang, ck)
 
 
 class Lexicon (Node):
@@ -515,22 +537,34 @@ class Token:
         return f'<Token {self.idx} {self.string}>'
 
 
-class TOC (Node):
+#--  Toc  ----------------------------------------------------------------------
+
+class Toc (Item):
 
     def __init__ (self, lang):
-        Node.__init__(self, lang)
-        self.language = lang
-        self.parent_tab = self._build_parent_tab()
+        Item.__init__(self, lang, 'toc')
+        self._backlinks = self._build_backlinks()
+        self._roots = [text for text in self.parent if text.key not in self._backlinks]
         
-    def _build_parent_tab (self):
-        texts = list(self.language)
-        parent_tab = {}
+    def _build_backlinks (self):
+        texts = list(self.parent)
+        backlinks = {}
         for parent in texts:
             if 'ch' in parent.cob:
                 for n in parent.cob['ch'].split():
                     ck = 'text.' + n
-                    parent_tab[ck] = parent
-        return parent_tab
+                    # silently overwrites any older value
+                    backlinks[ck] = parent
+        return backlinks
+
+    def location (self):
+        return Location(self, language=self.parent, corpus=self.parent.parent)
+
+    def roots (self):
+        return self._roots
+
+    def parent (self, text):
+        return self._backlinks.get(text.key)
 
 
 signature._update_node_classes()

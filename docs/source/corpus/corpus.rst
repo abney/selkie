@@ -4,16 +4,178 @@ Python API — ``selkie.corpus``
 
 .. py:module:: selkie.corpus
 
-File
-----
+Example
+-------
+
+There is a sample corpus in ``selkie.data``::
+
+    >>> from selkie.data import ex
+    >>> corpfn = ex('corp27.cld')
+
+Open the corpus by instantiating the Corpus class::
+
+    >>> from selkie.corpus import Corpus
+    >>> corpus = Corpus(corpfn)
+
+The methods ``__str__()``, ``save()``, ``export_cld()``, and
+``export_json()`` dispatch to the underlying file, which is ``corpus.file``::
+
+    >>> corpus.file
+    <File corp27.cld>
+    >>> s = str(corpus)
+    >>> print(s[:22])
+    lang.deu
+      name German
+    >>> s = corpus.export_json()
+    >>> s[:30]
+    '{"lang.deu": {"name": "German"'
+
+The corpus behaves like a list of languages::
+
+    >>> len(corpus)
+    1
+    >>> list(corpus)
+    [<Lang lang.deu>]
+    >>> deu = corpus[0]
+    >>> deu
+    <Lang lang.deu>
+
+The ``table`` member provides access to children by name. It behaves
+like a dict::
+
+    >>> deu2 = corpus.table['lang.deu']
+    >>> deu2 == deu
+    True
+
+Note that Nodes are lightweight wrappers. Each access may create a new
+wrapper::
+
+    >>> deu2 is deu
+    False
+
+Going down the hierarchy, a language behaves like a list of texts::
+
+    >>> len(deu)
+    3
+    >>> list(deu)
+    [<Text text.1>, <Text text.2>, <Text text.3>]
+    >>> text = deu[1]
+    >>> text
+    <Text text.2>
+
+In addition to children, a Node also has properties. The ``props``
+member behaves like a dict::
+
+    >>> sorted(deu.props)
+    ['glot', 'iso3', 'name', 'userom']
+    >>> deu.props['glot']
+    'stan1295'
+
+The children of a Node all have the same type. A Node may have
+additional dependents of other types. Each of them is accessed by a
+dedicated method. For example, in addition to its children, which are
+texts, a language also contains a lexicon::
+
+    >>> deu.lexicon()
+    <Lexicon lexicon>
+
+Conceptual
+----------
+
+Files
+.....
 
 The contents of a corpus is a hierarchically organized set of
-python dicts representing corpus objects (cobs), as described above
+python dicts representing corpus objects ("cobs"), as described above
 ("CLD Format").
 The toplevel cob is wrapped in an instance of the class ``File``,
-which supports the following methods:
+which provides methods for reading and writing files and exporting
+other formats.
+
+The file structure is represented by a ``Signature`` object, which
+behaves like a regular python dict, and is created by passing in a
+regular python dict. Its keys are the legal cob types, and the values
+are the key types that the cob may contain. The standard signature is::
+
+    {'corpus': {'lang', 'rom'},
+     'lang': {'name', 'glot', 'iso3', 'userom', 'text', 'lexicon', 'trans'},
+     'rom': {'u'},
+     'text': {'ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'sent'}
+     'lexicon': {'form'},
+     'trans': {'xlexicon', 'xtext'},
+     'sent': {'w', 'tr', 'times'},
+     'form': {'fy', 'g', 'c', 'pp', 'cf', 'of'},
+     'xlexicon': {'fg'},
+     'xtext': {'sg'},
+     'times': {'t'}}
+
+The file format is explicitly represented by a ``Format`` object,
+which provides two methods. The method ``decode()`` takes a string and
+converts it to a python dict representing the corpus contents, and the
+method ``encode()`` does the reverse computation.
+Currently, two file formats are supported: CLD format and JSON
+format. For the JSON format, the decoder is just ``json.loads()`` and
+the encoder is just ``json.dumps()``.
+
+Hierarchical structure
+......................
+
+At a higher level, the hierarchical structure of the corpus is
+represented as a graph consisting of instances of the class  ``Node``.
+A Node is a wrapper for a cob. It associates a Location and a File
+with the cob: the Location makes it easy to go to related cobs, 
+and the File makes it easy to save out modifications.
+
+A Node behaves like a list of children, children corresponding
+to some but not all of the items in the cob. For example, a ``Lang``
+behaves like a list of ``Texts``.
+
+Conversely, the node records its
+parent and its key relative to the parent. For example, if ``oji`` is
+a Lang, its first child has key ``text.1``. It also records its
+location in the corpus in the form of a ``Location`` object.
+
+Nodes are lightweight wrappers only. It may easily be the case that
+multiple Node instances wrap the same cob. Children and other links
+are computed on the fly, so that modifications to a cob
+automatically have immediate effect on all Nodes that wrap it.
+
+There is a Node subclass for each variety
+of object in the corpus. The subclasses include ``Corpus``, ``Language``, 
+``Text``, ``Sentence``, ``Times``, ``Lexicon``, and ``Word``.
+
+Items
+.....
+
+An **editable** object is an instance of the class ``Item``. It
+provides the methods that the corpus editor UI needs in order to
+display it as a web page. Node is a subclass of Item, but there are
+also subclasses of Item that are not Nodes (do not belong to
+hierarchical skeleton of the corpus). An example is ``Toc``.
+
+An ``Item`` is an object that is editable, in the sense of providing
+the methods required by the Selkie editor.
+Node is a subclass of Item. The members ``file``, ``parent``, and
+``key`` actually come from Item, and Node adds ``cob``, ``table``, and
+``props``.
+
+The main method that a subclass of Item must implement is
+``location()``, which returns a Location. (One must also provide a UI
+class for editing the Item, which should be a subclass of
+selkie.wap.Page.)
+
+Classes
+-------
 
 .. py:class:: File
+
+   .. py:attribute:: cob
+
+      A python dict representing the contents of the file.
+
+   .. py:method:: filename()
+
+      A Path or None.
 
    .. py:method:: load(fn)
 
@@ -51,24 +213,6 @@ which supports the following methods:
 
       Produces the string contents in JSON format.
 
-The file structure is represented by a ``Signature`` object, which
-behaves like a regular python dict, and is created by passing in a
-regular python dict. The standard signature is::
-
-    {'corpus': {'lang', 'rom'},
-     'lang': {'name', 'glot', 'iso3', 'userom', 'text', 'lexicon', 'trans'},
-     'rom': {'u'},
-     'text': {'ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'sent'}
-     'lexicon': {'form'},
-     'trans': {'xlexicon', 'xtext'},
-     'sent': {'w', 'tr', 'times'},
-     'form': {'fy', 'g', 'c', 'pp', 'cf', 'of'},
-     'xlexicon': {'fg'},
-     'xtext': {'sg'},
-     'times': {'t'}}
-
-The Signature also provides the following methods:
-
 .. py:class:: Signature
 
    .. py:method:: level(ty)
@@ -83,42 +227,6 @@ The Signature also provides the following methods:
    .. py:method:: parent(ty)
 
       Returns the parent type of the given type.
-
-Formats
--------
-
-Currently, two file formats are supported: CLD format and JSON
-format. A file format is represented by a ``Format`` object, which
-provides two methods. The method ``decode()`` takes a string and
-converts it to a python dict representing the corpus contents, and the
-method ``encode()`` does the reverse computation. (For the JSON
-format, these are just ``json.loads()`` and ``json.dumps()``.)
-
-Node
-----
-
-A ``Node`` is a wrapper for a cob. It associates a Location and a File
-with the cob: the Location makes it easy to go to related cobs, 
-and the File makes it easy to save out modifications.
-
-In addition, it treats the cob explicitly as a node in the hierarchical structure of
-the corpus. In particular, it behaves like a list of children, children corresponding
-to some but not all of the items in the cob. For example, a ``Lang``
-behaves like a list of ``Texts``.
-
-Conversely, the node records its
-parent and its key relative to the parent. For example, if ``oji`` is
-a Lang, its first child has key ``text.1``. It also records its
-location in the corpus in the form of a ``Location`` object.
-
-Nodes are lightweight wrappers only. It may easily be the case that
-multiple Node instances wrap the same cob. Children and other links
-are computed on the fly, so that modifications to a cob
-automatically have immediate effect on all Nodes that wrap it.
-
-There is a Node subclass for each variety
-of object in the corpus. The subclasses include ``Corpus``, ``Language``, 
-``Text``, ``Sentence``, ``Times``, ``Lexicon``, and ``Word``.
 
 .. py:class:: Node
 
@@ -218,79 +326,4 @@ of object in the corpus. The subclasses include ``Corpus``, ``Language``,
       complete web pages. The UI sets the 'view' attribute to
       distinguish two locations that display differently, but involve
       all the same Nodes.
-
-Example
--------
-
-There is a sample corpus in ``selkie.data``::
-
-    >>> from selkie.data import ex
-    >>> corpfn = ex('corp27.cld')
-
-Open the corpus by instantiating the Corpus class::
-
-    >>> from selkie.corpus import Corpus
-    >>> corpus = Corpus(corpfn)
-
-The methods ``__str__()``, ``save()``, ``export_cld()``, and
-``export_json()`` dispatch to the underlying file, which is ``corpus.file``::
-
-    >>> corpus.file
-    <File corp27.cld>
-    >>> s = str(corpus)
-    >>> print(s[:22])
-    lang.deu
-      name German
-    >>> s = corpus.export_json()
-    >>> s[:30]
-    '{"lang.deu": {"name": "German"'
-
-The corpus behaves like a list of languages::
-
-    >>> len(corpus)
-    1
-    >>> list(corpus)
-    [<Lang lang.deu>]
-    >>> deu = corpus[0]
-    >>> deu
-    <Lang lang.deu>
-
-The ``table`` member provides access to children by name. It behaves
-like a dict::
-
-    >>> deu2 = corpus.table['lang.deu']
-    >>> deu2 == deu
-    True
-
-Note that Nodes are lightweight wrappers. Each access may create a new
-wrapper::
-
-    >>> deu2 is deu
-    False
-
-Going down the hierarchy, a language behaves like a list of texts::
-
-    >>> len(deu)
-    3
-    >>> list(deu)
-    [<Text text.1>, <Text text.2>, <Text text.3>]
-    >>> text = deu[1]
-    >>> text
-    <Text text.2>
-
-In addition to children, a Node also has properties. The ``props``
-member behaves like a dict::
-
-    >>> sorted(deu.props)
-    ['glot', 'iso3', 'name', 'userom']
-    >>> deu.props['glot']
-    'stan1295'
-
-The children of a Node all have the same type. A Node may have
-additional dependents of other types. Each of them is accessed by a
-dedicated method. For example, in addition to its children, which are
-texts, a language also contains a lexicon::
-
-    >>> deu.lexicon()
-    <Lexicon lexicon>
 

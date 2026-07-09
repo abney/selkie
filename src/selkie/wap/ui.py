@@ -48,10 +48,9 @@ class Element:
     def __repr__ (self):
         return f'<{self.__class__.__name__} {self._js}>'
 
-    def create (self, cls, *args, attach=True, **kwargs):
+    def create (self, cls, *args, **kwargs):
         elt = cls(self, *args, **kwargs)
-        if attach:
-            self.append(elt)
+        self.append(elt)
         return elt
 
     def set_attribute (self, key, value):
@@ -66,7 +65,7 @@ class Element:
         s = ' '.join(str(x) for x in objs)
         self._js.appendChild(doc.createTextNode(s))
 
-    def br (self, attach=True):
+    def br (self):
         self._js.appendChild(self.document.createElement('br'))
 
     def add_listener (self, name, action):
@@ -93,13 +92,8 @@ class Element:
     def Element (self, label, **kwargs):
         return self.create(Element, label, **kwargs)
 
-    def Button (self, text=None, type='button', name=None, value=None, onclick=None, attach=True):
-        button = self.Element('button', type=type, name=name, value=value, attach=attach)
-        if text is not None:
-            button.write(text)
-        if onclick is not None:
-            button.add_listener('click', onclick)
-        return button
+    def Button (self, text=None, action=None, **kwargs):
+        return self.create(Button, text=text, action=action, **kwargs)
 
     def Table (self, classname='display', **kwargs):
         return self.Element('table', classname=classname, **kwargs)
@@ -119,8 +113,8 @@ class Element:
     def EditableCell (self, **kwargs):
         return self.create(EditableCell, **kwargs)
 
-    def Div (self, classname=None, attach=True):
-        return self.Element('div', classname=classname, attach=attach)
+    def Div (self, classname=None):
+        return self.Element('div', classname=classname)
 
     def _heading (self, label, string=None, **kwargs):
         elt = self.Element(label, **kwargs)
@@ -351,6 +345,28 @@ class MenuItem (Element):
     def on_click (self, _):
         self.action(*self.args)
 
+
+#--  Button  -------------------------------------------------------------------
+
+class Button (Element):
+
+    def __init__ (self, parent, text=None, action=None):
+        Element.__init__(self, parent, 'button', type='button')
+
+        if isinstance(action, tuple):
+            self.action = action[0]
+            self.args = action[1:]
+        else:
+            self.action = action
+            self.args = ()
+
+        if text is not None:
+            self.write(text)
+        if self.action is not None:
+            self.add_listener('click', self.submit)
+
+    def submit (self, evt=None):
+        self.action(*self.args)
 
 
 #--  Variables  ----------------------------------------------------------------

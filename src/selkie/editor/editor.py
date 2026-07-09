@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus.corpus import Corpus, CorpusLocation, Language, Text, Sentence
+from ..corpus import Corpus, Location, Lang, Text, Sent
 from ..wap import Element, EditableCell
 
 
@@ -23,13 +23,14 @@ class Editor (EditorElement):
     def __init__ (self, server_proxy):
         EditorElement.__init__(self, None, None)
         self.server_proxy = server_proxy
-        self.location = CorpusLocation(None)
+        self.location = Location(self)
         self.location.view = 'open'
         self.viewers = {
             'open': OpenPage,
             'corp': CorpusPage,
             'lang': LanguagePage,
-            'text': TextPage
+            'text': TextPage,
+            'toc': TocPage
         }
 
         self.goto_page('open')
@@ -37,16 +38,15 @@ class Editor (EditorElement):
     def edit (self, item):
         self.set_location(item)
         loc = self.location
-        view = loc.view or item.key_type()
-        self.goto_page(view)
+        self.goto_page(item.view)
 
     def goto_page (self, name=None):
         self.clear()
         if name is None:
-            name = self.location.view
+            name = self.location.item.view
             assert name is not None
         else:
-            self.location.view = name
+            self.location.item.view = name
         page = self.viewers[name]
         self.construct_menu()
         self.create(page)
@@ -212,12 +212,7 @@ class OpenPage (Page):
         print('lst=', repr(lst))
         for fn in lst:
             li = self.ul.LI()
-            button = li.Button(value=fn)
-            button.write(fn)
-            button.add_listener('click', self.submit)
-
-    def submit (self, evt):
-        self.editor.open_corpus(evt.target.value)
+            li.Button(fn, (self.editor.open_corpus, fn))
 
 
 class CorpusPage (Page):
@@ -245,7 +240,31 @@ class LanguagePage (Page):
         Page.__init__(self, editor, **kwargs)
         lang = self.language = editor.location.language
         self.H2('Language')
-        self.create(PropertyTable, lang.meta)
+        self.create(PropertyTable, lang.props)
+        p = self.P()
+        button = p.Button()
+        button.write('Toc')
+        button.add_listener('click', self.toc)
+
+    def toc (self, evt):
+        self.editor.edit(self.language.toc())
+
+
+class TocPage (Page):
+
+    def __init__ (self, editor, **kwargs):
+        Page.__init__(self, editor, **kwargs)
+        toc = self.toc = editor.location.item
+        self._produce_ul(self, toc.roots())
+
+    def _produce_ul (self, parent, texts):
+        ul = parent.UL()
+        for text in texts:
+            li = ul.LI()
+            li.Button(text=text.key, action=(self.editor.edit, text))
+            children = text.children()
+            if children:
+                self._produce_ul(li, children)
 
 
 class TextPage (Page):

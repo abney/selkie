@@ -450,8 +450,8 @@ class PLists (Format):
             line = line.rstrip('\r\n')
             if line:
                 (key, value) = kvsplit(line)
-                if not value:
-                    raise Exception(f'Missing value: {repr(line)}')
+#               if not value:
+#                   raise Exception(f'Missing value: {repr(line)}')
                 d.append((key, value))
             else:
                 yield d
