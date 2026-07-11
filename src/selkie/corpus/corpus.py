@@ -40,7 +40,7 @@ class Signature:
         'corpus': ['lang', 'rom'],
         'lang': ['name', 'glot', 'iso3', 'userom', 'text', 'lexicon', 'trans'],
         'rom': ['u'],
-        'text': ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'sent', 'xid'],
+        'text': ['sent', 'ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'xid'],
         'lexicon': ['form'],
         'trans': ['xlexicon', 'xtext'],
         'sent': ['w', 'tr', 'times'],
@@ -117,9 +117,9 @@ class File:
         if fn and not isinstance(fn, Path):
             fn = Path(fn)
 
-        self._filename = fn
-        self._signature = signature
-        self._format = self.__formats__[format](self._signature)
+        self.filename = fn
+        self.signature = signature
+        self.format = self.__formats__[format](signature)
         self.cob = None
 
         # In the browser, we create a Corpus that has a filename and contents,
@@ -133,7 +133,6 @@ class File:
         else:
             self.parse(contents)
 
-    def filename (self): return self._filename
     def __len__ (self): return len(self.cob)
     def __getitem__ (self, key): return self.cob[key]
     def __iter__ (self): return iter(self.cob)
@@ -152,28 +151,28 @@ class File:
         self.parse(f.read())
 
     def parse (self, s):
-        self.cob = self._format.decode(s)
+        self.cob = self.format.decode(s)
 
     def save (self, fn=None):
         if fn is None:
-            fn = self._filename
+            fn = self.filename
         with open(fn, 'w') as f:
             self.write(f)
 
     def write (self, f):
-        f.write(self._format.encode(self.cob, pretty=False))
+        f.write(self.format.encode(self.cob, pretty=False))
 
     def __str__ (self):
-        return self._format.encode(self.cob, pretty=True)
+        return self.format.encode(self.cob, pretty=True)
 
     def __repr__ (self):
-        return f'<{self.__class__.__name__} {self._filename.name}>'
+        return f'<{self.__class__.__name__} {self.filename.name}>'
 
     def export_cld (self):
-        return CLDFormat(self._signature).encode(self.cob)
+        return CLDFormat(self.signature).encode(self.cob)
 
     def export_json (self):
-        return JSONFormat(self._signature).encode(self.cob)
+        return JSONFormat(self.signature).encode(self.cob)
 
 
 class JSONFormat:
@@ -191,14 +190,14 @@ class JSONFormat:
 class CLDFormat:
 
     def __init__ (self, signature):
-        self._signature = signature
+        self.signature = signature
         
     def decode (self, s):
         stack = [{}]
         for (lno, k, v) in self._records(s):
             try:
                 (ty, _) = split_at_period(k)
-                lvl = self._signature.level(ty)
+                lvl = self.signature.level(ty)
                 if lvl == 0:
                     raise Exception(f'Invalid root key {k}')
                 while len(stack) > lvl:
@@ -208,7 +207,7 @@ class CLDFormat:
                 parent = stack[-1]
                 if k in parent:
                     raise Exception(f'Duplicate key: {k}')
-                if self._signature.children(ty):
+                if self.signature.children(ty):
                     v = {}
                     parent[k] = v
                     stack.append(v)
@@ -251,39 +250,42 @@ File.__formats__ = {'cld': CLDFormat,
 
 #--  Node  ---------------------------------------------------------------------
 
-class Location:
-
-    def __init__ (self, item=None, **kwargs):
-        self.item = item
-        self.corpus = kwargs.get('corpus')
-        self.language = kwargs.get('language')
-        self.text = kwargs.get('text')
-        self.sentence = kwargs.get('sentence')
-        self.token = kwargs.get('token')
-        self.word = kwargs.get('word')
-
-
 class Item:
 
     def __init__ (self, parent, key):
         self.file = None if parent is None else parent.file
         self.parent = parent
         self.key = key
-        self.view = self.key_type()
+        self.full_name = key if parent is None else parent.full_name + '/' + key
 
-    def location (self):
-        raise NotImplementedError()
+    def item_type (self):
+        return split_at_period(self.key)[0]
 
     def ancestors (self):
         if self.parent:
             yield from self.parent.ancestors()
         yield self
 
-    def key_type (self):
-        return split_at_period(self.key)[0]
+    def corpus (self):
+        return self.parent.corpus()
 
-    def full_name (self):
-        return ' '.join([anc.key for anc in self.ancestors() if anc.key])
+    def language (self):
+        return self.parent.language()
+
+    def text (self):
+        return self.parent.text()
+
+    def sentence (self):
+        return self.parent.sentence()
+
+    def __eq__ (self, other):
+        return isinstance(other, Item) and self.key == other.key and self.parent == other.parent
+
+    def node (self):
+        if isinstance(self, Node):
+            return self
+        else:
+            return self.parent
 
     def __repr__ (self):
         return f'<{self.__class__.__name__} {self.key}>'
@@ -301,8 +303,8 @@ class Node (Item):
         self.table = Table(self)
         self.props = Props(self)
 
-    def __eq__ (self, other):
-        return self.cob is other.cob and self.key == other.key
+    def level (self):
+        return self.file.signature.level(self.item_type())
 
     def child_keys (self):
         if self.child_prefix is None:
@@ -315,6 +317,11 @@ class Node (Item):
         for key in self.child_keys():
             yield self.child_class(self, key)
         
+    def __bool__ (self):
+        for _ in self.child_keys():
+            return True
+        return False
+
     def children (self):
         return self.__iter__()
 
@@ -332,6 +339,9 @@ class Node (Item):
         if childkey is None:
             raise KeyError('Key not found')
         return self.child_class(self, childkey)
+
+    def views (self):
+        return [self]
 
 
 class Table:
@@ -360,34 +370,34 @@ class Table:
             yield (child.key, child)
 
 
-class Props:
+class Props (Item):
 
     def __init__ (self, node):
-        self.node = node
+        Item.__init__(self, node, 'props')
 
     def __len__ (self):
-        return len(self.node.properties)
+        return len(self.parent.properties)
 
     def __iter__ (self):
-        return iter(self.node.properties)
+        return iter(self.parent.properties)
 
     def __getitem__ (self, key):
-        if key in self.node.properties:
-            return self.node.cob.get(key, '')
+        if key in self.parent.properties:
+            return self.parent.cob.get(key, '')
         else:
             raise KeyError('Unrecognized key')
 
     def keys (self):
-        return self.node.properties
+        return self.parent.properties
 
     def values (self):
-        cob = self.node.cob
-        for key in self.node.properties:
+        cob = self.parent.cob
+        for key in self.parent.properties:
             yield cob.get(key, '')
 
     def items (self):
-        cob = self.node.cob
-        for key in self.node.properties:
+        cob = self.parent.cob
+        for key in self.parent.properties:
             yield (key, cob.get(key, ''))
 
 
@@ -404,10 +414,13 @@ class Corpus (Node):
         self.cob = self.file.cob
 
     def filename (self):
-        return self.file.filename()
+        return self.file.filename
 
-    def location (self):
-        return Location(self, corpus=self)
+    def level (self):
+        return 0
+
+    def corpus (self):
+        return self
 
     def __str__ (self):
         return str(self.file)
@@ -424,8 +437,11 @@ class Corpus (Node):
 
 class Lang (Node):
 
-    def location (self):
-        return Location(self, language=self, corpus=self.parent)
+    def views (self):
+        return [Props(self), Toc(self)]
+
+    def language (self):
+        return self
 
     def lexicon (self):
         return Lexicon(self)
@@ -441,8 +457,8 @@ class Rom (Node):
 
 class Text (Node):
 
-    def location (self):
-        return Location(self, text=self, language=self.parent, corpus=self.parent.parent)
+    def text (self):
+        return self
 
     def children (self):
         return list(self.iter_children())
@@ -469,17 +485,8 @@ class Trans (Node):
 
 class Sent (Node):
 
-    def location (self):
-        text = self.parent
-        lang = text.parent
-        corp = lang.parent
-        return Location(self, sentence=self, text=text, language=lang, corpus=corp)
-
-    def text (self):
-        return self.parent
-
-    def language (self):
-        return self.text().language()
+    def sentence (self):
+        return self
 
     def times (self):
         return Times(self)
@@ -556,9 +563,6 @@ class Toc (Item):
                     # silently overwrites any older value
                     backlinks[ck] = parent
         return backlinks
-
-    def location (self):
-        return Location(self, language=self.parent, corpus=self.parent.parent)
 
     def roots (self):
         return self._roots

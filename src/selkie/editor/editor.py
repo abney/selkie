@@ -1,15 +1,34 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import Corpus, Location, Lang, Text, Sent
+from ..corpus import Item, Corpus, Node, Lang, Toc, Text, Sent, Props
 from ..wap import Element, EditableCell
 
 
-def first (g):
-    try:
-        return next(g)
-    except StopIteration:
-        return None
+class Location:
+        
+    def __init__ (self, node, item, oldloc):
+        self.node = node
+        self.item = item
+        self.nodes = list(self.get_context(oldloc))
+        self.corpus = self.nodes[0]
+        self.language = self.nodes[1]
+        self.text = self.nodes[2]
+        self.sentence = self.nodes[3]
+    
+    def get_context (self, oldloc):
+        lvl = 0
+        if self.node is not None:
+            for anc in self.node.ancestors():
+                yield anc
+                lvl += 1
+            # if this is not a new node
+            if oldloc and oldloc.nodes[lvl-1] == self.node:
+                while lvl < 4:
+                    yield oldloc.nodes[lvl]
+                    lvl += 1
+        for _ in range(lvl, 4):
+            yield None
 
 
 class EditorElement (Element):
@@ -23,87 +42,40 @@ class Editor (EditorElement):
     def __init__ (self, server_proxy):
         EditorElement.__init__(self, None, None)
         self.server_proxy = server_proxy
-        self.location = Location(self)
-        self.location.view = 'open'
-        self.viewers = {
-            'open': OpenPage,
-            'corp': CorpusPage,
-            'lang': LanguagePage,
-            'text': TextPage,
-            'toc': TocPage
-        }
+        self.current_view_table = {}
+        self.location = None
 
-        self.goto_page('open')
+        # this needs current_view_table to exist already
+        self.edit(Root())
 
     def edit (self, item):
-        self.set_location(item)
-        loc = self.location
-        self.goto_page(item.view)
+        item = self.update_location(item)
+        self.goto_page(item.page)
 
-    def goto_page (self, name=None):
+    def current_view (self, node):
+        if node.full_name in self.current_view_table:
+            return self.current_view_table[node.full_name]
+        else:
+            return node.views()[0]
+
+    def set_current_view (self, node, item):
+        self.current_view_table[node.full_name] = item
+
+    def update_location (self, item):
+        if isinstance(item, Node):
+            node = item
+            item = self.current_view(node)
+        else:
+            node = item.node()
+        self.location = Location(node, item, self.location)
+        node = self.location.node
+        if node is not None:
+            self.set_current_view(node, self.location.item)
+        return item
+
+    def goto_page (self, page):
         self.clear()
-        if name is None:
-            name = self.location.item.view
-            assert name is not None
-        else:
-            self.location.item.view = name
-        page = self.viewers[name]
-        self.construct_menu()
         self.create(page)
-
-    def set_location (self, item):
-        old_loc = self.location
-        loc = self.location = item.location()
-        for key in ('corpus', 'language', 'text', 'sentence', 'token', 'word'):
-            if getattr(loc, key) is None:
-                setattr(loc, key, getattr(old_loc, key))
-        if isinstance(item, Corpus):
-            if loc.language is None:
-                loc.language = first(item.children())
-            if loc.text is None and loc.language is not None:
-                loc.text = first(loc.language.children())
-
-    def construct_menu (self):
-        loc = self.location
-        menubar = self.document.MenuBar()
-        views = []
-
-        if loc.corpus is None:
-
-            menu = menubar.Menu('open')
-
-        else:
-
-            menu = menubar.Menu(loc.corpus.key, self.edit_corpus)
-            menu.MenuItem('+', self.choose_file)
-
-#            views.append('corp')
-
-            title = 'Langs'
-            if loc.language is not None:
-                title = loc.language.key
-                views.append('lang')
-            menu = menubar.Menu(title, self.edit_language, title)
-            for name in loc.corpus.table:
-                if name != title:
-                    menu.MenuItem(name, self.edit_language, name)
-
-            title = 'Texts'
-            if loc.text is not None:
-                title = loc.text.key
-                views.append('text')
-            menu = menubar.Menu(title, self.edit_text, title)
-            if loc.language:
-                for name in loc.language.table:
-                    if name != title:
-                        menu.MenuItem(name, self.edit_text, name)
-
-#         view = loc.view
-#         menu = menubar.Menu(view)
-# 
-#         for alt in views:
-#             if alt != view:
-#                 menu.MenuItem(alt, self.goto_page, alt)
 
     def choose_file (self):
         self.goto_page('open')
@@ -115,9 +87,7 @@ class Editor (EditorElement):
         ensure_future(self._open_corpus(fn))
 
     async def _open_corpus (self, fn):
-        print('Enter _open_corpus', fn)
         contents = await self.server_proxy.load(fn)
-        print('Got contents')
         self.edit(Corpus(fn, contents=contents))
 
     def edit_corpus (self):
@@ -192,11 +162,89 @@ class Page (EditorElement):
         self.editor = editor
 
 
-class OpenPage (Page):
+class StandardPage (Page):
+
+    def __init__ (self, editor):
+        Page.__init__(self, editor)
+        self.construct_menu()
+        self.construct_title()
+
+    def construct_menu (self):
+        editor = self.editor
+        loc = editor.location
+        menubar = self.document.MenuBar()
+        views = []
+
+        if loc.corpus is None:
+
+            menu = menubar.Menu('open')
+
+        else:
+
+            menu = menubar.Menu(loc.corpus.key, editor.edit_corpus)
+            menu.MenuItem('+', editor.choose_file)
+
+#            views.append('corp')
+
+            title = 'Langs'
+            if loc.language is not None:
+                title = loc.language.key
+                views.append('lang')
+            menu = menubar.Menu(title, editor.edit_language, title)
+            for name in loc.corpus.table:
+                if name != title:
+                    menu.MenuItem(name, editor.edit_language, name)
+
+            title = 'Texts'
+            if loc.text is not None:
+                title = loc.text.key
+                views.append('text')
+            menu = menubar.Menu(title, editor.edit_text, title)
+            if loc.language:
+                for name in loc.language.table:
+                    if name != title:
+                        menu.MenuItem(name, editor.edit_text, name)
+
+#         view = loc.view
+#         menu = menubar.Menu(view)
+# 
+#         for alt in views:
+#             if alt != view:
+#                 menu.MenuItem(alt, self.goto_page, alt)
+
+    def construct_title (self):
+        editor = self.editor
+        loc = editor.location
+        if loc.node is None:
+            self.H2('Open')
+        else:
+            node = loc.node
+            h2 = self.H2()
+            h2.write(node.item_type().capitalize())
+            views = node.views()
+            if len(views) > 1:
+                current = editor.current_view(node)
+                h2.write(' : ')
+                for view in views:
+                    button = h2.Button(view.key, (editor.edit, view))
+                    button.style.marginLeft = '5px'
+                    if view == current:
+                        button.disable()
+
+    def goto_view (self, cls):
+        editor = self.editor
+        node = editor.location.node
+        if isinstance(node, cls):
+            item = node
+        else:
+            item = cls(node)
+        editor.edit(item)
+
+
+class OpenPage (StandardPage):
 
     def __init__ (self, editor, **kwargs):
-        Page.__init__(self, editor, **kwargs)
-        self.H2('Open')
+        StandardPage.__init__(self, editor, **kwargs)
         div = self.Div()
         self.ul = div.UL()
         li = self.ul.LI()
@@ -206,21 +254,18 @@ class OpenPage (Page):
         ensure_future(self.list_dir())
 
     async def list_dir (self):
-        print('List Dir')
         text = await self.editor.server_proxy.list_dir()
         lst = [fn for fn in text.split('\n') if fn.endswith('.cld')]
-        print('lst=', repr(lst))
         for fn in lst:
             li = self.ul.LI()
             li.Button(fn, (self.editor.open_corpus, fn))
 
 
-class CorpusPage (Page):
+class CorpusPage (StandardPage):
 
     def __init__ (self, editor, **kwargs):
-        Page.__init__(self, editor, **kwargs)
+        StandardPage.__init__(self, editor, **kwargs)
         corpus = editor.location.corpus
-        self.H2('Corpus')
         self.write('Filename: ', corpus.filename())
         p = self.P()
         button = p.Button()
@@ -228,32 +273,22 @@ class CorpusPage (Page):
         button.add_listener('click', self.download)
 
     def download (self, evt):
-        print('Click Download')
         corpus = self.editor.location.corpus
         self.download_file(corpus.name, corpus.cld_format())
-        print('End Click')
 
 
-class LanguagePage (Page):
+class PropsPage (StandardPage):
 
     def __init__ (self, editor, **kwargs):
-        Page.__init__(self, editor, **kwargs)
-        lang = self.language = editor.location.language
-        self.H2('Language')
-        self.create(PropertyTable, lang.props)
+        StandardPage.__init__(self, editor, **kwargs)
+        self.create(PropertyTable, editor.location.item)
         p = self.P()
-        button = p.Button()
-        button.write('Toc')
-        button.add_listener('click', self.toc)
-
-    def toc (self, evt):
-        self.editor.edit(self.language.toc())
 
 
-class TocPage (Page):
+class TocPage (StandardPage):
 
     def __init__ (self, editor, **kwargs):
-        Page.__init__(self, editor, **kwargs)
+        StandardPage.__init__(self, editor, **kwargs)
         toc = self.toc = editor.location.item
         self._produce_ul(self, toc.roots())
 
@@ -267,17 +302,17 @@ class TocPage (Page):
                 self._produce_ul(li, children)
 
 
-class TextPage (Page):
+class TextPage (StandardPage):
 
     def __init__ (self, editor, **kwargs):
-        Page.__init__(self, editor, **kwargs)
+        StandardPage.__init__(self, editor, **kwargs)
         self.PlainTextPanel(editor.location.text)
         
 
-class IGTPage (Page):
+class IGTPage (StandardPage):
 
     def __init__ (self, editor, **kwargs):
-        Page.__init__(self, editor, **kwargs)
+        StandardPage.__init__(self, editor, **kwargs)
         
 
 
@@ -421,3 +456,19 @@ class IGTPage (Page):
 # button.Text('Push Me')
 # doc.br()
 # 
+
+
+#--  Node updates  -------------------------------------------------------------
+
+class Root (Item):
+
+    page = OpenPage
+
+    def __init__ (self):
+        Item.__init__(self, None, 'open')
+
+
+Corpus.page = CorpusPage
+Props.page = PropsPage
+Text.page = TextPage
+Toc.page = TocPage

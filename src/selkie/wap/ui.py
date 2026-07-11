@@ -365,6 +365,9 @@ class Button (Element):
         if self.action is not None:
             self.add_listener('click', self.submit)
 
+    def disable (self):
+        self.set_attribute('disabled', True)
+
     def submit (self, evt=None):
         self.action(*self.args)
 
