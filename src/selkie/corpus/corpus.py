@@ -471,6 +471,9 @@ class Text (Node):
                 if ck in lang.cob:
                     yield Text(lang, ck)
 
+    def title (self):
+        return self.cob.get('ti', '(untitled)')
+
 
 class Lexicon (Node):
 

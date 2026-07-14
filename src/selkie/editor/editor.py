@@ -46,11 +46,11 @@ class Editor (EditorElement):
         self.location = None
 
         # this needs current_view_table to exist already
-        self.edit(Root())
+        self.edit(CorpusChooser())
 
     def edit (self, item):
         item = self.update_location(item)
-        self.goto_page(item.page)
+        self.goto_page(item.Page, item)
 
     def current_view (self, node):
         if node.full_name in self.current_view_table:
@@ -73,12 +73,12 @@ class Editor (EditorElement):
             self.set_current_view(node, self.location.item)
         return item
 
-    def goto_page (self, page):
+    def goto_page (self, cls, item):
         self.clear()
-        self.create(page)
+        self.create(cls, item)
 
     def choose_file (self):
-        self.goto_page('open')
+        self.edit(CorpusChooser())
 
     def open_corpus (self, fn):
         doc = self.document
@@ -116,7 +116,6 @@ class PlainTextPanel (EditorElement):
         Element.__init__(self, parent, 'div')
         assert isinstance(text, Text)
         self.text = text
-        self.H2('Text')
         self.table = self.Table(classname='grid')
 
         for sent in text:
@@ -157,15 +156,16 @@ class PropertyTable (EditorElement):
 
 class Page (EditorElement):
 
-    def __init__ (self, editor, **kwargs):
-        Element.__init__(self, editor, 'div', **kwargs)
+    def __init__ (self, editor, item):
+        Element.__init__(self, editor, 'div')
         self.editor = editor
+        self.item = item
 
 
 class StandardPage (Page):
 
-    def __init__ (self, editor):
-        Page.__init__(self, editor)
+    def __init__ (self, editor, item):
+        Page.__init__(self, editor, item)
         self.construct_menu()
         self.construct_title()
 
@@ -243,8 +243,8 @@ class StandardPage (Page):
 
 class OpenPage (StandardPage):
 
-    def __init__ (self, editor, **kwargs):
-        StandardPage.__init__(self, editor, **kwargs)
+    def __init__ (self, editor, item):
+        StandardPage.__init__(self, editor, item)
         div = self.Div()
         self.ul = div.UL()
         li = self.ul.LI()
@@ -263,9 +263,8 @@ class OpenPage (StandardPage):
 
 class CorpusPage (StandardPage):
 
-    def __init__ (self, editor, **kwargs):
-        StandardPage.__init__(self, editor, **kwargs)
-        corpus = editor.location.corpus
+    def __init__ (self, editor, corpus):
+        StandardPage.__init__(self, editor, corpus)
         self.write('Filename: ', corpus.filename())
         p = self.P()
         button = p.Button()
@@ -273,30 +272,29 @@ class CorpusPage (StandardPage):
         button.add_listener('click', self.download)
 
     def download (self, evt):
-        corpus = self.editor.location.corpus
+        corpus = self.item
         self.download_file(corpus.name, corpus.cld_format())
 
 
 class PropsPage (StandardPage):
 
-    def __init__ (self, editor, **kwargs):
-        StandardPage.__init__(self, editor, **kwargs)
-        self.create(PropertyTable, editor.location.item)
+    def __init__ (self, editor, props):
+        StandardPage.__init__(self, editor, props)
+        self.create(PropertyTable, props)
         p = self.P()
 
 
 class TocPage (StandardPage):
 
-    def __init__ (self, editor, **kwargs):
-        StandardPage.__init__(self, editor, **kwargs)
-        toc = self.toc = editor.location.item
+    def __init__ (self, editor, toc):
+        StandardPage.__init__(self, editor, toc)
         self._produce_ul(self, toc.roots())
 
     def _produce_ul (self, parent, texts):
         ul = parent.UL()
         for text in texts:
             li = ul.LI()
-            li.Button(text=text.key, action=(self.editor.edit, text))
+            li.Button(text=f'{text.key}: {text.title()}', action=(self.editor.edit, text))
             children = text.children()
             if children:
                 self._produce_ul(li, children)
@@ -304,171 +302,28 @@ class TocPage (StandardPage):
 
 class TextPage (StandardPage):
 
-    def __init__ (self, editor, **kwargs):
-        StandardPage.__init__(self, editor, **kwargs)
-        self.PlainTextPanel(editor.location.text)
+    def __init__ (self, editor, text):
+        StandardPage.__init__(self, editor, text)
+        self.PlainTextPanel(text)
         
 
 class IGTPage (StandardPage):
 
-    def __init__ (self, editor, **kwargs):
-        StandardPage.__init__(self, editor, **kwargs)
+    def __init__ (self, editor, igt):
+        StandardPage.__init__(self, editor, igt)
         
-
-
-#     var table = div.firstElementChild;
-#     var ncols = table.rows[0].cells.length;
-# 
-#     this.writable = writable;
-#     this.transcribed = transcribed;
-#     this.elt = table;
-#     this.ncols = ncols;
-#     this.plusButton = null;
-#     this.server = new Server();
-#     this.editbox = new EditBox();
-# 
-#     // Initialize existing cells
-#     var rows = table.rows;
-#     for (var i = 0; i < rows.length; ++i) {
-# 	var cells = rows[i].cells;
-# 	var par = new Par(this, i, 'old');
-# 	// cell 0 contains the row number
-# 	for (var k = 1; k < cells.length; ++k) {
-# 	    var cell = cells[k];
-# 	    var p = cell.firstChild;
-# 	    var ascii = Element.htmlValueDecode(p.getAttribute('data-value'));
-# 	    var text = new Text(par, k-1, ascii, p);
-# 	    cell.text = text;
-# 	    par.texts[k-1] = text;
-# 	}
-#     }
-# 
-#     // Add-button
-#     if (writable) {
-# 	var button = Element.button('+', PlainTextPanel.clickPlusButton, this);
-# 	div.appendChild(Element.par(button));
-# 	this.plusButton = button;
-#     }
-# }
-# 
-# PlainTextPanel.clickPlusButton = function (evt) {
-#     var table = evt.target.control;
-#     var text = table.appendRow();
-#     text.edit();
-# };
-# 
-# PlainTextPanel.prototype.insertText = function (ascii, i) {
-#     var row = this.elt.insertRow(i);
-# 
-#     var cell = row.insertCell(-1);
-#     cell.appendChild(document.createTextNode('' + i));
-#     cell.className = 'parno';
-# 
-#     var tgtText;
-#     var par = new Par(this, i, 'new');
-#     for (var k = 1; k < this.ncols; ++k) {
-# 	var text = new Text(par, k-1, ascii);
-# 	par.texts[k-1] = text;
-# 	if (k === 1) tgtText = text;
-# 	ascii = '';
-# 	cell = row.insertCell(-1);
-# 	cell.className = 'par';
-# 	cell.appendChild(text.elt);
-# 	cell.text = text;
-#     }
-#     this.updateIndices(i+1);
-#     return tgtText;
-# };
-# 
-# PlainTextPanel.prototype.appendRow = function () {
-#     var i = this.elt.rows.length;
-#     return this.insertText('', i);
-# };
-# 
-# PlainTextPanel.prototype.deleteRow = function (i) {
-#     this.elt.deleteRow(i);
-#     this.updateIndices(i);
-# };
-# 
-# PlainTextPanel.prototype.updateIndices = function (i) {
-#     var rows = this.elt.rows;
-#     while (i < rows.length) {
-# 	var cells = rows[i].cells;
-# 	// cell 0 shows the row number
-# 	cells[0].firstChild.textContent = i;
-# 	for (var k = 1; k < this.ncols; ++k) {
-# 	    var cell = cells[k];
-# 	    cell.text.i = i;
-# 	}
-# 	++i;
-#     }
-# };
-# 
-# PlainTextPanel.prototype.nextText = function (i, j) {
-#     var k = j+1;
-#     k += 1;
-#     if (k >= this.ncols) {
-# 	i += 1;
-# 	k = 1;
-#     }
-#     var rows = this.elt.rows;
-#     if (i >= rows.length) return null;
-#     return rows[i].cells[k].text;
-# };
-# 
-# PlainTextPanel.prototype.nextRowText = function (i) {
-#     i += 1;
-#     var rows = this.elt.rows;
-#     if (i >= rows.length) return null;
-#     return rows[i].cells[1].text;
-# };
-# 
-
-# class EditableText (Element):
-# 
-#     def __init__ (self, doc, text, size=None):
-#         Element.__init__(self, doc, 'p')
-#         self._text = self.write(text)
-#         self._box = self.Element('input', type='text', size=size, attach=False)
-
-
-
-# doc = Document()
-# doc.write('[__main__] Hello, world')
-# elt = doc.Element('link', rel='stylesheet', type='text/css', href='default.css')
-# 
-# div = doc.Div(classname='path')
-# div.Text('Test')
-# 
-# doc.TextArea('test', rows=1)
-# doc.br()
-# 
-# 
-# 
-# 
-# def doit (*args, **kwargs):
-#     global div
-#     print('[doit]', args, kwargs)
-#     div.clear()
-#     div.Text('Blah blah blah')
-# 
-# button = doc.Button(onclick=doit)
-# button.Text('Push Me')
-# doc.br()
-# 
-
 
 #--  Node updates  -------------------------------------------------------------
 
-class Root (Item):
+class CorpusChooser (Item):
 
-    page = OpenPage
+    Page = OpenPage
 
     def __init__ (self):
         Item.__init__(self, None, 'open')
 
 
-Corpus.page = CorpusPage
-Props.page = PropsPage
-Text.page = TextPage
-Toc.page = TocPage
+Corpus.Page = CorpusPage
+Props.Page = PropsPage
+Text.Page = TextPage
+Toc.Page = TocPage
