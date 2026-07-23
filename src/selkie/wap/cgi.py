@@ -2,7 +2,7 @@
 import os, sys, io
 from traceback import format_exc
 from urllib.parse import parse_qs
-from .app import make_config, ApplicationServlet
+from .app import Servlet
 
 
 class CGIHandler:
@@ -17,7 +17,7 @@ class CGIHandler:
             self.method = os.environ['REQUEST_METHOD']
             self.status = 200
             self.response_type = 'text'
-            self.wap = ApplicationServlet(self)
+            self.wap = Servlet(self)
             self.text_output = io.StringIO()
             self.binary_output = None
 

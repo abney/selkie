@@ -8,3 +8,4 @@ else:
 
     server_proxy = None
 
+print('selkie.wap.bootstrap: in_browser=', in_browser, 'server_proxy=', server_proxy)

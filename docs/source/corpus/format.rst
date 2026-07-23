@@ -23,10 +23,10 @@ general definition. Here is an example of a file in CLD format::
         ty page
         sent.1
           w in einem kleinen Dorf am Fluss wohnte ein Schuster
-          g in a little village on a river there lived a cobbler
+          tr in a little village on a river there lived a cobbler
         sent.2
           w der Schuster war sehr arm
-          g the cobbler was very poor
+          tr the cobbler was very poor
       text.3
         ti p2
         ty page
@@ -34,16 +34,16 @@ general definition. Here is an example of a file in CLD format::
           w eines Tages begegnete der Schuster einen Bettler
           tr one day the cobbler met a beggar
           times
-            0 1.495800
-            2 1.939400
-            5 2.783300
-            7 3.326900
+            t.0 1.495800
+            t.2 1.939400
+            t.5 2.783300
+            t.7 3.326900
         sent.2
           w Ende
           tr the end
           times
-            0 3.688200
-            1 3.928300
+            t.0 3.688200
+            t.1 3.928300
       lexicon
         form.eines
           pp ein -gen
@@ -58,20 +58,19 @@ general definition. Here is an example of a file in CLD format::
 Types
 -----
 
-A corpus consists of a set of **corpus objects** (**cobs**, for
-short), organized hierarchically. A cob has **children**, which are
-other cobs, and **properties**, which are strings.
+A corpus consists of a set of **corpus objects** ("**cobs**", for
+short), organized hierarchically. Conceptually, a cob has
+**sub-cobs**, which are themselves cobs, and **properties**, which are strings. Cobs are
+implemented simply as python dicts, whose (key, value) items represent
+the properties and sub-cobs. An item (key, value) represents a
+property if the value is a string, and it represents a child if the
+value is another dict. The key is thought of as a name for the
+property or sub-cob.
 
-Each cob and each property has a **name** (also called a *key*).
-In memory, a cob is represented simply as a python dict, in which the keys are
-the names of the cob's properties and children. The value associated
-with an property name is the property's value (a string), and the
-value associated with a child name is the child itself (a cob).
-
-Each name consists of a **type** and an optional **identifier**, separated
-by a period. For example, 'lang.deu' is a cob name that consists of
-the type 'lang' and the identifier 'deu', whereas 'lexicon' is a cob
-name that consists of the type 'lexicon' and no identifier. The
+Each key consists of a **type** and an optional **identifier**, separated
+by a period. For example, 'lang.deu' is a key that consists of
+the type 'lang' and the identifier 'deu', whereas 'lexicon' is a key
+that consists of the type 'lexicon' and no identifier. The
 following provides a complete list of types that take identifiers,
 indicating what kind of identifier each takes:
 
@@ -82,8 +81,6 @@ indicating what kind of identifier each takes:
 +----------+----------------+
 | form     | *form*         |
 +----------+----------------+
-| idx      | *int*          |
-+----------+----------------+
 | lang     | *langid*       |
 +----------+----------------+
 | rom      | *romid*        |
@@ -91,6 +88,8 @@ indicating what kind of identifier each takes:
 | sent     | *sentid*       |
 +----------+----------------+
 | sg       | *sentid*       |
++----------+----------------+
+| t        | *int*          |
 +----------+----------------+
 | trans    | *langid*       |
 +----------+----------------+
@@ -103,13 +102,13 @@ indicating what kind of identifier each takes:
 
 Any given type occurs at only one place in the
 hierarchy: each type has a unique **parent type**. The following is a
-complete **signature**, listing all parent types and their child
+complete **signature**, listing all parent types and their sub-cob
 types.
 
 +----------+--------------------------------------------------+
-| **Type** | **Child types**                                  |
+| **Type** | **Sub-cob types**                                |
 +----------+--------------------------------------------------+
-| corpus   | lang, rom                                        |
+| corp     | lang, rom                                        |
 +----------+--------------------------------------------------+
 | lang     | name, glot, iso3, userom, text, lexicon, trans   |
 +----------+--------------------------------------------------+
@@ -129,15 +128,19 @@ types.
 +----------+--------------------------------------------------+
 | xtext    | sg                                               |
 +----------+--------------------------------------------------+
-| times    | idx                                              |
+| times    | t                                                |
 +----------+--------------------------------------------------+
 
-The name 'corpus' never appears in a corpus file; it is included as a
+The type 'corp' never appears in a corpus file; it is included as a
 name for the root of the hierarchy.
 
 Each type also has a **level** in the hierarchy. To be precise, the
-level of the root type, 'corpus', is 0, and every other type has a
+level of the root type, 'corp', is 0, and every other type has a
 level that is one greater than the level of its parent type.
+
+Signatures are represented by the class ``Signature``. It provides
+convenience methods for accessing levels, parent type, child types, and property
+types, given a key type as input.
 
 Values
 ------
@@ -215,7 +218,7 @@ each cob type.
 +----------------+----------------------------------------------+
 | w              | space-seperated forms                        |
 +----------------+----------------------------------------------+
-| g              | sentence translation                         |
+| tr             | sentence translation                         |
 +----------------+----------------------------------------------+
 | times          | a times node                                 |
 +----------------+----------------------------------------------+
@@ -236,7 +239,7 @@ each cob type.
 | of             | orthographic form                            |
 +----------------+----------------------------------------------+
 
- * The value for ``pp`` is a list of forms, representing unordered
+ * The value for ``pp`` is a space-separated list of forms, representing unordered
    constituents of this word's form. No assumption is made about how
    parts are put together; in particular, it is not assumed that they are
    concatenated to create this word's form.
@@ -295,3 +298,16 @@ Because each type has a unique parent type, indentation is unnecessary
 for reconstructing the structure. It is included
 optionally for ease of reading. Each line is indented by
 an amount corresponding to the level of the key type.
+
+Corpus files are represented by the class ``File``. It provides
+convenience methods for loading and saving files, and reading to and
+writing from open streams. Otherwise, it behaves like a proxy for its
+root cob.
+
+The file format is explicitly represented by a ``Format`` object,
+which provides two methods. The method ``decode()`` takes a string and
+converts it to a python dict representing the root cob, and the
+method ``encode()`` does the reverse computation.
+The format that we have been considering is called CLD format. There
+is also an alternative JSON format, whose decoder is just ``json.loads()`` and
+whose encoder is just ``json.dumps()``.

@@ -9,6 +9,7 @@ The main goal of the revision is simplification and streamlining.
 
    concepts
    format
-   corpus
+   node
+   api
    rom/index
    old/index

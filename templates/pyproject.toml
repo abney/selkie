@@ -10,7 +10,7 @@ name = "selkie"
 #     src/selkie/__init__.py
 #     docs/source/conf.py
 
-version = "0.26.dev2"
+version = "$VERSION"
 
 authors = [
   { name="Steven Abney", email="abney@umich.edu" },

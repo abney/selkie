@@ -10,9 +10,15 @@
       async function main(){
           let pyodide = await loadPyodide();
 	  console.log('Pyodide loaded');
-$PIP_INSTALL
+	  await pyodide.loadPackage('micropip');
+	  const micropip = pyodide.pyimport('micropip');
+	  await micropip.install('selkie==0.26.dev1')
+	  console.log('Selkie installed')
           pyodide.runPythonAsync(`
-$BODY
+              import selkie
+              print(selkie.__version__)
+              from selkie.editor import Editor
+              Editor(None)
           `);
       }
     </script>

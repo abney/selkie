@@ -1,6 +1,6 @@
 
-The Current Corpus Editor (CLD)
-*******************************
+The Old Corpus Editor (CLD)
+***************************
 
 CLD (which stands for "Computational Language Documentation") is the
 current corpus editor. It is used to create, edit, and view corpora.

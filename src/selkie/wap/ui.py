@@ -6,7 +6,7 @@ if in_browser:
     from urllib.parse import urlencode
     from pyodide.ffi import create_proxy, to_js
     from pyodide.http import pyfetch
-    from .bootstrap import server_proxy
+#    from .bootstrap import server_proxy
 
 
 # class Application:
@@ -95,6 +95,9 @@ class Element:
     def Button (self, text=None, action=None, **kwargs):
         return self.create(Button, text=text, action=action, **kwargs)
 
+    def Upload (self, action=None):
+        return self.create(Upload, action=action)
+
     def Table (self, classname='display', **kwargs):
         return self.Element('table', classname=classname, **kwargs)
 
@@ -112,6 +115,12 @@ class Element:
 
     def EditableCell (self, **kwargs):
         return self.create(EditableCell, **kwargs)
+
+    def DictCell (self, *args, **kwargs):
+        return self.create(DictCell, *args, **kwargs)
+
+    def DictEditor (self, *args, **kwargs):
+        return self.create(DictEditor, *args, **kwargs)
 
     def Div (self, classname=None):
         return self.Element('div', classname=classname)
@@ -183,10 +192,10 @@ class Document (Element):
     async def __del__ (self):
         self.close()
 
-    async def close (self):
-        global server_proxy
-        print('Closing')
-        server_proxy.close()
+#     async def close (self):
+#         global server_proxy
+#         print('Closing')
+#         server_proxy.close()
 
 
 #--  EditableCell  -------------------------------------------------------------
@@ -370,6 +379,71 @@ class Button (Element):
 
     def submit (self, evt=None):
         self.action(*self.args)
+
+
+#--  Upload  -------------------------------------------------------------------
+
+class UploadedFile:
+
+    def __init__ (self, name, contents):
+        self.name = name
+        self.contents = contents
+
+    def __repr__ (self):
+        return f'<UploadedFile {self.name}>'
+
+
+class Upload (Element):
+
+    def __init__ (self, parent, action=None):
+        Element.__init__(self, parent, 'input', type='file')
+        self.action = action
+        self.add_listener('change', self.handle_upload)
+
+    async def handle_upload (self, evt):
+        print('handle_upload')
+        fob = evt.target.files[0]
+        print('fob=', fob)
+        if fob:
+            text = await fob.text()
+            print('len(text)=', len(text))
+            if self.action is not None:
+                self.action(UploadedFile(fob.name, text))
+
+
+#--  DictEditor  ---------------------------------------------------------------
+
+class DictCell (EditableCell):
+
+    def __init__ (self, parent, dct, key, action=None):
+        # EditableCell.__init__ is going to call self.get in order to display itself
+        self.contents = dct
+        self.key = key
+        self.action = action
+        EditableCell.__init__(self, parent, self.get, self.set, classname='editable')
+
+    def get (self):
+        return self.contents[self.key]
+
+    def set (self, value):
+        self.contents[self.key] = value
+        if self.action is not None:
+            self.action(self.key, value)
+    
+
+class DictEditor (Element):
+
+    def __init__ (self, parent, dct, action=None):
+        Element.__init__(self, parent, 'table', classname='noborder')
+        self.contents = dct
+        self.action = action
+
+        for (key, value) in self.contents.items():
+            if not isinstance(value, dict):
+                row = self.Row()
+                cell = row.TD()
+                cell.write(key)
+                row.create(DictCell, self.contents, key, self.action)
 
 
 #--  Variables  ----------------------------------------------------------------

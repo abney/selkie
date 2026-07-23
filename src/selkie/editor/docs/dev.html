@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js"></script>
+    <!-- <script src="http://localhost:8000/pyodide/pyodide.js"></script> -->
+    <link rel='stylesheet', type='text/css', href='stylesheet.css'/>
+  </head>
+  <body onload="main();">
+    <script type="text/javascript">
+      async function main(){
+          let pyodide = await loadPyodide();
+	  console.log('Pyodide loaded');
+          pyodide.runPythonAsync(`
+              from pyodide.http import pyfetch
+              response = await pyfetch('dist/selkie-0.26.dev2.tar.gz')
+              await response.unpack_archive()
+              print('Selkie installed')
+              import sys
+              print('sys.path=', sys.path)
+              from pathlib import Path
+              print('.:', list(Path('.').iterdir()))
+              sys.path.append('selkie-0.26.dev2/src')
+              import selkie
+              print('Selkie imported', selkie.__version__)
+              from selkie.editor import Editor
+              Editor(None)
+          `);
+      }
+    </script>
+  </body>
+</html>

@@ -23,15 +23,20 @@ def split_at_ws (line):
     else:
         return (line[:i], line[i+1:].strip())
 
-def split_at_period (key):
+def split_key (key):
     i = key.find('.')
     if i < 0:
         ty = key
-        val = None
+        val = ''
     else:
         ty = key[:i]
         val = key[i+1:]
     return (ty, val)
+
+def nth (iter, n):
+    for (i, elt) in enumerate(iter):
+        if i == n:
+            return elt
 
 
 class Signature:
@@ -142,10 +147,13 @@ class File:
 
     def load (self, fn, create=False):
         fn = Path(fn)
-        if not (fn.exists() or create):
+        if fn.exists():
+            with open(fn) as f:
+                self.read(f)
+        elif create:
+            self.cob = {}
+        else:
             raise Exception(f'File not found: {fn}')
-        with open(fn) as f:
-            self.read(f)
 
     def read (self, f):
         self.parse(f.read())
@@ -174,6 +182,9 @@ class File:
     def export_json (self):
         return JSONFormat(self.signature).encode(self.cob)
 
+    def rename (self, filename):
+        self.filename = filename
+
 
 class JSONFormat:
 
@@ -196,7 +207,7 @@ class CLDFormat:
         stack = [{}]
         for (lno, k, v) in self._records(s):
             try:
-                (ty, _) = split_at_period(k)
+                (ty, _) = split_key(k)
                 lvl = self.signature.level(ty)
                 if lvl == 0:
                     raise Exception(f'Invalid root key {k}')
@@ -258,13 +269,16 @@ class Item:
         self.key = key
         self.full_name = key if parent is None else parent.full_name + '/' + key
 
-    def item_type (self):
-        return split_at_period(self.key)[0]
-
     def ancestors (self):
         if self.parent:
             yield from self.parent.ancestors()
         yield self
+
+    def item_type (self):
+        return split_key(self.key)[0]
+
+    def identifier (self):
+        return split_key(self.key)[1]
 
     def corpus (self):
         return self.parent.corpus()
@@ -340,8 +354,8 @@ class Node (Item):
             raise KeyError('Key not found')
         return self.child_class(self, childkey)
 
-    def views (self):
-        return [self]
+#     def views (self):
+#         return [self]
 
 
 class Table:
@@ -401,15 +415,67 @@ class Props (Item):
             yield (key, cob.get(key, ''))
 
 
+#--  Directory  ----------------------------------------------------------------
+
+# This is here to make life a little easier for the Editor. It pretends to be
+# a node, though it is outside the genuine node sequence.
+
+
+def fn_to_key (fn):
+    fn = Path(fn)
+    return 'corp.' + fn.stem
+
+
+class Directory (Item):
+
+    def __init__ (self):
+        Item.__init__(self, None, 'directory')
+        self.table = {}
+        self.n_untitled = 0
+        
+    # the topmost genuine node is the corpus
+    def ancestors (self): return []
+    def node (self): return self
+    def views (self): return [self]
+
+    def __iter__ (self): return iter(self.table.values())
+    def __bool__ (self): return bool(self.table)
+    def children (self): return self.__iter__()
+    def __len__ (self): return len(self.table)
+    def __getitem__ (self, i): return nth(self.table.values(), i)
+
+    def get (self, key):
+        return self.table.get(key)
+
+    def open (self, fn, **kwargs):
+        key = fn_to_key(fn)
+        if key in self.table:
+            return self.table[key]
+        else:
+            corpus = Corpus(fn, key=key, **kwargs)
+            self.table[key] = corpus
+            return corpus
+
+    def new_child (self):
+        self.n_untitled += 1
+        corpus = Corpus(f'untitled-{self.n_untitled}', create=True)
+        self.table[corpus.key] = corpus
+        return corpus
+
+    def rename (self, corpus, filename):
+        del self.table[corpus.full_name]
+        corpus.rename(filename)
+        self.table[corpus.full_name] = corpus
+
+
 #--  Corpus  -------------------------------------------------------------------
 
 class Corpus (Node):
 
-    def __init__ (self, fn=None, **kwargs):
-        Node.__init__(self, None, 'corp')
-        if fn is not None:
-            fn = Path(fn)
-            self.key = 'corp.' + fn.stem
+    def __init__ (self, fn, key=None, **kwargs):
+        if key is None:
+            key = fn_to_key(fn)
+        Node.__init__(self, None, key)
         self.file = File(fn, **kwargs)
         self.cob = self.file.cob
 
@@ -422,6 +488,9 @@ class Corpus (Node):
     def corpus (self):
         return self
 
+    def views (self):
+        return [self]
+
     def __str__ (self):
         return str(self.file)
 
@@ -433,6 +502,11 @@ class Corpus (Node):
 
     def save (self, fn=None):
         self.file.save(fn=fn)
+
+    def rename (self, filename):
+        self.file.filename = filename
+        self.key = fn_to_key(filename)
+        self.full_name = self.key
 
 
 class Lang (Node):

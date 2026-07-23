@@ -2,7 +2,7 @@
 Selkie
 ******
 
-Version 0.26.dev2
+Version $VERSION
 
 .. toctree::
    :maxdepth: 2
@@ -11,9 +11,8 @@ Version 0.26.dev2
 
    intro/index
    cld/index
-   corpus/index
    wap/index
-   editor/index
+   corpus/index
    nlp/index
    data/index
    pyx/index

@@ -10,9 +10,16 @@
       async function main(){
           let pyodide = await loadPyodide();
 	  console.log('Pyodide loaded');
-$PIP_INSTALL
+
           pyodide.runPythonAsync(`
-$BODY
+              from pyodide.http import pyfetch
+              from pyodide.code import eval_code_async
+              res = await pyfetch('$SCRIPT_NAME/bootstrap')
+              code = await res.text()
+              bootstrap = {}
+              await eval_code_async(code, bootstrap)
+              server_proxy = bootstrap['server_proxy']
+              await server_proxy.start()
           `);
       }
     </script>

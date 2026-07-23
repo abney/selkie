@@ -20,12 +20,8 @@ class Server:
         self.shutdown_event = None
 
     async def main (self):
-        print('Server started')
-        print('    wd     :', self.wd)
-        print('    config :')
-        w = max(len(k) for k in self.config) + 1
-        for (k,v) in self.config.items():
-            print(f'        {k:{w}}: {v}')
+        print('Server: started')
+        print('    wd:', self.wd)
         handlers = [
             (r'/call/(.*)', CallHandler, {'server': self}),
             (r'/wd/(.*)', StaticFileHandler, {'path': self.wd}),
@@ -36,14 +32,14 @@ class Server:
         self.shutdown_event = asyncio.Event()
         #print('shutdown_event=', self.shutdown_event)
         await self.shutdown_event.wait()
-        print('Server stopped')
+        print('Server: stopped')
 
     def run_loop (self):
-        print('Start event loop')
+        print('Server: start event loop')
         self.loop = loop = asyncio.new_event_loop()
         loop.run_until_complete(self.main())
         loop.close()
-        print('End event loop')
+        print('Server: end event loop')
 
     def start (self):
         self.thread = Thread(target=self.run_loop)
@@ -51,10 +47,10 @@ class Server:
 
     def stop (self):
         if self.shutdown_event and self.loop and self.loop.is_running():
-            print('Shutting down')
+            print('Server: Shutting down')
             self.loop.call_soon_threadsafe(self.shutdown_event.set)
         else:
-            print('Server not running')
+            print('Server: not running')
             
     def status (self):
         if self.thread and self.thread.is_alive():
@@ -80,6 +76,7 @@ class CallHandler (RequestHandler):
         self.write(msg)
 
     def server_stop (self):
+        print('CallHandler: received stop')
         self.server.stop()
 
 
