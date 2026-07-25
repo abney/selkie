@@ -1,5 +1,36 @@
 >>> from selkie.data import ex
->>> corpfn = ex('corp27.cld')
 >>> from selkie.corpus import File
->>> fi = File(corpfn)
->>> print(fi)
+>>> fi = File(ex('corp28.cld'))
+>>> from io import StringIO
+>>> with StringIO() as f:
+...     print(fi, file=f)
+...     s = f.getvalue()
+...
+>>> print(s[:100])
+#!selkie file cld 28
+0
+class Corpus
+langs 3
+3
+class Language
+key deu
+name German
+glot stan1295
+iso3 
+>>> print(fi.export_cld()[:40])
+#!selkie file cld 28
+0
+class Corpus
+lang
+>>> print(fi.export_json()[:40])
+{"0": {"sn": "0", "class": "Corpus", "la
+>>> fi.table['0']['class']
+'Corpus'
+>>> fi.table['0']['sn']
+'0'
+>>> fi.table['0']['langs']
+'3'
+>>> fi.table['3']['class']
+'Language'
+>>> fi.table['3']['key']
+'deu'

@@ -1,5 +1,6 @@
 
 from pathlib import Path
+from .file import File
 
 
 def split_key (key):
@@ -22,21 +23,18 @@ def nth (iter, n):
 
 class Node:
 
-    # NodeIndex keys are serial numbers
+    Choice = None
 
-    NodeIndex = {}
-    NextSn = 0
-
-    def __init__ (self, parent, key):
-        self.nn = len(self.index)
-        self.file = None if parent is None else parent.file
+    def __init__ (self, parent, file=None):
+        if file is None:
+            file = parent.file
         self.parent = parent
-        self.key = key
+        self.file = file
 
     def ancestors (self):
+        yield self
         if self.parent:
             yield from self.parent.ancestors()
-        yield self
 
     def corpus (self):
         return self.parent.corpus()
@@ -50,33 +48,86 @@ class Node:
     def sentence (self):
         return self.parent.sentence()
 
-    def node (self):
-        if isinstance(self, Node):
-            return self
-        else:
-            return self.parent
+    def current_view (self):
+        raise Exception(f'Not selectable: {self}')
+
+    def select (self):
+        view = self.current_view()
+        state = {}
+        selected = {}
+        for anc in view.context_ancestors():
+            if isinstance(anc, Selector):
+                for (choice, selection) in anc.state.items():
+                    if choice not in state:
+                        state[choice] = selection
+                        if choice in selected:
+                            selection.selected = selected[choice]
+            if anc.Choice is not None:
+                selected[anc.Choice] = anc
+        return state 
+
+
+class Cob (Node):
+
+    CobIndex = {}
+    CobInfo = {'next_sn': 0}
+
+    def __init__ (self, parent, sn=None, key=None, file=None):
+        Node.__init__(self, parent, file)
+
+        if sn is None:
+            assert parent is not None
+            k = self.__class__.__name__.lower()
+            assert k in parent.cob
+            sn = parent.cob[k]
+
+        assert isinstance(sn, str) and sn.isdigit()
+        cob = self.file.deref(str(sn))
+        if 'key' in cob:
+            if key is None:
+                key = cob['key']
+            else:
+                assert key == cob['key']
+
+        self.sn = sn
+        self.cob = cob
+        self.key = key
+        
+        assert self.cob is not None
+        assert self.cob['sn'] == sn
+        if self.cob['class'] != self.__class__.__name__:
+            raise Exception(f"{self.__class__.__name__} sn={sn}: cob['class'] = {self.cob['class']}")
+        assert sn not in self.CobIndex
+
+        self.CobIndex[sn] = self
+        nx = self.CobInfo['next_sn']
+        sn = int(sn)
+        if sn >= nx:
+            self.CobInfo['next_sn'] = sn + 1
 
     def __repr__ (self):
         return f'<{self.__class__.__name__} {self.key}>'
 
 
-class Cob (Node):
-
-    def __init__ (self, cob):
-        '''Assumes we have already done Node.__init__'''
-        self.cob = cob
-        self.sn = int(self.cob['sn'])
-        
-        if self.sn is not None:
-            if sn >= self.NextSn:
-                self.NextSn = sn + 1
-            self.NodeIndex[sn] = self
-
-
-class View (Node):
+class View:
 
     Page = None
-    view_of = None
+
+    def __init__ (self):
+        self.view_of = None
+
+    def current_view (self):
+        return self
+
+    def context_ancestors (self):
+        yield self
+        yield from self.view_of.ancestors()
+
+    def __repr__ (self):
+        if isinstance(self, Cob):
+            return Cob.__repr__(self)
+        else:
+            return f'<{self.__class__.__name__} view of {repr(self.view_of)}>'
 
 
 class Selection:
@@ -85,95 +136,89 @@ class Selection:
         self.selected = None
         self.options = options
 
+    def __repr__ (self):
+        return f'<Selection {self.selected} {self.options}>'
 
-class Selector (Node):
+
+class Selector:
 
     Choices = None
 
     def __init__ (self):
-        self.state = {choice: Selection(getattr(self, choice)) for choice in choices}
+        self.state = {chc: Selection(getattr(self, att)) for (chc,att) in self.Choices}
 
 
 class Viewable (Selector):
 
     def __init__ (self, views):
-        if 'views' not in self.Choices:
-            raise Exception("Viewable that does not have 'views' as a choice")
-        self._views = views
-        for view in self._views:
+        if self.Choices is None or not any(c=='view' for (c,_) in self.Choices):
+            raise Exception(f"Viewable {self} does not have 'view' as a choice")
+        self.views = views
+        for view in self.views:
             if not isinstance(view, View):
-                raise Exception('Not a view')
+                raise Exception(f'Not a view: {view}')
             if view.view_of is not None:
                 raise Exception('Attempt to re-use a View')
             view.view_of = self
         Selector.__init__(self)
-        selection = self.state['views']
-        selection.selected = self._views[0]
-
-    def views (self):
-        return self._views
+        selection = self.state['view']
+        selection.selected = self.views[0]
 
     def current_view (self):
-        return self.state['views'].selected
+        return self.state['view'].selected
 
 
 #-------------------------------------------------------------------------------
 
-class Table:
+# View must come first - it overrides Node.current_view
 
-    def __init__ (self, node):
-        self.node = node
+class Props (View, Node):
 
-    def __len__ (self):
-        return self.node.__len__()
+    def __init__ (self, parent, keys=None, props=None):
+        if props is None:
+            props = parent.cob
+        if keys is None:
+            keys = list(props)
 
-    def __iter__ (self):
-        return self.node.child_keys()
+        Node.__init__(self, parent)
+        View.__init__(self)
+        self.keys = keys
+        self.props = props
 
-    def __getitem__ (self, key):
-        cls = self.node.child_class
-        return cls(self.node, key)
-
-    def keys (self):
-        return self.node.child_keys()
-
-    def values (self):
-        return self.node
-
-    def items (self):
-        for child in self.node.__iter__():
-            yield (child.key, child)
+    def __len__ (self): return len(self.keys)
+    def __iter__ (self): return iter(self.keys)
+    def __getitem__ (self, key): return self.props[key]
+    def keys (self): return self.keys
+    def values (self): return (v for (k,v) in self.props.items() if k in self.keys)
+    def items (self): return ((k,v) for (k,v) in self.props.items() if k in self.keys)
 
 
-class Props (Item):
+class List (Node):
 
-    def __init__ (self, node):
-        Item.__init__(self, node, 'props')
+    ChildType = None
 
-    def __len__ (self):
-        return len(self.parent.properties)
-
-    def __iter__ (self):
-        return iter(self.parent.properties)
-
-    def __getitem__ (self, key):
-        if key in self.parent.properties:
-            return self.parent.cob.get(key, '')
+    def __init__ (self, parent, key=None):
+        assert isinstance(parent, Cob)
+        assert self.ChildType is not None
+        assert issubclass(self.ChildType, Cob)
+        if key is None:
+            key = self.__class__.__name__.lower()
+        Node.__init__(self, parent)
+        if key in parent.cob:
+            sns = parent.cob[key].split()
         else:
-            raise KeyError('Unrecognized key')
+            sns = []
+        self.contents = [self.ChildType(self, sn) for sn in sns]
 
-    def keys (self):
-        return self.parent.properties
+    def __len__ (self): return len(self.contents)
+    def __iter__ (self): return iter(self.contents)
+    def __getitem__ (self, i): return self.contents[i]
 
-    def values (self):
-        cob = self.parent.cob
-        for key in self.parent.properties:
-            yield cob.get(key, '')
-
-    def items (self):
-        cob = self.parent.cob
-        for key in self.parent.properties:
-            yield (key, cob.get(key, ''))
+    def __repr__ (self):
+        if isinstance(self, Cob):
+            return Cob.__repr__(self)
+        else:
+            return f'<{self.__class__.__name__} of {repr(self.parent)}>'
 
 
 #--  Directory  ----------------------------------------------------------------
@@ -227,14 +272,20 @@ class Directory (Node):
 
 #--  Corpus  -------------------------------------------------------------------
 
-class Corpus (Cob, Viewable):
+class Corpus (Viewable, Cob):
+
+    Choice = 'corp'
+    Choices = [('view', 'views'), ('lang', 'langs'), ('rom', 'roms')]
 
     def __init__ (self, fn, key=None, **kwargs):
         fn = Path(fn)
+        file = File(fn, **kwargs)
         if key is None: key = fn.stem
-        Cob.__init__(self, None, key)
-        self.file = File(fn, **kwargs)
-        self.cob = self.file.index['0']
+        Cob.__init__(self, None, '0', key=key, file=file)
+        self.props = Props(self, {'filename': str(file.filename)})
+        self.langs = Langs(self)
+        self.roms = Roms(self)
+        Viewable.__init__(self, [self.props, self.roms])
 
     def filename (self):
         return self.file.filename
@@ -242,8 +293,10 @@ class Corpus (Cob, Viewable):
     def corpus (self):
         return self
 
+    
+
     def views (self):
-        return [CorpusProps(self), Roms(self)]
+        return [Props(self), Roms(self)]
 
     def __str__ (self):
         return str(self.file)
@@ -263,10 +316,17 @@ class Corpus (Cob, Viewable):
         self.full_name = self.key
 
 
-class Lang (Node):
+class Language (Viewable, Cob):
 
-    def views (self):
-        return [Props(self), Toc(self)]
+    Choice = 'lang'
+    Choices = [('view', 'views'), ('text', 'texts')]
+
+    def __init__ (self, parent, key):
+        Cob.__init__(self, parent, key)
+        self.props = Props(self, ['name', 'glot', 'iso3', 'rom'])
+        self.texts = Texts(self)
+        self.toc = Toc(self)
+        Viewable.__init__(self, [self.props, self.toc])
 
     def language (self):
         return self
@@ -278,49 +338,53 @@ class Lang (Node):
         return Toc(self)
 
 
-class Roms (Item):
+class Langs (List):
 
-    def __init__ (self, parent):
-        Item.__init__(self, parent, 'roms')
-
-    def __getitem__ (self, name): return self.parent.cob[name]
-    def get (self, name): return self.parent.cob.get(name)
-    def keys (self): return (key for key in self.parent.cob if key.startswith('rom.'))
-    def __iter__ (self): return self.keys()
-    def __len__ (self): return sum(1 for _ in self.keys())
-    def values (self): return (v for (k,v) in self.parent.cob.items() if k.startswith('rom.'))
-    def items (self): return ((k,v) for (k,v) in self.parent.cob.items() if k.startswith('rom.'))
+    ChildType = Language
 
 
-class Rom (Node):
+class Rom (Cob):
 
     pass
 
 
-class Text (Node):
+class Roms (View, List):
+
+    ChildType = Rom
+
+    def __init__ (self, parent):
+        List.__init__(self, parent)
+        View.__init__(self)
+
+
+class Text (Viewable, Cob):
+
+    Choice = 'text'
+    Choices = [('view', 'views'), ('sent', 'sents')]
+
+    def __init__ (self, parent, sn):
+        Cob.__init__(self, parent, sn)
+        self.sents = Sents(self)
+        Viewable.__init__(self, [self.sents])
+
+    def key (self):
+        return self.cob['key']
 
     def text (self):
         return self
-
-    def children (self):
-        return list(self.iter_children())
-    
-    def iter_children (self):
-        if 'ch' in self.cob:
-            lang = self.parent
-            for n in self.cob['ch'].split():
-                ck = 'text.' + n
-                if ck in lang.cob:
-                    yield Text(lang, ck)
 
     def title (self):
         return self.cob.get('ti', '(untitled)')
 
 
-class Lexicon (Node):
+class Texts (List):
 
-    def __init__ (self, parent):
-        Node.__init__(self, parent, 'lexicon')
+    ChildType = Text
+
+
+class Lexicon (Cob):
+
+    pass
 
 
 class Trans (Node):
@@ -328,7 +392,15 @@ class Trans (Node):
     pass
 
 
-class Sent (Node):
+class Sentence (Viewable, Cob):
+
+    Choice = 'sent'
+    Choices = [('view', 'views')]
+
+    def __init__ (self, parent, key):
+        Cob.__init__(self, parent, key)
+        self.tokens = Tokens(self)
+        Viewable.__init__(self, [self.tokens])
 
     def sentence (self):
         return self
@@ -336,25 +408,43 @@ class Sent (Node):
     def times (self):
         return Times(self)
 
-    def tokens (self):
-        return list(self)
-
     def string (self):
         return self.cob['w']
 
     def set_string (self, s):
         self.cob['w'] = s
+        self.tokens.rebuild()
 
-    def __len__ (self):
-        return len(self.cob['w'].split())
+    def __len__ (self): return len(self.tokens)
+    def __iter__ (self): iter(self.tokens)
+    def __getitem__ (self, i): return self.tokens[i]
 
-    def __iter__ (self):
-        for (i, s) in enumerate(self.cob['w'].split()):
-            yield Token(self, i, s)
 
-    def __getitem__ (self, i):
-        strs = self.cob['w'].split()
-        return Token(self, i, strs[i])
+class Tokens (View, Node):
+
+    Choice = 'view'
+
+    def __init__ (self, parent):
+        assert isinstance(parent, Sentence)
+        Node.__init__(self, parent)
+        View.__init__(self)
+        self.rebuild()
+
+    def rebuild (self):
+        self.tokens = [Token(self, i, s) for (i, s) in enumerate(self.parent.cob['w'].split())]
+
+    def __len__ (self): return len(self.tokens)
+    def __iter__ (self): return iter(self.tokens)
+    def __getitem__ (self, i): return self.tokens[i]
+
+
+class Sents (View, List):
+
+    ChildType = Sentence
+
+    def __init__ (self, parent):
+        List.__init__(self, parent)
+        View.__init__(self)
 
 
 class Form (Node):
@@ -390,27 +480,38 @@ class Token:
 
 
 #--  Toc  ----------------------------------------------------------------------
+#
+#  If a 'ch' value gets changed, be sure to clear the Toc
+#
 
-class Toc (Item):
+class Toc (View, Node):
 
     def __init__ (self, lang):
-        Item.__init__(self, lang, 'toc')
-        self._backlinks = self._build_backlinks()
-        self._roots = [text for text in self.parent if text.key not in self._backlinks]
+        Node.__init__(self, lang, 'toc')
+        View.__init__(self)
+        self._parents = None
+        self._roots = None
+
+    def clear (self):
+        self._parents = None
+        self._roots = None
         
-    def _build_backlinks (self):
-        texts = list(self.parent)
-        backlinks = {}
+    def _compute_parents (self):
+        texts = self.parent.texts
+        parent_table = {}
         for parent in texts:
             if 'ch' in parent.cob:
-                for n in parent.cob['ch'].split():
-                    ck = 'text.' + n
+                for ck in parent.cob['ch'].split():
                     # silently overwrites any older value
-                    backlinks[ck] = parent
-        return backlinks
+                    parent_table[ck] = parent
+        return parent_table
 
     def roots (self):
+        if self._roots is None:
+            self._compute_parents()
         return self._roots
 
     def parent (self, text):
-        return self._backlinks.get(text.key)
+        if self._parents is None:
+            self._compute_parents()
+        return self._parents.get(text.key())

@@ -1,0 +1,111 @@
+#!selkie file cld 28
+0
+class Corpus
+langs 3
+3
+class Language
+key deu
+name German
+glot stan1295
+iso3 deu
+texts 5 7 11
+lexicon 17
+5
+class Text
+key deu.1
+ch deu.2 deu.3
+ti Eine kleine Geschichte
+ty story
+7
+class Text
+key deu.2
+sents 9 10
+ti p1
+ty page
+9
+class Sentence
+key deu.2.1
+w in einem kleinen Dorf am Fluss wohnte ein Schuster
+tr in a little village on a river there lived a cobbler
+10
+class Sentence
+key deu.2.2
+w der Schuster war sehr arm
+tr the cobbler was very poor
+11
+class Text
+key deu.3
+sents 13 15
+ti p2
+ty page
+13
+class Sentence
+key deu.3.1
+w eines Tages begegnete der Schuster einen Bettler
+tr one day the cobbler met a beggar
+times 14
+14
+class Times
+key deu.3.1
+t.0 1.495800
+t.2 1.939400
+t.5 2.783300
+t.7 3.326900
+15
+class Sentence
+key deu.3.2
+w Ende
+tr the end
+times 16
+16
+class Times
+key deu.3.2
+t.0 3.688200
+t.1 3.928300
+17
+class Lexicon
+key deu
+deu.begegnete 18
+deu.Bettler 19
+deu.der 20
+deu.einen 21
+deu.eines 22
+deu.Schuster 23
+deu.Tag 24
+deu.Tages 25
+deu.-gen 26
+18
+class Form
+key deu.begegnete
+19
+class Form
+key deu.Bettler
+20
+class Form
+key deu.der
+c det
+g the
+21
+class Form
+key deu.einen
+g a(n)
+22
+class Form
+key deu.eines
+g of a(n)
+23
+class Form
+key deu.Schuster
+g cobbler
+24
+class Form
+key deu.Tag
+g day
+25
+class Form
+key deu.Tages
+pp Tag .gen
+26
+class Form
+key deu.-gen
+g <genitive>

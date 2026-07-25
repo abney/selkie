@@ -1,0 +1,83 @@
+
+>>> from selkie.corpus import Corpus
+>>> from selkie.data import ex
+>>> corpus = Corpus(ex('corp28.cld'))
+>>> corpus.file
+<File corp28.cld>
+>>> corpus
+<Corpus corp28>
+>>> corpus.CobIndex['0']
+<Corpus corp28>
+
+>>> list(corpus.props)
+['filename']
+>>> corpus.CobIndex['3']
+<Language deu>
+
+>>> list(corpus.props)
+['filename']
+
+>>> langs = corpus.langs
+>>> len(langs)
+1
+>>> deu = langs[0]
+>>> deu
+<Language deu>
+
+>>> sorted(deu.props)
+['glot', 'iso3', 'name', 'rom']
+>>> deu.props['glot']
+'stan1295'
+
+>>> texts = deu.texts
+>>> len(texts)
+3
+>>> list(texts)
+[<Text deu.1>, <Text deu.2>, <Text deu.3>]
+>>> text2 = texts[1]
+>>> text2
+<Text deu.2>
+
+>>> deu.lexicon()
+<Lexicon deu>
+
+>>> sents = text2.sents
+>>> len(sents)
+2
+>>> sent = sents[0]
+>>> sent
+<Sentence deu.2.1>
+>>> sent.key
+'deu.2.1'
+>>> sent.cob['w']
+'in einem kleinen Dorf am Fluss wohnte ein Schuster'
+>>> len(sent)
+9
+>>> sent[0]
+<Token 0 in>
+>>> sent[0].string
+'in'
+
+>>> state = sent.select()
+>>> state['view'].selected
+<Tokens view of <Sentence deu.2.1>>
+>>> state['sent'].selected
+<Sentence deu.2.1>
+>>> state['text'].selected
+<Text deu.2>
+>>> state['lang'].selected
+<Language deu>
+
+>>> text3 = texts[2]
+>>> len(text3.sents)
+2
+>>> state = text3.select()
+>>> state['text'].selected
+<Text deu.3>
+>>> state['sent'].selected
+
+>>> state = text2.select()
+>>> state['text'].selected
+<Text deu.2>
+>>> state['sent'].selected
+<Sentence deu.2.1>

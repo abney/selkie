@@ -16,7 +16,7 @@ class File:
 
         self.filename = fn
         self.format = self.__formats__[format]()
-        self.index = None
+        self.table = None
 
         # In the browser, we create a Corpus that has a filename and contents,
         # but the contents came from the server, not a local file
@@ -25,9 +25,12 @@ class File:
             if fn:
                 self.load(fn, create)
             else:
-                self.index = {}
+                self.table = {}
         else:
             self.parse(contents)
+
+    def deref (self, sn):
+        return self.table[sn]
 
     def load (self, fn, create=False):
         fn = Path(fn)
@@ -35,7 +38,7 @@ class File:
             with open(fn) as f:
                 self.read(f)
         elif create:
-            self.index = {}
+            self.table = {}
         else:
             raise Exception(f'File not found: {fn}')
 
@@ -43,7 +46,7 @@ class File:
         self.parse(f.read())
 
     def parse (self, s):
-        self.index = self.format.decode(s)
+        self.table = self.format.decode(s)
 
     def save (self, fn=None):
         if fn is None:
@@ -52,19 +55,19 @@ class File:
             self.write(f)
 
     def write (self, f):
-        f.write(self.format.encode(self.index))
+        f.write(self.format.encode(self.table))
 
     def __str__ (self):
-        return self.format.encode(self.index)
+        return self.format.encode(self.table)
 
     def __repr__ (self):
         return f'<{self.__class__.__name__} {self.filename.name}>'
 
     def export_cld (self):
-        return CLDFormat(self.signature).encode(self.index)
+        return CLDFormat().encode(self.table)
 
     def export_json (self):
-        return JSONFormat(self.signature).encode(self.index)
+        return JSONFormat().encode(self.table)
 
     def rename (self, filename):
         self.filename = filename
