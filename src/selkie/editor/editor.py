@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import Item, Directory, Corpus, Node, Lang, Toc, Text, Sent, Props
+from ..corpus import (Item, Directory, Corpus, Node, Lang, Toc, Text, Sent, Props, Roms, Rom)
 from ..wap import Element, EditableCell
 
 
@@ -185,6 +185,9 @@ class Editor (EditorElement):
 
     def new_form (self):
         pass
+
+    def new_rom (self):
+        print('** new_rom: unimplemented')
 
     ## edit
 
@@ -457,6 +460,16 @@ class IGTPage (StandardPage):
         StandardPage.__init__(self, editor, igt)
         
 
+class RomsPage (StandardPage):
+
+    def __init__ (self, editor, roms):
+        StandardPage.__init__(self, editor, roms)
+        ul = self.UL()
+        for (name, rom) in roms.items():
+            ul.LI().Button(text=name, action=(self.editor.edit, rom))
+        ul.LI().Button(text='+ rom', action=self.editor.new_rom)
+
+
 #--  Node updates  -------------------------------------------------------------
 
 Directory.Page = OpenPage
@@ -464,3 +477,4 @@ Corpus.Page = CorpusPage
 Props.Page = PropsPage
 Text.Page = TextPage
 Toc.Page = TocPage
+Roms.Page = RomsPage

@@ -1,27 +1,6 @@
 
-#
-#  Lines are either NODE NAMES (no space) or DATA (space separates key and value)
-#  Each node name has a LEVEL (of indentation)
-#
-#  Reading the file
-#  ----------------
-#  Keep a stack of dicts
-#  
-
-import json
-from io import StringIO
 from pathlib import Path
-from itertools import islice
 
-
-def split_at_ws (line):
-    i = 0
-    while i < len(line) and not line[i].isspace():
-        i += 1
-    if i >= len(line):
-        return (line, None)
-    else:
-        return (line[:i], line[i+1:].strip())
 
 def split_key (key):
     i = key.find('.')
@@ -39,246 +18,25 @@ def nth (iter, n):
             return elt
 
 
-class Signature:
-    
-    default_spec = {
-        'corpus': ['lang', 'rom'],
-        'lang': ['name', 'glot', 'iso3', 'userom', 'text', 'lexicon', 'trans'],
-        'rom': ['u'],
-        'text': ['sent', 'ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video', 'xid'],
-        'lexicon': ['form'],
-        'trans': ['xlexicon', 'xtext'],
-        'sent': ['w', 'tr', 'times'],
-        'form': ['fy', 'g', 'c', 'pp', 'cf', 'of'],
-        'xlexicon': ['fg'],
-        'xtext': ['sg'],
-        'times': ['t']
-    }
-
-    def __init__ (self, spec=None):
-        self._children = spec or self.default_spec
-        self._levels = {}
-        self._parents = {}
-
-        self._set_level_recurse('corpus', 0)
-
-    def _set_level_recurse (self, ty, lvl):
-        if ty in self._levels:
-            raise Exception(f'Recursion in signature: {ty}')
-        self._levels[ty] = lvl
-        if ty in self._children:
-            for child in self._children[ty]:
-                if child in self._parents:
-                    raise Exception(f'Type with multiple parents: {child}')
-                self._parents[child] = ty
-                self._set_level_recurse(child, lvl+1)
-
-    def level (self, ty):
-        return self._levels[ty]
-
-    def children (self, ty):
-        return self._children.get(ty)
-
-    def parent (self, ty):
-        return self._parents[ty]
-
-    def child_type (self, ty):
-        for ct in self._children[ty]:
-            if ct in self._children:
-                return ct
-
-    def properties (self, ty):
-        for ct in self._children[ty]:
-            if ct not in self._children:
-                yield ct
-
-    def __str__ (self):
-        return str(self._children)
-
-    def _update_node_classes (self):
-        tab = globals()
-        for pt in self._children:
-            ct = self.child_type(pt)
-            pcls = tab[pt.capitalize()]
-            pcls.properties = list(self.properties(pt))
-            if ct:
-                ccls = tab[ct.capitalize()]
-                pcls.child_class = ccls
-                pcls.child_prefix = ct + '.'
-
-
-signature = Signature()
-
-
-#--  File  ---------------------------------------------------------------------
-
-class File:
-
-    __formats__ = None
-
-    def __init__ (self, fn, signature=signature, contents=None, format='cld', create=False):
-        if format not in self.__formats__:
-            raise Exception(f'Unrecognized format: {format}')            
-        if fn and not isinstance(fn, Path):
-            fn = Path(fn)
-
-        self.filename = fn
-        self.signature = signature
-        self.format = self.__formats__[format](signature)
-        self.cob = None
-
-        # In the browser, we create a Corpus that has a filename and contents,
-        # but the contents came from the server, not a local file
-
-        if contents is None:
-            if fn:
-                self.load(fn, create)
-            else:
-                self.cob = {}
-        else:
-            self.parse(contents)
-
-    def __len__ (self): return len(self.cob)
-    def __getitem__ (self, key): return self.cob[key]
-    def __iter__ (self): return iter(self.cob)
-    def keys (self): return self.cob.keys()
-    def values (self): return self.cob.values()
-    def items (self): return self.cob.items()
-
-    def load (self, fn, create=False):
-        fn = Path(fn)
-        if fn.exists():
-            with open(fn) as f:
-                self.read(f)
-        elif create:
-            self.cob = {}
-        else:
-            raise Exception(f'File not found: {fn}')
-
-    def read (self, f):
-        self.parse(f.read())
-
-    def parse (self, s):
-        self.cob = self.format.decode(s)
-
-    def save (self, fn=None):
-        if fn is None:
-            fn = self.filename
-        with open(fn, 'w') as f:
-            self.write(f)
-
-    def write (self, f):
-        f.write(self.format.encode(self.cob, pretty=False))
-
-    def __str__ (self):
-        return self.format.encode(self.cob, pretty=True)
-
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {self.filename.name}>'
-
-    def export_cld (self):
-        return CLDFormat(self.signature).encode(self.cob)
-
-    def export_json (self):
-        return JSONFormat(self.signature).encode(self.cob)
-
-    def rename (self, filename):
-        self.filename = filename
-
-
-class JSONFormat:
-
-    def __init__ (self, signature):
-        pass
-
-    def encode (self, contents, pretty=False):
-        return json.dumps(contents, indent=(2 if pretty else None))
-
-    def decode (self, s):
-        return json.loads(s)
-
-
-class CLDFormat:
-
-    def __init__ (self, signature):
-        self.signature = signature
-        
-    def decode (self, s):
-        stack = [{}]
-        for (lno, k, v) in self._records(s):
-            try:
-                (ty, _) = split_key(k)
-                lvl = self.signature.level(ty)
-                if lvl == 0:
-                    raise Exception(f'Invalid root key {k}')
-                while len(stack) > lvl:
-                    stack.pop()
-                if len(stack) < lvl:
-                    raise Exception(f'No parent for {k}')
-                parent = stack[-1]
-                if k in parent:
-                    raise Exception(f'Duplicate key: {k}')
-                if self.signature.children(ty):
-                    v = {}
-                    parent[k] = v
-                    stack.append(v)
-                else:
-                    parent[k] = v
-            except Exception as e:
-                print(f'** [line {lno}]', str(e))
-        return stack[0]
-
-    def _records (self, text):
-        for (lno, line) in enumerate(text.split('\n')):
-            line = line.strip().replace('\t', ' ')
-            if line and not line.startswith('#'):
-                (k,v) = split_at_ws(line)
-                yield (lno, k, v)
-
-    def encode (self, contents, pretty=False):
-        with StringIO() as f:
-            self._write_dict(contents, f, pretty, -1)
-            return f.getvalue()
-
-    def _write_dict (self, d, f, pretty, level):
-        assert isinstance(d, dict)
-        for (k,v) in d.items():
-            if pretty: self._write_indent(level+1, f)
-            if isinstance(v, str):
-                print(k, v, file=f)
-            else:
-                print(k, file=f)
-                self._write_dict(v, f, pretty, level+1)
-
-    def _write_indent (self, level, f):
-        for _ in range(2 * level):
-            f.write(' ')
-
-
-File.__formats__ = {'cld': CLDFormat,
-                    'json': JSONFormat}
-
-
 #--  Node  ---------------------------------------------------------------------
 
-class Item:
+class Node:
+
+    # NodeIndex keys are serial numbers
+
+    NodeIndex = {}
+    NextSn = 0
 
     def __init__ (self, parent, key):
+        self.nn = len(self.index)
         self.file = None if parent is None else parent.file
         self.parent = parent
         self.key = key
-        self.full_name = key if parent is None else parent.full_name + '/' + key
 
     def ancestors (self):
         if self.parent:
             yield from self.parent.ancestors()
         yield self
-
-    def item_type (self):
-        return split_key(self.key)[0]
-
-    def identifier (self):
-        return split_key(self.key)[1]
 
     def corpus (self):
         return self.parent.corpus()
@@ -292,9 +50,6 @@ class Item:
     def sentence (self):
         return self.parent.sentence()
 
-    def __eq__ (self, other):
-        return isinstance(other, Item) and self.key == other.key and self.parent == other.parent
-
     def node (self):
         if isinstance(self, Node):
             return self
@@ -305,58 +60,64 @@ class Item:
         return f'<{self.__class__.__name__} {self.key}>'
 
 
-class Node (Item):
+class Cob (Node):
 
-    child_class = None
-    child_prefix = None
-    properties = None
-
-    def __init__ (self, parent, key):
-        Item.__init__(self, parent, key)
-        self.cob = None if parent is None else parent.cob[key]
-        self.table = Table(self)
-        self.props = Props(self)
-
-    def level (self):
-        return self.file.signature.level(self.item_type())
-
-    def child_keys (self):
-        if self.child_prefix is None:
-            raise ValueError('No child keys')
-        for key in self.cob.keys():
-            if key.startswith(self.child_prefix):
-                yield key
-
-    def __iter__ (self):
-        for key in self.child_keys():
-            yield self.child_class(self, key)
+    def __init__ (self, cob):
+        '''Assumes we have already done Node.__init__'''
+        self.cob = cob
+        self.sn = int(self.cob['sn'])
         
-    def __bool__ (self):
-        for _ in self.child_keys():
-            return True
-        return False
+        if self.sn is not None:
+            if sn >= self.NextSn:
+                self.NextSn = sn + 1
+            self.NodeIndex[sn] = self
 
-    def children (self):
-        return self.__iter__()
 
-    def __len__ (self):
-        return sum(1 for _ in self.child_keys())
+class View (Node):
 
-    def __getitem__ (self, i):
-        childkey = None
-        if i < 0:
-            childkey = list(self.child_keys())[i]
-        else:
-            for (k, key) in enumerate(self.child_keys()):
-                if k == i:
-                    childkey = key
-        if childkey is None:
-            raise KeyError('Key not found')
-        return self.child_class(self, childkey)
+    Page = None
+    view_of = None
 
-#     def views (self):
-#         return [self]
 
+class Selection:
+
+    def __init__ (self, options):
+        self.selected = None
+        self.options = options
+
+
+class Selector (Node):
+
+    Choices = None
+
+    def __init__ (self):
+        self.state = {choice: Selection(getattr(self, choice)) for choice in choices}
+
+
+class Viewable (Selector):
+
+    def __init__ (self, views):
+        if 'views' not in self.Choices:
+            raise Exception("Viewable that does not have 'views' as a choice")
+        self._views = views
+        for view in self._views:
+            if not isinstance(view, View):
+                raise Exception('Not a view')
+            if view.view_of is not None:
+                raise Exception('Attempt to re-use a View')
+            view.view_of = self
+        Selector.__init__(self)
+        selection = self.state['views']
+        selection.selected = self._views[0]
+
+    def views (self):
+        return self._views
+
+    def current_view (self):
+        return self.state['views'].selected
+
+
+#-------------------------------------------------------------------------------
 
 class Table:
 
@@ -421,15 +182,10 @@ class Props (Item):
 # a node, though it is outside the genuine node sequence.
 
 
-def fn_to_key (fn):
-    fn = Path(fn)
-    return 'corp.' + fn.stem
-
-
-class Directory (Item):
+class Directory (Node):
 
     def __init__ (self):
-        Item.__init__(self, None, 'directory')
+        Node.__init__(self, None, 'directory')
         self.table = {}
         self.n_untitled = 0
         
@@ -448,7 +204,8 @@ class Directory (Item):
         return self.table.get(key)
 
     def open (self, fn, **kwargs):
-        key = fn_to_key(fn)
+        fn = Path(fn)
+        key = fn.stem
         if key in self.table:
             return self.table[key]
         else:
@@ -470,26 +227,23 @@ class Directory (Item):
 
 #--  Corpus  -------------------------------------------------------------------
 
-class Corpus (Node):
+class Corpus (Cob, Viewable):
 
     def __init__ (self, fn, key=None, **kwargs):
-        if key is None:
-            key = fn_to_key(fn)
-        Node.__init__(self, None, key)
+        fn = Path(fn)
+        if key is None: key = fn.stem
+        Cob.__init__(self, None, key)
         self.file = File(fn, **kwargs)
-        self.cob = self.file.cob
+        self.cob = self.file.index['0']
 
     def filename (self):
         return self.file.filename
-
-    def level (self):
-        return 0
 
     def corpus (self):
         return self
 
     def views (self):
-        return [self]
+        return [CorpusProps(self), Roms(self)]
 
     def __str__ (self):
         return str(self.file)
@@ -522,6 +276,20 @@ class Lang (Node):
 
     def toc (self):
         return Toc(self)
+
+
+class Roms (Item):
+
+    def __init__ (self, parent):
+        Item.__init__(self, parent, 'roms')
+
+    def __getitem__ (self, name): return self.parent.cob[name]
+    def get (self, name): return self.parent.cob.get(name)
+    def keys (self): return (key for key in self.parent.cob if key.startswith('rom.'))
+    def __iter__ (self): return self.keys()
+    def __len__ (self): return sum(1 for _ in self.keys())
+    def values (self): return (v for (k,v) in self.parent.cob.items() if k.startswith('rom.'))
+    def items (self): return ((k,v) for (k,v) in self.parent.cob.items() if k.startswith('rom.'))
 
 
 class Rom (Node):
@@ -646,21 +414,3 @@ class Toc (Item):
 
     def parent (self, text):
         return self._backlinks.get(text.key)
-
-
-signature._update_node_classes()
-
-# Corpus.child_class = Lang
-# Corpus.child_prefix = 'lang.'
-# Corpus.properties = []
-# 
-# Lang.child_class = Text
-# Lang.child_prefix = 'text.'
-# Lang.properties = ['name', 'glot', 'iso3', 'rom']
-# 
-# Text.child_class = Sent
-# Text.child_prefix = 'sent.'
-# Text.properties = ['ty', 'ti', 'de', 'au', 'ch', 'pdf', 'audio', 'video']
-# 
-# Form.properties = ['ty', 'g', 'c', 'pp', 'cf', 'of']
-# 

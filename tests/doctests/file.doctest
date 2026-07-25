@@ -1,0 +1,5 @@
+>>> from selkie.data import ex
+>>> corpfn = ex('corp27.cld')
+>>> from selkie.corpus import File
+>>> fi = File(corpfn)
+>>> print(fi)

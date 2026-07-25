@@ -1,0 +1,109 @@
+>>> from io import StringIO
+>>> from os.path import join
+>>> from selkie import data
+>>> from selkie.corpus.rom import decode, Romanization
+
+>>> decode(r'\(45)')
+'E'
+
+>>> gothic_fn = data.path('roms', 'gothic.rom')
+>>> gothic = Romanization(fn=gothic_fn)
+>>> with StringIO() as f:
+...     gothic.print_graph(f)
+...     s = f.getvalue()
+...
+>>> print(s)
+1
+   57 ('9') 2
+   97 ('a') 3
+   98 ('b') 4
+   100 ('d') 5
+   101 ('e') 6
+   102 ('f') 7
+   103 ('g') 8
+   104 ('h') 9
+   105 ('i') 10
+   106 ('j') 11
+   107 ('k') 12
+   108 ('l') 13
+   109 ('m') 14
+   110 ('n') 15
+   111 ('o') 16
+   112 ('p') 17
+   113 ('q') 18
+   114 ('r') 19
+   115 ('s') 20
+   116 ('t') 21
+   117 ('u') 22
+   119 ('w') 23
+   120 ('x') 24
+   122 ('z') 25
+2
+   48 ('0') 26
+3
+    value= '𐌰'
+4
+    value= '𐌱'
+5
+    value= '𐌳'
+6
+    value= '𐌴'
+7
+    value= '𐍆'
+8
+    value= '𐌲'
+9
+   118 ('v') 27
+    value= '𐌷'
+10
+    value= '𐌹'
+11
+    value= '𐌾'
+12
+    value= '𐌺'
+13
+    value= '𐌻'
+14
+    value= '𐌼'
+15
+    value= '𐌽'
+16
+    value= '𐍉'
+17
+    value= '𐍀'
+18
+    value= '𐌵'
+19
+    value= '𐍂'
+20
+    value= '𐍃'
+21
+   104 ('h') 28
+    value= '𐍄'
+22
+    value= '𐌿'
+23
+    value= '𐍅'
+24
+    value= '𐍇'
+25
+    value= '𐌶'
+26
+   48 ('0') 29
+    value= '𐍁'
+27
+    value= '𐍈'
+28
+    value= '𐌸'
+29
+    value= '𐍊'
+<BLANKLINE>
+
+>>> gothic.decode('lathi 900')
+'𐌻𐌰𐌸𐌹 𐍊'
+
+>>> lords_prayer = "Atta unsar thu in himinam, weihna'i namo: thein."
+>>> student_fn = data.path('roms', 'gothic-student.rom')
+>>> student = Romanization(fn=student_fn)
+>>> student.decode(lords_prayer)
+'Atta unsar þu in himinam, weihnái namō þein.'
