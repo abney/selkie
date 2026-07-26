@@ -9,23 +9,23 @@
 >>> print(s[:100])
 #!selkie file cld 28
 0
-class Corpus
+class Root
 langs 3
 3
 class Language
 key deu
 name German
 glot stan1295
-iso3 
+iso3 de
 >>> print(fi.export_cld()[:40])
 #!selkie file cld 28
 0
-class Corpus
-lang
+class Root
+langs 
 >>> print(fi.export_json()[:40])
-{"0": {"sn": "0", "class": "Corpus", "la
+{"0": {"sn": "0", "class": "Root", "lang
 >>> fi.table['0']['class']
-'Corpus'
+'Root'
 >>> fi.table['0']['sn']
 '0'
 >>> fi.table['0']['langs']

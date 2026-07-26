@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import (Item, Directory, Corpus, Node, Lang, Toc, Text, Sent, Props, Roms, Rom)
+from ..corpus import (Corpora, Corpus, Node, Language, Toc, Text, Sentence, Props, Roms, Rom)
 from ..wap import Element, EditableCell
 
 
@@ -72,9 +72,9 @@ class Editor (EditorElement):
         self.server = server
         self.state_table = {}
         self.location = Location()
-        self.directory = Directory()
+        self.corpora = Corpora()
 
-        self.edit(self.directory)
+        self.edit(self.corpora)
 
     def corpus (self): return self.location.corpus()
     def language (self): return self.location.language()
@@ -99,7 +99,7 @@ class Editor (EditorElement):
         self.location.node = node
         nodes = self.location.nodes
         i = 0
-        nodes[i] = self.intern_state(self.directory).child
+        nodes[i] = self.intern_state(self.corpora).child
         while nodes[i] is not None and i+1 < len(nodes):
             nodes[i+1] = self.intern_state(nodes[i]).child
             i += 1
@@ -472,7 +472,7 @@ class RomsPage (StandardPage):
 
 #--  Node updates  -------------------------------------------------------------
 
-Directory.Page = OpenPage
+Corpora.Page = OpenPage
 Corpus.Page = CorpusPage
 Props.Page = PropsPage
 Text.Page = TextPage

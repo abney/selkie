@@ -19,95 +19,7 @@ def nth (iter, n):
             return elt
 
 
-#--  Node  ---------------------------------------------------------------------
-
-class Node:
-
-    Choice = None
-
-    def __init__ (self, parent, file=None):
-        if file is None:
-            file = parent.file
-        self.parent = parent
-        self.file = file
-
-    def ancestors (self):
-        yield self
-        if self.parent:
-            yield from self.parent.ancestors()
-
-    def corpus (self):
-        return self.parent.corpus()
-
-    def language (self):
-        return self.parent.language()
-
-    def text (self):
-        return self.parent.text()
-
-    def sentence (self):
-        return self.parent.sentence()
-
-    def current_view (self):
-        raise Exception(f'Not selectable: {self}')
-
-    def select (self):
-        view = self.current_view()
-        state = {}
-        selected = {}
-        for anc in view.context_ancestors():
-            if isinstance(anc, Selector):
-                for (choice, selection) in anc.state.items():
-                    if choice not in state:
-                        state[choice] = selection
-                        if choice in selected:
-                            selection.selected = selected[choice]
-            if anc.Choice is not None:
-                selected[anc.Choice] = anc
-        return state 
-
-
-class Cob (Node):
-
-    CobIndex = {}
-    CobInfo = {'next_sn': 0}
-
-    def __init__ (self, parent, sn=None, key=None, file=None):
-        Node.__init__(self, parent, file)
-
-        if sn is None:
-            assert parent is not None
-            k = self.__class__.__name__.lower()
-            assert k in parent.cob
-            sn = parent.cob[k]
-
-        assert isinstance(sn, str) and sn.isdigit()
-        cob = self.file.deref(str(sn))
-        if 'key' in cob:
-            if key is None:
-                key = cob['key']
-            else:
-                assert key == cob['key']
-
-        self.sn = sn
-        self.cob = cob
-        self.key = key
-        
-        assert self.cob is not None
-        assert self.cob['sn'] == sn
-        if self.cob['class'] != self.__class__.__name__:
-            raise Exception(f"{self.__class__.__name__} sn={sn}: cob['class'] = {self.cob['class']}")
-        assert sn not in self.CobIndex
-
-        self.CobIndex[sn] = self
-        nx = self.CobInfo['next_sn']
-        sn = int(sn)
-        if sn >= nx:
-            self.CobInfo['next_sn'] = sn + 1
-
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {self.key}>'
-
+#--  Selectables  --------------------------------------------------------------
 
 class View:
 
@@ -115,6 +27,8 @@ class View:
 
     def __init__ (self):
         self.view_of = None
+        if self.nid is None and self.parent is not None:
+            self.nid = self.parent.nid
 
     def current_view (self):
         return self
@@ -123,21 +37,16 @@ class View:
         yield self
         yield from self.view_of.ancestors()
 
-    def __repr__ (self):
-        if isinstance(self, Cob):
-            return Cob.__repr__(self)
-        else:
-            return f'<{self.__class__.__name__} view of {repr(self.view_of)}>'
-
 
 class Selection:
 
     def __init__ (self, options):
+        '''Options must be iterable'''
         self.selected = None
         self.options = options
 
     def __repr__ (self):
-        return f'<Selection {self.selected} {self.options}>'
+        return f'<Selection {self.selected} {list(self.options)}>'
 
 
 class Selector:
@@ -166,6 +75,191 @@ class Viewable (Selector):
 
     def current_view (self):
         return self.state['view'].selected
+
+
+#--  Corpora  ------------------------------------------------------------------
+
+class Corpora (Viewable):
+    '''
+    Behaves like a list. The method get() permits access by corpus key. It
+    searches through the list and returns the first corpus with the given key.
+    Not all corpora have keys, and there is no guarantee that a key identifies
+    a unique corpus.
+    '''
+
+    Choices = [('view', 'views'), ('corp', 'roots')]
+
+    def __init__ (self):
+        self.corpora = []
+        self.roots = []
+        self.n_untitled = 0
+        self.views = [CorpusFinder(self)]
+        Selector.__init__(self)
+        
+    # the topmost genuine node is the corpus
+    def ancestors (self): return []
+
+    def __iter__ (self): return iter(self.roots)
+    def __bool__ (self): return bool(self.roots)
+    def __len__ (self): return len(self.roots)
+    def __getitem__ (self, i): return self.roots[i]
+
+    def _get_corpus (self, nid):
+        for corpus in self.corpora:
+            if corpus.nid == nid:
+                return corpus
+
+    def _add_corpus (self, corpus):
+        corpus.parent = self
+        corpus.idx = len(self.corpora)
+        self.corpora.append(corpus)
+        self.roots.append(corpus.root)
+
+    def open (self, fn, **kwargs):
+        fn = Path(fn)
+        nid = fn.stem
+        corpus = self._get_corpus(nid)
+        if corpus is not None:
+            return corpus.root
+        else:
+            corpus = Corpus(fn, nid=nid, **kwargs)
+            self._add_corpus(corpus)
+            return corpus.root
+
+    def new_corpus (self):
+        self.n_untitled += 1
+        corpus = Corpus(f'untitled-{self.n_untitled}', create=True)
+        self._add_corpus(corpus)
+        return corpus.root
+
+
+#--  Corpus  -------------------------------------------------------------------
+
+class Corpus:
+
+    def __init__ (self, fn, nid=None, create=False):
+        fn = Path(fn)
+        file = File(fn, create=create)
+        if nid is None: nid = fn.stem
+
+        self.file = file
+        self.cob_index = {}
+        self.next_sn = 0
+        self.nid = nid
+        self.root = Root(self, nid)
+        
+    def filename (self):
+        return self.file.filename
+
+    def require_cob (self, sn):
+        return self.file.deref(sn)
+
+    def index_cob (self, cob):
+        sn = cob.sn
+        assert sn is not None
+        assert sn not in self.cob_index
+        self.cob_index[sn] = cob
+        sni = int(sn)
+        if sni >= self.next_sn:
+            self.next_sn = sni + 1
+
+    def __str__ (self):
+        return str(self.file)
+
+    def __repr__ (self):
+        return f'<Corpus {self.nid}>'
+
+
+#--  Node  ---------------------------------------------------------------------
+
+class Node:
+
+    Choice = None
+
+    def __init__ (self, parent, nid=None):
+        if parent is None:
+            raise Exception('No parent provided')
+        elif isinstance(parent, Corpus):
+            corpus = parent
+            parent = None
+        else:
+            corpus = parent.corpus
+            if corpus is None:
+                raise Exception('No corpus')
+
+        self.parent = parent
+        self.corpus = corpus
+        self.nid = nid
+
+    def ancestors (self):
+        yield self
+        if self.parent:
+            yield from self.parent.ancestors()
+
+    def language (self):
+        return self.parent.language()
+
+    def text (self):
+        return self.parent.text()
+
+    def sentence (self):
+        return self.parent.sentence()
+
+    def current_view (self):
+        raise Exception(f'Not selectable: {self}')
+
+    def select (self):
+        view = self.current_view()
+        state = {}
+        selected = {}
+        for anc in view.context_ancestors():
+            if isinstance(anc, Selector):
+                for (choice, selection) in anc.state.items():
+                    if choice not in state:
+                        state[choice] = selection
+                        if choice in selected:
+                            selection.selected = selected[choice]
+            if anc.Choice is not None:
+                selected[anc.Choice] = anc
+        return state 
+
+    def __repr__ (self):
+        s = ' ' + self.nid if self.nid else ''
+        return f'<{self.__class__.__name__}{s}>'
+
+
+class Cob (Node):
+
+    def __init__ (self, parent, sn=None, key=None):
+        Node.__init__(self, parent)
+        parent = self.parent # Node.__init__ may change it
+
+        if sn is None:
+            if parent is None:
+                raise Exception('No parent')
+            k = self.__class__.__name__.lower()
+            assert k in parent.cob
+            sn = parent.cob[k]
+        else:
+            assert isinstance(sn, str) and sn.isdigit()
+                
+        cob = self.corpus.require_cob(sn)
+        if 'key' in cob:
+            if key is None:
+                key = cob['key']
+            else:
+                assert key == cob['key']
+        assert cob['sn'] == sn
+        cn = self.__class__.__name__
+        if cob['class'] != cn:
+            raise Exception(f"{cn} sn={sn}: cob['class'] = {cob['class']}")
+
+        self.sn = sn
+        self.cob = cob
+        self.key = key
+        self.nid = key
+
+        self.corpus.index_cob(self)
 
 
 #-------------------------------------------------------------------------------
@@ -221,97 +315,40 @@ class List (Node):
             return f'<{self.__class__.__name__} of {repr(self.parent)}>'
 
 
-#--  Directory  ----------------------------------------------------------------
-
-# This is here to make life a little easier for the Editor. It pretends to be
-# a node, though it is outside the genuine node sequence.
-
-
-class Directory (Node):
-
-    def __init__ (self):
-        Node.__init__(self, None, 'directory')
-        self.table = {}
-        self.n_untitled = 0
-        
-    # the topmost genuine node is the corpus
-    def ancestors (self): return []
-    def node (self): return self
-    def views (self): return [self]
-
-    def __iter__ (self): return iter(self.table.values())
-    def __bool__ (self): return bool(self.table)
-    def children (self): return self.__iter__()
-    def __len__ (self): return len(self.table)
-    def __getitem__ (self, i): return nth(self.table.values(), i)
-
-    def get (self, key):
-        return self.table.get(key)
-
-    def open (self, fn, **kwargs):
-        fn = Path(fn)
-        key = fn.stem
-        if key in self.table:
-            return self.table[key]
-        else:
-            corpus = Corpus(fn, key=key, **kwargs)
-            self.table[key] = corpus
-            return corpus
-
-    def new_child (self):
-        self.n_untitled += 1
-        corpus = Corpus(f'untitled-{self.n_untitled}', create=True)
-        self.table[corpus.key] = corpus
-        return corpus
-
-    def rename (self, corpus, filename):
-        del self.table[corpus.full_name]
-        corpus.rename(filename)
-        self.table[corpus.full_name] = corpus
-
-
 #--  Corpus  -------------------------------------------------------------------
 
-class Corpus (Viewable, Cob):
+class Root (Viewable, Cob):
 
     Choice = 'corp'
     Choices = [('view', 'views'), ('lang', 'langs'), ('rom', 'roms')]
 
-    def __init__ (self, fn, key=None, **kwargs):
-        fn = Path(fn)
-        file = File(fn, **kwargs)
-        if key is None: key = fn.stem
-        Cob.__init__(self, None, '0', key=key, file=file)
-        self.props = Props(self, {'filename': str(file.filename)})
+    def __init__ (self, corpus, key):
+        Cob.__init__(self, corpus, '0', key=key)
+        self.props = Props(self, {'filename': str(self.corpus.filename())})
         self.langs = Langs(self)
         self.roms = Roms(self)
         Viewable.__init__(self, [self.props, self.roms])
 
     def filename (self):
-        return self.file.filename
-
-    def corpus (self):
-        return self
-
-    
+        return self.corpus.filename()
 
     def views (self):
         return [Props(self), Roms(self)]
 
     def __str__ (self):
-        return str(self.file)
+        return str(self.corpus.file)
 
     def export_cld (self):
-        return self.file.export_cld()
+        return self.corpus.file.export_cld()
 
     def export_json (self):
-        return self.file.export_json()
+        return self.corpus.file.export_json()
 
     def save (self, fn=None):
-        self.file.save(fn=fn)
+        self.corpus.file.save(fn=fn)
 
     def rename (self, filename):
-        self.file.filename = filename
+        self.corpus.file.filename = filename
         self.key = fn_to_key(filename)
         self.full_name = self.key
 
@@ -487,7 +524,7 @@ class Token:
 class Toc (View, Node):
 
     def __init__ (self, lang):
-        Node.__init__(self, lang, 'toc')
+        Node.__init__(self, lang)
         View.__init__(self)
         self._parents = None
         self._roots = None

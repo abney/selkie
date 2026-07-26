@@ -25,9 +25,12 @@ class File:
             if fn:
                 self.load(fn, create)
             else:
-                self.table = {}
+                self._create_table()
         else:
             self.parse(contents)
+
+    def _create_table (self):
+        self.table = {'0': {'sn': '0', 'class': 'Root'}}
 
     def deref (self, sn):
         return self.table[sn]
@@ -38,7 +41,7 @@ class File:
             with open(fn) as f:
                 self.read(f)
         elif create:
-            self.table = {}
+            self._create_table()
         else:
             raise Exception(f'File not found: {fn}')
 

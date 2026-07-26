@@ -6,18 +6,16 @@
 <File corp28.cld>
 >>> corpus
 <Corpus corp28>
->>> corpus.CobIndex['0']
-<Corpus corp28>
+>>> corpus.cob_index['0']
+<Root corp28>
 
->>> list(corpus.props)
+>>> root = corpus.root
+>>> list(root.props)
 ['filename']
->>> corpus.CobIndex['3']
+>>> corpus.cob_index['3']
 <Language deu>
 
->>> list(corpus.props)
-['filename']
-
->>> langs = corpus.langs
+>>> langs = root.langs
 >>> len(langs)
 1
 >>> deu = langs[0]
@@ -60,7 +58,7 @@
 
 >>> state = sent.select()
 >>> state['view'].selected
-<Tokens view of <Sentence deu.2.1>>
+<Tokens deu.2.1>
 >>> state['sent'].selected
 <Sentence deu.2.1>
 >>> state['text'].selected

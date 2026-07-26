@@ -1,0 +1,22 @@
+
+>>> from selkie.corpus import Corpora
+>>> corpora = Corpora()
+>>> from selkie.data import ex
+>>> corpus = corpora.open(ex('corp28.cld'))
+>>> list(corpus.root.langs)
+[<Language deu>]
+
+>>> list(corpora)
+[<Corpus corp28>]
+>>> corpora.get('corp28')
+<Corpus corp28>
+
+>>> corpus = corpora.new()
+>>> corpus
+<Corpus untitled-1>
+>>> print(corpus)
+#!selkie file cld 28
+0
+class Root
+<BLANKLINE>
+

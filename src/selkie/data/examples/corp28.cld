@@ -1,6 +1,6 @@
 #!selkie file cld 28
 0
-class Corpus
+class Root
 langs 3
 3
 class Language
