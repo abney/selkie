@@ -8,10 +8,10 @@
 <Corpus corp28>
 >>> corpus.cob_index['0']
 <Root corp28>
+>>> list(corpus.props)
+['filename']
 
 >>> root = corpus.root
->>> list(root.props)
-['filename']
 >>> corpus.cob_index['3']
 <Language deu>
 
@@ -45,7 +45,7 @@
 >>> sent = sents[0]
 >>> sent
 <Sentence deu.2.1>
->>> sent.key
+>>> sent.nid
 'deu.2.1'
 >>> sent.cob['w']
 'in einem kleinen Dorf am Fluss wohnte ein Schuster'
@@ -56,26 +56,141 @@
 >>> sent[0].string
 'in'
 
->>> state = sent.select()
->>> state['view'].selected
-<Tokens deu.2.1>
->>> state['sent'].selected
-<Sentence deu.2.1>
->>> state['text'].selected
-<Text deu.2>
->>> state['lang'].selected
-<Language deu>
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Langs> None
+<Roms> None
+>>> sent.print_selectable()
+Selectable: <Sentence deu.2.1>
+  current_view: <Sentence deu.2.1>
+    view_of: <Sentence deu.2.1>
+>>> sent.print_state()
+lang:
+  selected: None
+  option: <Language deu> 
+    text:
+      selected: None
+      option: <Text deu.1> 
+        sent:
+          selected: None
+      option: <Text deu.2> 
+        sent:
+          selected: None
+          option: <Sentence deu.2.1> 
+          option: <Sentence deu.2.2> 
+      option: <Text deu.3> 
+        sent:
+          selected: None
+          option: <Sentence deu.3.1> 
+          option: <Sentence deu.3.2> 
+rom:
+  selected: None
+>>> sent.select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Langs> <Language deu>
+<Texts> <Text deu.2>
+<Sents> <Sentence deu.2.1>
+<Roms> None
+>>> sent.print_state()
+lang:
+  selected: <Language deu>
+  option: <Language deu> <==
+    text:
+      selected: <Text deu.2>
+      option: <Text deu.1> 
+        sent:
+          selected: None
+      option: <Text deu.2> <==
+        sent:
+          selected: <Sentence deu.2.1>
+          option: <Sentence deu.2.1> <==
+          option: <Sentence deu.2.2> 
+      option: <Text deu.3> 
+        sent:
+          selected: None
+          option: <Sentence deu.3.1> 
+          option: <Sentence deu.3.2> 
+rom:
+  selected: None
+>>> corpus.print_state()
+lang:
+  selected: <Language deu>
+  option: <Language deu> <==
+    text:
+      selected: <Text deu.2>
+      option: <Text deu.1> 
+        sent:
+          selected: None
+      option: <Text deu.2> <==
+        sent:
+          selected: <Sentence deu.2.1>
+          option: <Sentence deu.2.1> <==
+          option: <Sentence deu.2.2> 
+      option: <Text deu.3> 
+        sent:
+          selected: None
+          option: <Sentence deu.3.1> 
+          option: <Sentence deu.3.2> 
+rom:
+  selected: None
 
 >>> text3 = texts[2]
 >>> len(text3.sents)
 2
->>> state = text3.select()
->>> state['text'].selected
-<Text deu.3>
->>> state['sent'].selected
-
->>> state = text2.select()
->>> state['text'].selected
-<Text deu.2>
->>> state['sent'].selected
-<Sentence deu.2.1>
+>>> text3.print_selectable()
+Selectable: <Text deu.3>
+  current_view: <Props>
+    view_of: <Text deu.3>
+>>> text3.select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Langs> <Language deu>
+<Texts> <Text deu.3>
+<Sents> None
+<Roms> None
+>>> corpus.print_state()
+lang:
+  selected: <Language deu>
+  option: <Language deu> <==
+    text:
+      selected: <Text deu.3>
+      option: <Text deu.1> 
+        sent:
+          selected: None
+      option: <Text deu.2> 
+        sent:
+          selected: <Sentence deu.2.1>
+          option: <Sentence deu.2.1> <==
+          option: <Sentence deu.2.2> 
+      option: <Text deu.3> <==
+        sent:
+          selected: None
+          option: <Sentence deu.3.1> 
+          option: <Sentence deu.3.2> 
+rom:
+  selected: None
+>>> text2.select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Langs> <Language deu>
+<Texts> <Text deu.2>
+<Sents> <Sentence deu.2.1>
+<Roms> None
+>>> corpus.print_state()
+lang:
+  selected: <Language deu>
+  option: <Language deu> <==
+    text:
+      selected: <Text deu.2>
+      option: <Text deu.1> 
+        sent:
+          selected: None
+      option: <Text deu.2> <==
+        sent:
+          selected: <Sentence deu.2.1>
+          option: <Sentence deu.2.1> <==
+          option: <Sentence deu.2.2> 
+      option: <Text deu.3> 
+        sent:
+          selected: None
+          option: <Sentence deu.3.1> 
+          option: <Sentence deu.3.2> 
+rom:
+  selected: None

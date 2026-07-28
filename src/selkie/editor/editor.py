@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import (Corpora, Corpus, Node, Language, Toc, Text, Sentence, Props, Roms, Rom)
+from ..corpus import (Registry, Corpus, Node, Language, Toc, Text, Sentence, Props, Roms, Rom)
 from ..wap import Element, EditableCell
 
 
@@ -70,56 +70,55 @@ class Editor (EditorElement):
     def __init__ (self, server):
         EditorElement.__init__(self, None, None)
         self.server = server
-        self.state_table = {}
-        self.location = Location()
-        self.corpora = Corpora()
+        self.selected = None
+        self.registry = Registry()
 
-        self.edit(self.corpora)
+        self.edit(self.registry)
 
-    def corpus (self): return self.location.corpus()
-    def language (self): return self.location.language()
-    def text (self): return self.location.text()
-    def sentence (self): return self.location.sentence()
-    def form (self): return self.location.form()
+    def corpus (self): return self.selected.corpus()
+    def language (self): return self.selected.language()
+    def text (self): return self.selected.text()
+    def sentence (self): return self.selected.sentence()
+    def form (self): return self.selected.form()
 
     def edit (self, item):
-        self.update_location(item)
-        # may differ - if original "item" was a Node
-        item = self.location.item
-        self.goto_page(item.Page, item)
+        self.selected = item
+        item.select()
+        view = item.current_view
+        self.goto_page(view.Page, view)
 
-    def update_location (self, item):
-        if isinstance(item, Node):
-            node = item
-            item = self.intern_state(node).item
-        else:
-            node = item.node()
-        self.store_state(node, item)
-        self.location.item = item
-        self.location.node = node
-        nodes = self.location.nodes
-        i = 0
-        nodes[i] = self.intern_state(self.corpora).child
-        while nodes[i] is not None and i+1 < len(nodes):
-            nodes[i+1] = self.intern_state(nodes[i]).child
-            i += 1
-
-    def store_state (self, node, item):
-        self.intern_state(node).item = item
-        nodes = list(node.ancestors())
-        if nodes:
-            self.intern_state(self.directory).child = nodes[0]
-            for i in range(len(nodes)-1):
-                self.intern_state(nodes[i]).child = nodes[i+1]
-
-    def intern_state (self, node):
-        key = node.full_name
-        if key in self.state_table:
-            return self.state_table[key]
-        else:
-            state = State(node)
-            self.state_table[key] = state
-            return state
+#     def update_location (self, item):
+#         if isinstance(item, Node):
+#             node = item
+#             item = self.intern_state(node).item
+#         else:
+#             node = item.node()
+#         self.store_state(node, item)
+#         self.location.item = item
+#         self.location.node = node
+#         nodes = self.location.nodes
+#         i = 0
+#         nodes[i] = self.intern_state(self.corpora).child
+#         while nodes[i] is not None and i+1 < len(nodes):
+#             nodes[i+1] = self.intern_state(nodes[i]).child
+#             i += 1
+# 
+#     def store_state (self, node, item):
+#         self.intern_state(node).item = item
+#         nodes = list(node.ancestors())
+#         if nodes:
+#             self.intern_state(self.directory).child = nodes[0]
+#             for i in range(len(nodes)-1):
+#                 self.intern_state(nodes[i]).child = nodes[i+1]
+# 
+#     def intern_state (self, node):
+#         key = node.full_name
+#         if key in self.state_table:
+#             return self.state_table[key]
+#         else:
+#             state = State(node)
+#             self.state_table[key] = state
+#             return state
 
 #     def current_view (self, node):
 #         if node.full_name in self.current_view_table:
@@ -161,10 +160,10 @@ class Editor (EditorElement):
         else:
             contents = fn.contents
             fn = fn.name
-        self.edit(self.directory.open(fn, contents=contents))
+        self.edit(self.registry.open(fn, contents=contents))
 
     def create_corpus (self):
-        self.edit(self.directory.new_child())
+        self.edit(self.registry.new())
 
     ## new - the '+' entries in the menus
 
@@ -172,7 +171,7 @@ class Editor (EditorElement):
 #         self.edit(CorpusChooser())
 
     def new_corp (self, *args):
-        self.edit(self.directory)
+        self.edit(self.registry)
 
     def new_lang (self):
         pass
@@ -192,24 +191,27 @@ class Editor (EditorElement):
     ## edit
 
     def edit_corp (self, key):
-        self.edit(self.directory.get(key))
+        self.edit(self.registry.get(key))
 
 #     def edit_language (self, name):
 #         lang = self.location.corpus.table[name]
 #         self.edit(lang)
 
     def edit_lang (self, name):
-        lang = self.corpus().table[name]
+        lang = self.corpus().langs[name]
         self.edit(lang)
 
     def edit_text (self, name):
-        text = self.language().table[name]
+        text = self.language().texts[name]
         self.edit(text)
         
     def edit_sent (self, name):
         pass
 
     def edit_form (self, name):
+        pass
+
+    def edit_rom (self, name):
         pass
 
 
@@ -282,23 +284,20 @@ class StandardPage (Page):
 
     def construct_menu (self):
         editor = self.editor
-        loc = editor.location
         menubar = self.document.MenuBar()
-        node = editor.directory
 
-        for i in range(loc.NNodes):
-            table = [] if node is None else node.table
-            node = loc.nodes[i]
-            nodetype = loc.node_types[i]
+        for lst in editor.selected.current():
+            nodetype = lst.ElementType.Choice
+            selected = lst.selected
             editfun = getattr(editor, 'edit_' + nodetype)
             newfun = getattr(editor, 'new_' + nodetype)
-            if node is None:
+            if selected is None:
                 menu = menubar.Menu(f'({nodetype})')
             else:
-                menu = menubar.Menu(node.key, editfun, node.key)
-            for altkey in table:
-                if node is None or altkey != node.key:
-                    menu.MenuItem(altkey, editfun, altkey)
+                menu = menubar.Menu(selected.nid, editfun, selected.nid)
+            for alt in lst:
+                if alt is not selected:
+                    menu.MenuItem(alt.nid, editfun, alt.nid)
             menu.MenuItem('+', newfun)
 
 #     def construct_menu_safe (self):
@@ -346,24 +345,17 @@ class StandardPage (Page):
 
     def construct_title (self):
         editor = self.editor
-        loc = editor.location
-        if loc.node is None:
-            self.H2('Open')
-        else:
-            node = loc.node
-            h2 = self.H2()
-            h2.write(node.item_type().capitalize())
-            h2.write(' ')
-            h2.write(node.identifier())
-            views = node.views()
-            if len(views) > 1:
-                current = loc.item
-                h2.write(' : ')
-                for view in views:
-                    button = h2.Button(view.key, (editor.edit, view))
-                    button.style.marginLeft = '5px'
-                    if view == current:
-                        button.disable()
+        selected_view = editor.selected.current_view
+        node = selected_view.view_of
+        h2 = self.H2()
+        h2.write(node.display_string())
+        if node.views and len(node.views) > 1:
+            h2.write(' : ')
+            for view in node.views:
+                button = h2.Button(view.view_name(), (editor.edit, view))
+                button.style.marginLeft = '5px'
+                if view is selected_view:
+                    button.disable()
 
     def goto_view (self, cls):
         editor = self.editor
@@ -472,7 +464,7 @@ class RomsPage (StandardPage):
 
 #--  Node updates  -------------------------------------------------------------
 
-Corpora.Page = OpenPage
+Registry.Page = OpenPage
 Corpus.Page = CorpusPage
 Props.Page = PropsPage
 Text.Page = TextPage

@@ -1,17 +1,17 @@
 
->>> from selkie.corpus import Corpora
->>> corpora = Corpora()
+>>> from selkie.corpus import Registry
+>>> reg = Registry()
 >>> from selkie.data import ex
->>> corpus = corpora.open(ex('corp28.cld'))
+>>> corpus = reg.open(ex('corp28.cld'))
 >>> list(corpus.root.langs)
 [<Language deu>]
 
->>> list(corpora)
+>>> list(reg)
 [<Corpus corp28>]
->>> corpora.get('corp28')
+>>> reg.get('corp28')
 <Corpus corp28>
 
->>> corpus = corpora.new()
+>>> corpus = reg.new()
 >>> corpus
 <Corpus untitled-1>
 >>> print(corpus)
@@ -20,3 +20,43 @@
 class Root
 <BLANKLINE>
 
+>>> corpus.select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Corpora> <Corpus untitled-1>
+<Langs> None
+<Roms> None
+
+>>> corpus = reg.get('corp28')
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Corpora> <Corpus untitled-1>
+<Langs> None
+<Roms> None
+
+>>> deu = corpus.langs[0]
+>>> deu
+<Language deu>
+>>> deu1 = deu.texts[0]
+>>> deu1
+<Text deu.1>
+
+>>> deu1.select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Corpora> <Corpus corp28>
+<Langs> <Language deu>
+<Texts> <Text deu.1>
+<Sents> None
+<Roms> None
+
+>>> reg.get('untitled-1').select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Corpora> <Corpus untitled-1>
+<Langs> None
+<Roms> None
+
+>>> reg.get('corp28').select()
+>>> for lst in corpus.current(): print(lst, repr(lst.selected))
+<Corpora> <Corpus corp28>
+<Langs> <Language deu>
+<Texts> <Text deu.1>
+<Sents> None
+<Roms> None

@@ -19,67 +19,282 @@ def nth (iter, n):
             return elt
 
 
-#--  Selectables  --------------------------------------------------------------
+#--  Node  ---------------------------------------------------------------------
 
-class View:
+class Node:
+    '''
+    The "state graph" consists of nodes that either have Choices (state parents)
+    or provide a Choice (state children). A nonterminal's children are the
+    options in the Selections of its state; each is associated with a choice.
+    The child's Choice must match the Selection's choice. The state parent is
+    recorded as the child's state_parent. Children are added using
+    add_selectables(choice, options).
 
+    A node is "viewable" just in case it has a Page. It must either be a
+    state-graph node, or declared to be a view of a given state-graph node,
+    using add_view(view). A viewable state-graph node is not permitted to have
+    views.
+
+    A node is "selectable" just in case it is a viewable state-graph node or
+    a view.
+    '''
+
+    IsCob = False
+    Choice = None
+    Choices = None
     Page = None
 
-    def __init__ (self):
-        self.view_of = None
-        if self.nid is None and self.parent is not None:
-            self.nid = self.parent.nid
+    def __init__ (self, parent, arg=None):
+        assert arg is None or isinstance(arg, str)
+        self.views = None
+        self.current_view = self
+        self.view_of = self
+        self.state_parent = None
+        self.state = None
 
-    def current_view (self):
-        return self
+        self._init_parent(parent)
+        if self.IsCob:
+            self._init_cob(arg)
+        else:
+            self.nid = arg
 
-    def context_ancestors (self):
+    def _init_parent (self, parent):
+        if parent is None:
+            corpus = None
+        else:
+            corpus = parent.corpus
+            if corpus is None:
+                raise Exception('No corpus')
+
+        self.parent = parent
+        self.corpus = corpus
+
+    def _init_cob (self, sn):
+        parent = self.parent
+        if sn is None:
+            if parent is None:
+                raise Exception('No parent')
+            k = self.__class__.__name__.lower()
+            assert k in parent.cob
+            sn = parent.cob[k]
+        else:
+            assert isinstance(sn, str) and sn.isdigit()
+                
+        cob = self.corpus.require_cob(sn)
+        assert cob['sn'] == sn
+        cn = self.__class__.__name__
+        if cob['class'] != cn:
+            raise Exception(f"{cn} sn={sn}: cob['class'] = {cob['class']}")
+        
+        if 'key' in cob:
+            nid = cob['key']
+        elif parent is None:
+            nid = None
+        else:
+            nid = parent.nid
+
+        self.sn = sn
+        self.cob = cob
+        self.nid = nid
+
+        self.corpus.index_cob(self)
+
+    def add_choice (self, options):
+        assert isinstance(options, List)
+        if options.ElementType.Choice is None:
+            raise Exception(f'add_choice: no options.ElementType.Choice: {repr(options)}')
+        if self.state is None:
+            self.state = {}
+        self.state[options.ElementType.Choice] = options
+        options.set_state_parent(self)
+
+    def add_views (self, *views):
+        if self.views is None:
+            self.views = []
+        for view in views:
+            if view is self:
+                raise Exception(f'Cannot be your own view: {repr(view)}')
+            if view.Page is None:
+                raise Exception(f'Cannot add an unviewable node as view: {repr(view)}')
+            if view.current_view is not view:
+                raise Exception(f'View cannot have a view: {repr(view)} -> {repr(view.current_view)}')
+            if view.view_of is not view and view.view_of is not None:
+                raise Exception(f'Attempt to re-use a View: {repr(view)} -> {repr(view.view_of)}')
+            self.views.append(view)
+            view.view_of = self
+            view.current_view = None
+            if self.current_view is self:
+                self.current_view = view
+                assert self.view_of is self
+                self.view_of = None
+
+    def ancestors (self):
         yield self
-        yield from self.view_of.ancestors()
+        if self.parent:
+            yield from self.parent.ancestors()
 
+    def language (self):
+        return self.parent.language()
 
-class Selection:
+    def text (self):
+        return self.parent.text()
 
-    def __init__ (self, options):
-        '''Options must be iterable'''
-        self.selected = None
-        self.options = options
+    def sentence (self):
+        return self.parent.sentence()
+
+    def select (self):
+        view = self.current_view
+        assert view is not None
+        node = view.view_of
+        assert node is not None
+        while node.state_parent is not None:
+            if node.Choice is not None:
+                node.state_parent.state[node.Choice].selected = node
+            node = node.state_parent
+
+    def print_selectable (self):
+        print('Selectable:', repr(self))
+        view = self.current_view
+        print('  current_view:', repr(view))
+        print('    view_of:', repr(view.view_of))
+
+    def current (self):
+        state = self.corpus.state_graph_root.state
+        return self._state_options(state)
+
+    def _state_options (self, state):
+        for options in state.values():
+            yield options
+            if options.selected is not None and options.selected.state:
+                yield from self._state_options(options.selected.state)
+
+    def print_state (self):
+        state = self.corpus.state_graph_root.state
+        self._print_state_1(state, '')
+        
+    def _print_state_1 (self, state, indent):
+        indent2 = indent + '  '
+        indent4 = indent + '    '
+        for (choice, options) in state.items():
+            print(f'{indent}{choice}:')
+            print(f'{indent2}selected:', options.selected)
+            for opt in options:
+                print(f'{indent2}option:', repr(opt), '<==' if opt is options.selected else '')
+                if opt.state:
+                    self._print_state_1(opt.state, indent4)
+
+    def display_string (self):
+        s = ' ' + self.nid if self.nid else ''
+        return f'{self.__class__.__name__}{s}'
+        
+    def view_name (self):
+        return self.__class__.__name__.lower()
 
     def __repr__ (self):
-        return f'<Selection {self.selected} {list(self.options)}>'
+        return '<' + self.display_string + '>'
+
+# class Cob (Node):
+# 
+#     def __init__ (self, parent, sn=None, key=None):
+#         Node.__init__(self, parent)
+#         parent = self.parent # Node.__init__ may change it
+# 
+#         if sn is None:
+#             if parent is None:
+#                 raise Exception('No parent')
+#             k = self.__class__.__name__.lower()
+#             assert k in parent.cob
+#             sn = parent.cob[k]
+#         else:
+#             assert isinstance(sn, str) and sn.isdigit()
+#                 
+#         cob = self.corpus.require_cob(sn)
+#         if 'key' in cob:
+#             if key is None:
+#                 key = cob['key']
+#             else:
+#                 assert key == cob['key']
+#         assert cob['sn'] == sn
+#         cn = self.__class__.__name__
+#         if cob['class'] != cn:
+#             raise Exception(f"{cn} sn={sn}: cob['class'] = {cob['class']}")
+# 
+#         self.sn = sn
+#         self.cob = cob
+#         self.key = key
+#         self.nid = key
+# 
+#         self.corpus.index_cob(self)
 
 
-class Selector:
-
-    Choices = None
-
-    def __init__ (self):
-        self.state = {chc: Selection(getattr(self, att)) for (chc,att) in self.Choices}
-
-
-class Viewable (Selector):
-
-    def __init__ (self, views):
-        if self.Choices is None or not any(c=='view' for (c,_) in self.Choices):
-            raise Exception(f"Viewable {self} does not have 'view' as a choice")
-        self.views = views
-        for view in self.views:
-            if not isinstance(view, View):
-                raise Exception(f'Not a view: {view}')
-            if view.view_of is not None:
-                raise Exception('Attempt to re-use a View')
-            view.view_of = self
-        Selector.__init__(self)
-        selection = self.state['view']
-        selection.selected = self.views[0]
-
-    def current_view (self):
-        return self.state['view'].selected
+# #--  Selectables  --------------------------------------------------------------
+# 
+# class Selection:
+# 
+#     def __init__ (self, options):
+#         '''Options must be iterable'''
+#         self.selected = None
+#         self.options = options
+# 
+#     def __repr__ (self):
+#         return f'<Selection {self.selected} {list(self.options)}>'
 
 
-#--  Corpora  ------------------------------------------------------------------
+class List (Node):
+    '''
+    A List represents a space-separated list of sns that appears as
+    a value in a cob. The key is the List's class name.
+    '''
 
-class Corpora (Viewable):
+    ElementType = None
+
+    def __init__ (self, parent, elements=None):
+        assert not self.IsCob
+        assert self.ElementType is not None
+        Node.__init__(self, parent)
+
+        if elements is None:
+            parent = self.parent
+            assert parent.IsCob
+            key = self.__class__.__name__.lower()
+            if key in parent.cob:
+                sns = parent.cob[key].split()
+                elements = [self.ElementType(self, sn) for sn in sns]
+            else:
+                elements = []
+
+        self.elements = elements
+        self.selected = None
+
+    def __len__ (self): return len(self.elements)
+    def __iter__ (self): return iter(self.elements)
+    def __getitem__ (self, i): return self.elements[i]
+
+    def set_state_parent (self, state_parent):
+        choice = self.ElementType.Choice
+        assert choice is not None
+        assert state_parent is not None
+        if self.state_parent is None:
+            self.state_parent = state_parent
+            for elt in self.elements:
+                assert elt.__class__ is self.ElementType
+                assert elt.state_parent is None
+                elt.state_parent = state_parent
+
+    def append (self, elt):
+        assert elt.__class__ is self.ElementType
+        assert elt.state_parent is None
+        assert self.state_parent is not None
+        self.elements.append(elt)
+        elt.state_parent = self.state_parent
+
+
+#--  Corpora, Corpus  ----------------------------------------------------------
+#
+#  View must be first - if there is no view_of, Viewable init will signal an error
+#
+
+class Registry (Node):
     '''
     Behaves like a list. The method get() permits access by corpus key. It
     searches through the list and returns the first corpus with the given key.
@@ -87,67 +302,75 @@ class Corpora (Viewable):
     a unique corpus.
     '''
 
-    Choices = [('view', 'views'), ('corp', 'roots')]
-
     def __init__ (self):
-        self.corpora = []
-        self.roots = []
+        Node.__init__(self, None)
+        self.corpus = self
+        self.state_graph_root = self
+        self.corpora = Corpora(self, elements=[])
         self.n_untitled = 0
-        self.views = [CorpusFinder(self)]
-        Selector.__init__(self)
+        self.add_choice(self.corpora)
         
     # the topmost genuine node is the corpus
     def ancestors (self): return []
 
-    def __iter__ (self): return iter(self.roots)
-    def __bool__ (self): return bool(self.roots)
-    def __len__ (self): return len(self.roots)
-    def __getitem__ (self, i): return self.roots[i]
+    def __iter__ (self): return iter(self.corpora)
+    def __bool__ (self): return bool(self.corpora)
+    def __len__ (self): return len(self.corpora)
+    def __getitem__ (self, i): return self.corpora[i]
 
-    def _get_corpus (self, nid):
+    def get (self, nid):
         for corpus in self.corpora:
             if corpus.nid == nid:
                 return corpus
 
     def _add_corpus (self, corpus):
         corpus.parent = self
+        corpus.state_graph_root = self
         corpus.idx = len(self.corpora)
         self.corpora.append(corpus)
-        self.roots.append(corpus.root)
 
     def open (self, fn, **kwargs):
         fn = Path(fn)
         nid = fn.stem
-        corpus = self._get_corpus(nid)
+        corpus = self.get(nid)
         if corpus is not None:
-            return corpus.root
+            return corpus
         else:
             corpus = Corpus(fn, nid=nid, **kwargs)
             self._add_corpus(corpus)
-            return corpus.root
+            return corpus
 
-    def new_corpus (self):
+    def new (self):
         self.n_untitled += 1
         corpus = Corpus(f'untitled-{self.n_untitled}', create=True)
         self._add_corpus(corpus)
-        return corpus.root
+        return corpus
 
 
-#--  Corpus  -------------------------------------------------------------------
+class Corpus (Node):
 
-class Corpus:
+    Choice = 'corp'
 
-    def __init__ (self, fn, nid=None, create=False):
+    def __init__ (self, fn, nid=None, contents=None, create=False):
         fn = Path(fn)
-        file = File(fn, create=create)
+        file = File(fn, contents=contents, create=create)
         if nid is None: nid = fn.stem
 
+        Node.__init__(self, None, nid)
+        self.corpus = self
         self.file = file
         self.cob_index = {}
         self.next_sn = 0
-        self.nid = nid
-        self.root = Root(self, nid)
-        
+        self.state_graph_root = self
+        self.root = Root(self)
+        self.props = Props(self, {'filename': str(self.corpus.filename())})
+        self.langs = self.root.langs
+        self.roms = self.root.roms
+
+        self.add_choice(self.langs)
+        self.add_choice(self.roms)
+        self.add_views(self.props, self.roms)
+
     def filename (self):
         return self.file.filename
 
@@ -166,116 +389,30 @@ class Corpus:
     def __str__ (self):
         return str(self.file)
 
-    def __repr__ (self):
-        return f'<Corpus {self.nid}>'
 
+class Corpora (List):
 
-#--  Node  ---------------------------------------------------------------------
-
-class Node:
-
-    Choice = None
-
-    def __init__ (self, parent, nid=None):
-        if parent is None:
-            raise Exception('No parent provided')
-        elif isinstance(parent, Corpus):
-            corpus = parent
-            parent = None
-        else:
-            corpus = parent.corpus
-            if corpus is None:
-                raise Exception('No corpus')
-
-        self.parent = parent
-        self.corpus = corpus
-        self.nid = nid
-
-    def ancestors (self):
-        yield self
-        if self.parent:
-            yield from self.parent.ancestors()
-
-    def language (self):
-        return self.parent.language()
-
-    def text (self):
-        return self.parent.text()
-
-    def sentence (self):
-        return self.parent.sentence()
-
-    def current_view (self):
-        raise Exception(f'Not selectable: {self}')
-
-    def select (self):
-        view = self.current_view()
-        state = {}
-        selected = {}
-        for anc in view.context_ancestors():
-            if isinstance(anc, Selector):
-                for (choice, selection) in anc.state.items():
-                    if choice not in state:
-                        state[choice] = selection
-                        if choice in selected:
-                            selection.selected = selected[choice]
-            if anc.Choice is not None:
-                selected[anc.Choice] = anc
-        return state 
-
-    def __repr__ (self):
-        s = ' ' + self.nid if self.nid else ''
-        return f'<{self.__class__.__name__}{s}>'
-
-
-class Cob (Node):
-
-    def __init__ (self, parent, sn=None, key=None):
-        Node.__init__(self, parent)
-        parent = self.parent # Node.__init__ may change it
-
-        if sn is None:
-            if parent is None:
-                raise Exception('No parent')
-            k = self.__class__.__name__.lower()
-            assert k in parent.cob
-            sn = parent.cob[k]
-        else:
-            assert isinstance(sn, str) and sn.isdigit()
-                
-        cob = self.corpus.require_cob(sn)
-        if 'key' in cob:
-            if key is None:
-                key = cob['key']
-            else:
-                assert key == cob['key']
-        assert cob['sn'] == sn
-        cn = self.__class__.__name__
-        if cob['class'] != cn:
-            raise Exception(f"{cn} sn={sn}: cob['class'] = {cob['class']}")
-
-        self.sn = sn
-        self.cob = cob
-        self.key = key
-        self.nid = key
-
-        self.corpus.index_cob(self)
+    ElementType = Corpus
 
 
 #-------------------------------------------------------------------------------
 
-# View must come first - it overrides Node.current_view
+class Props (Node):
 
-class Props (View, Node):
+    Page = True
 
-    def __init__ (self, parent, keys=None, props=None):
-        if props is None:
+    def __init__ (self, parent, arg=None):
+        if isinstance(arg, list):
+            keys = arg
             props = parent.cob
-        if keys is None:
+        elif isinstance(arg, dict):
+            props = arg
+            keys = list(props)
+        else:
+            props = parent.cob
             keys = list(props)
 
         Node.__init__(self, parent)
-        View.__init__(self)
         self.keys = keys
         self.props = props
 
@@ -287,47 +424,17 @@ class Props (View, Node):
     def items (self): return ((k,v) for (k,v) in self.props.items() if k in self.keys)
 
 
-class List (Node):
-
-    ChildType = None
-
-    def __init__ (self, parent, key=None):
-        assert isinstance(parent, Cob)
-        assert self.ChildType is not None
-        assert issubclass(self.ChildType, Cob)
-        if key is None:
-            key = self.__class__.__name__.lower()
-        Node.__init__(self, parent)
-        if key in parent.cob:
-            sns = parent.cob[key].split()
-        else:
-            sns = []
-        self.contents = [self.ChildType(self, sn) for sn in sns]
-
-    def __len__ (self): return len(self.contents)
-    def __iter__ (self): return iter(self.contents)
-    def __getitem__ (self, i): return self.contents[i]
-
-    def __repr__ (self):
-        if isinstance(self, Cob):
-            return Cob.__repr__(self)
-        else:
-            return f'<{self.__class__.__name__} of {repr(self.parent)}>'
-
-
 #--  Corpus  -------------------------------------------------------------------
 
-class Root (Viewable, Cob):
+class Root (Node):
 
-    Choice = 'corp'
-    Choices = [('view', 'views'), ('lang', 'langs'), ('rom', 'roms')]
+    IsCob = True
 
-    def __init__ (self, corpus, key):
-        Cob.__init__(self, corpus, '0', key=key)
-        self.props = Props(self, {'filename': str(self.corpus.filename())})
+    def __init__ (self, parent):
+        assert parent is not None
+        Node.__init__(self, parent, '0')
         self.langs = Langs(self)
         self.roms = Roms(self)
-        Viewable.__init__(self, [self.props, self.roms])
 
     def filename (self):
         return self.corpus.filename()
@@ -353,17 +460,19 @@ class Root (Viewable, Cob):
         self.full_name = self.key
 
 
-class Language (Viewable, Cob):
+class Language (Node):
 
+    IsCob = True
     Choice = 'lang'
-    Choices = [('view', 'views'), ('text', 'texts')]
 
-    def __init__ (self, parent, key):
-        Cob.__init__(self, parent, key)
+    def __init__ (self, parent, sn):
+        Node.__init__(self, parent, sn)
         self.props = Props(self, ['name', 'glot', 'iso3', 'rom'])
         self.texts = Texts(self)
         self.toc = Toc(self)
-        Viewable.__init__(self, [self.props, self.toc])
+
+        self.add_choice(self.texts)
+        self.add_views(self.props, self.toc)
 
     def language (self):
         return self
@@ -377,32 +486,35 @@ class Language (Viewable, Cob):
 
 class Langs (List):
 
-    ChildType = Language
+    ElementType = Language
 
 
-class Rom (Cob):
+class Rom (Node):
 
-    pass
+    Choice = 'rom'
 
-
-class Roms (View, List):
-
-    ChildType = Rom
-
-    def __init__ (self, parent):
-        List.__init__(self, parent)
-        View.__init__(self)
+    def __init__ (self, parent, **kwargs):
+        Node.__init__(self, parent, state=True, **kwargs)
 
 
-class Text (Viewable, Cob):
+class Roms (List):
 
+    Page = True
+    ElementType = Rom
+
+
+class Text (Node):
+
+    IsCob = True
     Choice = 'text'
-    Choices = [('view', 'views'), ('sent', 'sents')]
 
     def __init__ (self, parent, sn):
-        Cob.__init__(self, parent, sn)
+        Node.__init__(self, parent, sn)
+        self.props = Props(self)
         self.sents = Sents(self)
-        Viewable.__init__(self, [self.sents])
+
+        self.add_choice(self.sents)
+        self.add_views(self.props, self.sents)
 
     def key (self):
         return self.cob['key']
@@ -416,12 +528,12 @@ class Text (Viewable, Cob):
 
 class Texts (List):
 
-    ChildType = Text
+    ElementType = Text
 
 
-class Lexicon (Cob):
+class Lexicon (Node):
 
-    pass
+    IsCob = True
 
 
 class Trans (Node):
@@ -429,15 +541,14 @@ class Trans (Node):
     pass
 
 
-class Sentence (Viewable, Cob):
+class Sentence (Node):
 
+    IsCob = True
     Choice = 'sent'
-    Choices = [('view', 'views')]
 
-    def __init__ (self, parent, key):
-        Cob.__init__(self, parent, key)
+    def __init__ (self, parent, sn):
+        Node.__init__(self, parent, sn)
         self.tokens = Tokens(self)
-        Viewable.__init__(self, [self.tokens])
 
     def sentence (self):
         return self
@@ -457,14 +568,11 @@ class Sentence (Viewable, Cob):
     def __getitem__ (self, i): return self.tokens[i]
 
 
-class Tokens (View, Node):
-
-    Choice = 'view'
+class Tokens (Node):
 
     def __init__ (self, parent):
         assert isinstance(parent, Sentence)
         Node.__init__(self, parent)
-        View.__init__(self)
         self.rebuild()
 
     def rebuild (self):
@@ -475,13 +583,10 @@ class Tokens (View, Node):
     def __getitem__ (self, i): return self.tokens[i]
 
 
-class Sents (View, List):
+class Sents (List):
 
-    ChildType = Sentence
-
-    def __init__ (self, parent):
-        List.__init__(self, parent)
-        View.__init__(self)
+    Page = True
+    ElementType = Sentence
 
 
 class Form (Node):
@@ -521,11 +626,12 @@ class Token:
 #  If a 'ch' value gets changed, be sure to clear the Toc
 #
 
-class Toc (View, Node):
+class Toc (Node):
+
+    Page = True
 
     def __init__ (self, lang):
         Node.__init__(self, lang)
-        View.__init__(self)
         self._parents = None
         self._roots = None
 
