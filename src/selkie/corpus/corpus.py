@@ -39,7 +39,7 @@ class Node:
     a view.
     '''
 
-    IsCob = False
+    Cob = None
     Choice = None
     Choices = None
     Page = None
@@ -53,21 +53,24 @@ class Node:
         self.state = None
 
         self._init_parent(parent)
-        if self.IsCob:
+        if self.Cob:
             self._init_cob(arg)
         else:
             self.nid = arg
 
+        if self.root is not None:
+            self.root.index_node(self)
+
     def _init_parent (self, parent):
         if parent is None:
-            corpus = None
+            root = None
         else:
-            corpus = parent.corpus
-            if corpus is None:
-                raise Exception('No corpus')
+            root = parent.root
+            if root is None:
+                raise Exception('No root')
 
         self.parent = parent
-        self.corpus = corpus
+        self.root = root
 
     def _init_cob (self, sn):
         parent = self.parent
@@ -80,9 +83,9 @@ class Node:
         else:
             assert isinstance(sn, str) and sn.isdigit()
                 
-        cob = self.corpus.require_cob(sn)
+        cob = self.root.require_cob(sn)
         assert cob['sn'] == sn
-        cn = self.__class__.__name__
+        cn = self.Cob
         if cob['class'] != cn:
             raise Exception(f"{cn} sn={sn}: cob['class'] = {cob['class']}")
         
@@ -97,7 +100,11 @@ class Node:
         self.cob = cob
         self.nid = nid
 
-        self.corpus.index_cob(self)
+    def by_nid (self, nid):
+        return self.root.nid_index.get(nid)
+
+    def by_sn (self, sn):
+        return self.root.sn_index.get(sn)
 
     def add_choice (self, options):
         assert isinstance(options, List)
@@ -122,16 +129,20 @@ class Node:
                 raise Exception(f'Attempt to re-use a View: {repr(view)} -> {repr(view.view_of)}')
             self.views.append(view)
             view.view_of = self
-            view.current_view = None
-            if self.current_view is self:
-                self.current_view = view
-                assert self.view_of is self
-                self.view_of = None
+        if self.current_view is self:
+            assert self.view_of is self
+            self.current_view = self.views[0]
+            self.view_of = None
 
     def ancestors (self):
         yield self
         if self.parent:
             yield from self.parent.ancestors()
+
+    # Not self.root, because outside the Corpus (in the Registry), the root is the Registry
+
+    def corpus (self):
+        return self.parent.corpus()
 
     def language (self):
         return self.parent.language()
@@ -156,10 +167,15 @@ class Node:
         print('Selectable:', repr(self))
         view = self.current_view
         print('  current_view:', repr(view))
-        print('    view_of:', repr(view.view_of))
+        node = view.view_of
+        print('    view_of:', repr(node), repr(node.display_string()))
+        print('      views:')
+        if node.views:
+            for v in node.views:
+                print('       ', repr(v), repr(v.view_name()), v is view)
 
     def current (self):
-        state = self.corpus.state_graph_root.state
+        state = self.root.state_graph_root.state
         return self._state_options(state)
 
     def _state_options (self, state):
@@ -169,7 +185,7 @@ class Node:
                 yield from self._state_options(options.selected.state)
 
     def print_state (self):
-        state = self.corpus.state_graph_root.state
+        state = self.root.state_graph_root.state
         self._print_state_1(state, '')
         
     def _print_state_1 (self, state, indent):
@@ -191,7 +207,7 @@ class Node:
         return self.__class__.__name__.lower()
 
     def __repr__ (self):
-        return '<' + self.display_string + '>'
+        return '<' + self.display_string() + '>'
 
 # class Cob (Node):
 # 
@@ -249,13 +265,14 @@ class List (Node):
     ElementType = None
 
     def __init__ (self, parent, elements=None):
-        assert not self.IsCob
+        assert not self.Cob
         assert self.ElementType is not None
         Node.__init__(self, parent)
+        self._index = None
 
         if elements is None:
             parent = self.parent
-            assert parent.IsCob
+            assert parent.Cob
             key = self.__class__.__name__.lower()
             if key in parent.cob:
                 sns = parent.cob[key].split()
@@ -269,6 +286,11 @@ class List (Node):
     def __len__ (self): return len(self.elements)
     def __iter__ (self): return iter(self.elements)
     def __getitem__ (self, i): return self.elements[i]
+
+    def by_nid (self, nid):
+        if self._index is None:
+            self._index = {elt.nid:elt for elt in self.elements}
+        return self._index[nid]
 
     def set_state_parent (self, state_parent):
         choice = self.ElementType.Choice
@@ -287,6 +309,8 @@ class List (Node):
         assert self.state_parent is not None
         self.elements.append(elt)
         elt.state_parent = self.state_parent
+        if self._index is not None:
+            self._index[elt.nid] = elt
 
 
 #--  Corpora, Corpus  ----------------------------------------------------------
@@ -304,7 +328,7 @@ class Registry (Node):
 
     def __init__ (self):
         Node.__init__(self, None)
-        self.corpus = self
+        self.root = self
         self.state_graph_root = self
         self.corpora = Corpora(self, elements=[])
         self.n_untitled = 0
@@ -328,6 +352,9 @@ class Registry (Node):
         corpus.state_graph_root = self
         corpus.idx = len(self.corpora)
         self.corpora.append(corpus)
+
+    def index_node (self, node):
+        pass
 
     def open (self, fn, **kwargs):
         fn = Path(fn)
@@ -357,34 +384,49 @@ class Corpus (Node):
         if nid is None: nid = fn.stem
 
         Node.__init__(self, None, nid)
-        self.corpus = self
+        self.root = self
         self.file = file
-        self.cob_index = {}
+        self.sn_index = {}
+        self.nid_index = {}
         self.next_sn = 0
         self.state_graph_root = self
-        self.root = Root(self)
-        self.props = Props(self, {'filename': str(self.corpus.filename())})
-        self.langs = self.root.langs
-        self.roms = self.root.roms
+        self.top = Top(self)
+        self.props = Props(self, {'filename': str(self.root.filename())})
+        self.langs = self.top.langs
+        self.roms = self.top.roms
 
         self.add_choice(self.langs)
         self.add_choice(self.roms)
         self.add_views(self.props, self.roms)
 
+    def corpus (self):
+        return self
+
     def filename (self):
         return self.file.filename
+
+    def language (self, nid):
+        return self.langs.by_nid(nid)
+
+    def rom (self, nid):
+        return self.roms.by_nid(nid)
 
     def require_cob (self, sn):
         return self.file.deref(sn)
 
-    def index_cob (self, cob):
-        sn = cob.sn
-        assert sn is not None
-        assert sn not in self.cob_index
-        self.cob_index[sn] = cob
-        sni = int(sn)
-        if sni >= self.next_sn:
-            self.next_sn = sni + 1
+    def index_node (self, node):
+        if hasattr(node, 'sn'):
+            sn = node.sn
+            assert sn is not None
+            assert sn not in self.sn_index
+            self.sn_index[sn] = node
+            sni = int(sn)
+            if sni >= self.next_sn:
+                self.next_sn = sni + 1
+        if node.nid:
+            nid = node.nid
+            assert nid not in self.nid_index
+            self.nid_index[nid] = node
 
     def __str__ (self):
         return str(self.file)
@@ -426,9 +468,9 @@ class Props (Node):
 
 #--  Corpus  -------------------------------------------------------------------
 
-class Root (Node):
+class Top (Node):
 
-    IsCob = True
+    Cob = 'Root'
 
     def __init__ (self, parent):
         assert parent is not None
@@ -437,32 +479,32 @@ class Root (Node):
         self.roms = Roms(self)
 
     def filename (self):
-        return self.corpus.filename()
+        return self.root.filename()
 
     def views (self):
         return [Props(self), Roms(self)]
 
     def __str__ (self):
-        return str(self.corpus.file)
+        return str(self.root.file)
 
     def export_cld (self):
-        return self.corpus.file.export_cld()
+        return self.root.file.export_cld()
 
     def export_json (self):
-        return self.corpus.file.export_json()
+        return self.root.file.export_json()
 
     def save (self, fn=None):
-        self.corpus.file.save(fn=fn)
+        self.root.file.save(fn=fn)
 
     def rename (self, filename):
-        self.corpus.file.filename = filename
+        self.root.file.filename = filename
         self.key = fn_to_key(filename)
         self.full_name = self.key
 
 
 class Language (Node):
 
-    IsCob = True
+    Cob = 'Language'
     Choice = 'lang'
 
     def __init__ (self, parent, sn):
@@ -505,25 +547,27 @@ class Roms (List):
 
 class Text (Node):
 
-    IsCob = True
+    Cob = 'Text'
     Choice = 'text'
 
     def __init__ (self, parent, sn):
         Node.__init__(self, parent, sn)
-        self.props = Props(self)
+        self.props = Props(self, ['au', 'ti', 'ty', 'ch'])
         self.sents = Sents(self)
 
         self.add_choice(self.sents)
         self.add_views(self.props, self.sents)
-
-    def key (self):
-        return self.cob['key']
 
     def text (self):
         return self
 
     def title (self):
         return self.cob.get('ti', '(untitled)')
+
+    def children (self):
+        ch = self.cob.get('ch')
+        if ch:
+            return [self.by_nid(child_nid) for child_nid in ch.split()]
 
 
 class Texts (List):
@@ -533,7 +577,7 @@ class Texts (List):
 
 class Lexicon (Node):
 
-    IsCob = True
+    Cob = 'Lexicon'
 
 
 class Trans (Node):
@@ -543,7 +587,7 @@ class Trans (Node):
 
 class Sentence (Node):
 
-    IsCob = True
+    Cob = 'Sentence'
     Choice = 'sent'
 
     def __init__ (self, parent, sn):
@@ -632,6 +676,7 @@ class Toc (Node):
 
     def __init__ (self, lang):
         Node.__init__(self, lang)
+        # _parents maps sn -> node
         self._parents = None
         self._roots = None
 
@@ -639,22 +684,26 @@ class Toc (Node):
         self._parents = None
         self._roots = None
         
-    def _compute_parents (self):
-        texts = self.parent.texts
-        parent_table = {}
-        for parent in texts:
-            if 'ch' in parent.cob:
-                for ck in parent.cob['ch'].split():
-                    # silently overwrites any older value
-                    parent_table[ck] = parent
-        return parent_table
+    def _need_parents (self):
+        if self._parents is None:
+            lang = self.parent
+            assert isinstance(lang, Language)
+            self._parents = parent_table = {}
+            for parent_text in lang.texts:
+                if 'ch' in parent_text.cob:
+                    for child_nid in parent_text.cob['ch'].split():
+                        # silently overwrites any older value
+                        parent_table[child_nid] = parent_text
+        return self._parents
+
+    def parent (self, text):
+        return self._need_parents().get(text.sn)
 
     def roots (self):
         if self._roots is None:
-            self._compute_parents()
+            parent_table = self._need_parents()
+            lang = self.parent
+            assert isinstance(lang, Language)
+            print('parent_table=', parent_table)
+            self._roots = [text for text in lang.texts if not parent_table.get(text.nid)]
         return self._roots
-
-    def parent (self, text):
-        if self._parents is None:
-            self._compute_parents()
-        return self._parents.get(text.key())

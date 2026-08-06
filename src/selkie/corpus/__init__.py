@@ -3,4 +3,4 @@
 
 from .file import File
 from .corpus import (Registry, Node, Corpora, Corpus, Roms, Rom, Language,
-                     Toc, Text, Sentence, Form, Props)
+                     Toc, Text, Sents, Sentence, Form, Props)

@@ -98,4 +98,4 @@ try:
     write('Bootstrap complete')
 
 except Exception as e:
-    print(e)
+    pass

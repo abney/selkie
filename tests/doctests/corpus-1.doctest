@@ -7,7 +7,7 @@
 >>> corpus
 <Corpus corp28>
 >>> corpus.cob_index['0']
-<Root corp28>
+<Top corp28>
 >>> list(corpus.props)
 ['filename']
 
@@ -62,7 +62,8 @@
 >>> sent.print_selectable()
 Selectable: <Sentence deu.2.1>
   current_view: <Sentence deu.2.1>
-    view_of: <Sentence deu.2.1>
+    view_of: <Sentence deu.2.1> 'Sentence deu.2.1'
+      views:
 >>> sent.print_state()
 lang:
   selected: None
@@ -139,7 +140,10 @@ rom:
 >>> text3.print_selectable()
 Selectable: <Text deu.3>
   current_view: <Props>
-    view_of: <Text deu.3>
+    view_of: <Text deu.3> 'Text deu.3'
+      views:
+        <Props> 'props' True
+        <Sents> 'sents' False
 >>> text3.select()
 >>> for lst in corpus.current(): print(lst, repr(lst.selected))
 <Langs> <Language deu>

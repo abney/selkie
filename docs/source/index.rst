@@ -18,6 +18,7 @@ Version 0.26.dev2
    data/index
    pyx/index
    main
+   dev
 
 .. toctree::
    :caption: API Reference

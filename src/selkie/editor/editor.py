@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import (Registry, Corpus, Node, Language, Toc, Text, Sentence, Props, Roms, Rom)
+from ..corpus import (Registry, Corpus, Node, Language, Toc, Text, Sents, Sentence, Props, Roms, Rom)
 from ..wap import Element, EditableCell
 
 
@@ -197,8 +197,8 @@ class Editor (EditorElement):
 #         lang = self.location.corpus.table[name]
 #         self.edit(lang)
 
-    def edit_lang (self, name):
-        lang = self.corpus().langs[name]
+    def edit_lang (self, nid):
+        lang = self.corpus().language(nid)
         self.edit(lang)
 
     def edit_text (self, name):
@@ -225,13 +225,13 @@ class SentenceCell (EditableCell):
 
 class PlainTextPanel (EditorElement):
 
-    def __init__ (self, parent, text):
+    def __init__ (self, parent, sents):
         Element.__init__(self, parent, 'div')
-        assert isinstance(text, Text)
-        self.text = text
+        assert isinstance(sents, Sents)
+        self.sents = sents
         self.table = self.Table(classname='grid')
 
-        for sent in text:
+        for sent in sents:
             row = self.table.Row()
             row.create(SentenceCell, sent)
 
@@ -367,29 +367,31 @@ class StandardPage (Page):
         editor.edit(item)
 
 
-class OpenPage (StandardPage):
+class RegistryPage (StandardPage):
 
     def __init__ (self, editor, item):
         StandardPage.__init__(self, editor, item)
         self.box = None
         self.div = div = self.Div()
-        p = div.P()
+        self.listing = div.UL()
+        ul = div.UL()
+        ul.LI().Button('+ new corpus', self.editor.create_corpus)
         if editor.server is not None:
-            p.write('Corpus: ')
+            p = ul.LI().P()
+            p.write('Open file: ')
             self.box = p.TextEntry(submit=self.editor.open_corpus)
             p.write(' ')
-        p.Upload(action=editor.open_corpus)
+            p.Upload(action=editor.open_corpus)
         ensure_future(self.list_dir())
 
     async def list_dir (self):
-        ul = self.div.UL()
+        ul = self.listing
         server = self.editor.server
         if server is not None:
             text = await server.list_dir()
             lst = [fn for fn in text.split('\n') if fn.endswith('.cld')]
             for fn in lst:
                 ul.LI().Button(fn, (self.editor.open_corpus, fn))
-        ul.LI().Button('+ new corpus', self.editor.create_corpus)
         self.box.focus()
 
 
@@ -433,13 +435,13 @@ class TocPage (StandardPage):
         ul = parent.UL()
         for text in texts:
             li = ul.LI()
-            li.Button(text=f'{text.key}: {text.title()}', action=(self.editor.edit, text))
+            li.Button(text=f'[{text.nid}] {text.title()}', action=(self.editor.edit, text))
             children = text.children()
             if children:
                 self._produce_ul(li, children)
 
 
-class TextPage (StandardPage):
+class SentsPage (StandardPage):
 
     def __init__ (self, editor, text):
         StandardPage.__init__(self, editor, text)
@@ -457,16 +459,16 @@ class RomsPage (StandardPage):
     def __init__ (self, editor, roms):
         StandardPage.__init__(self, editor, roms)
         ul = self.UL()
-        for (name, rom) in roms.items():
-            ul.LI().Button(text=name, action=(self.editor.edit, rom))
+        for rom in roms:
+            ul.LI().Button(text=name, action=(self.editor.edit, rom.nid))
         ul.LI().Button(text='+ rom', action=self.editor.new_rom)
 
 
 #--  Node updates  -------------------------------------------------------------
 
-Registry.Page = OpenPage
+Registry.Page = RegistryPage
 Corpus.Page = CorpusPage
 Props.Page = PropsPage
-Text.Page = TextPage
 Toc.Page = TocPage
 Roms.Page = RomsPage
+Sents.Page = SentsPage
