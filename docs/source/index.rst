@@ -9,15 +9,35 @@ Version 0.26.dev2
    :titlesonly:
    :caption: Table of Contents
 
-   intro/index
-   cld/index
+   intro
+
+.. toctree::
+   :maxdepth: 2
+   :titlesonly:
+   :caption: Corpus Editor
+
    corpus/index
    wap/index
    editor/index
+   cld/index
+
+.. toctree::
+   :maxdepth: 2
+   :titlesonly:
+   :caption: NLP Pipeline
+
+   mol/index
    nlp/index
+   dp/index
    data/index
+
+.. toctree::
+   :maxdepth: 2
+   :titlesonly:
+   :caption: Substrate
+
+   config
    pyx/index
-   main
    dev
 
 .. toctree::

@@ -1,6 +1,9 @@
 
-The Old Corpus Editor (CLD)
-***************************
+The old corpus editor (cld)
+===========================
+
+*The* ``selkie.cld`` *module contains the old corpus editor. It is
+deprecated and will be deleted in a future release.*
 
 CLD (which stands for "Computational Language Documentation") is the
 current corpus editor. It is used to create, edit, and view corpora.

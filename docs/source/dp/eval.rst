@@ -5,8 +5,8 @@ Evaluation — ``selkie.nlp.dp.eval``
 The following functions are in the module selkie.nlp.dp.eval::
 
    >>> from selkie.dp.eval import *
-   >>> from selkie import ex
-   >>> from selkie.dep import conll_sents
+   >>> from selkie.data import ex
+   >>> from selkie.nlp.dep import conll_sents
 
 evaluate
 --------

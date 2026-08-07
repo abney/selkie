@@ -1,6 +1,6 @@
 
-Python extensions
-=================
+Python extensions (pyx)
+=======================
 
 .. toctree::
    :titlesonly:

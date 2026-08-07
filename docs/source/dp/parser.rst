@@ -11,7 +11,7 @@ Example
 The parser starts by creating a **configuration** from the input
 sentence::
 
-   >>> from selkie.nlp.dp.parser import Configuration
+   >>> from selkie.dp.parser import Configuration
    >>> c0 = Configuration(['the', 'dog', 'in', 'the', 'park', 'chased', 'the', 'cat'])
    >>> print(c0)
    Configuration:

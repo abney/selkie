@@ -10,7 +10,7 @@
 
 import sys
 #from .io import Fn, infile
-from ..nlpx.tree import Tree
+from .._nlpx.tree import Tree
 
 
 #--  Iter XML tags  ------------------------------------------------------------

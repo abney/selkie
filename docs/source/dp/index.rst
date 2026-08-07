@@ -1,6 +1,6 @@
 
-Dependency parsers
-******************
+Dependency parsers (dp)
+=======================
 
 .. toctree::
    :maxdepth: 1

@@ -1,6 +1,6 @@
 
-Overview
-********
+Introduction
+============
 
 Selkie is a software library to support **language digitization**,
 which is to say, **computational language description** (CLD).
@@ -9,55 +9,46 @@ and grammar, and Selkie supports the production and use of electronic
 versions. "Use" includes an implementation of the entire NLP pipeline,
 including an automated reasoner at the back end.
 
-Selkie is experimental code, not a finished product. Much of it is
-under active development and is likely to change in the
-future. Similarly, this documentation is still in draft form.
-I am making it publicly available to give easier access to
-students and anyone else who may be interested.
+Selkie is experimental code, not a finished product - hence version
+number 0. Much of it is
+under active development and likely to change, sometimes radically, in
+the next version. Backwards compatibility cannot be guaranteed.
+
+It is organized as a collection of modules. They vary in the degree to
+which they are integrated with one another. To provide a little
+structure, I have grouped the modules as follows:
+
+ * **Corpus Editor.**
+   The intended users here are linguists and even members of the
+   public with interest in language documentation and description.
+   The editor and underlying data model integrate texts and
+   lexicon, with extensions to grammar intended. In the interests of
+   minimizing expertise requirement, the editor runs in a web page.
+
+ * **NLP Pipeline.**
+   Viewed at the highest level, a language is a relation between sentences and
+   meanings. Accordingly, a central piece of functionality is an
+   implementation of that relation, in the form of an NLP
+   pipeline that translates natural
+   language sentences to a formal semantic representation.
+   The pipeline is encapsulated in a conversational agent
+   application (selkie.bot), which includes a knowledge base and
+   automated reasoner.
+   The bot is intended as a testing ground for a grammar as
+   digital language description.
+
+ * **Supporting Packages.**
+   The supporting packages contain general lower-level functionality.
 
 Installation
-============
+------------
 
 Selkie is written in Python, and is installed in the usual way::
 
     $ pip install selkie
 
-The toplevel modules of Selkie
-==============================
-
-**Corpus Editor.**
-A central piece of Selkie is an application for creating, editing, and
-viewing linguistic corpora. The currently working version is called
-CLD ("Computational Language Documentation").
-
-**Next Editor.** The corpus editor is being redesigned. The new
-version is still fragmentary.
-
-**The NLP pipeline.**
-Viewed at the highest level, a language is a relation between sentences and
-meanings. Accordingly, a central piece of functionality is an
-implementation of that relation, in the form of an NLP
-pipeline that translates natural
-language sentences to a formal semantic representation. The pipeline
-is currently unidirectional, but the inverse, generating natural
-language from a representation of the meaning, is under
-development. The pipeline is encapsulated in a conversational agent
-application (selkie.bot), which includes a knowledge base and
-automated reasoner as a stand-in for the rest of cognition.
-The bot is intended as a testing ground for a grammar as
-digital language description.
-
-**Dataset interfaces.**
-Convenience interfaces to a variety of third-party datasets
-are provided, to make it easier to access them and use them for
-language description.
-
-**Supporting Packages.**
-The supporting packages contain lowlevel functionality that is used across the
-components of Selkie.
-
 Credits
-=======
+-------
 
  * **Pyfoma.** 
 

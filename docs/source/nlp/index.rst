@@ -1,6 +1,6 @@
 
-The NLP pipeline
-================
+The main pipeline (nlp)
+=======================
 
 The NLP pipeline consists of five major components: a parser, an
 interpreter, a grammar with semantic translations that drives both, an
@@ -21,10 +21,3 @@ into a test-bed application.
    preproc
    glab
    textgrid
-
-.. toctree::
-   :maxdepth: 2
-   :titlesonly:
-   :caption: Other
-
-   dp/index

@@ -1,6 +1,6 @@
 
-Web Application Framework
-=========================
+Web application framework (wap)
+===============================
 
 .. toctree::
    :titlesonly:

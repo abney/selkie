@@ -1,6 +1,6 @@
 
-The New Corpus Editor
-*********************
+The corpus editor (editor)
+==========================
 
 .. toctree::
    :titlesonly:

@@ -1,6 +1,6 @@
 
-Panlex — ``selkie.panlex``
-==========================
+Panlex — ``selkie.data.panlex``
+===============================
 
 .. toctree::
    :titlesonly:

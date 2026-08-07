@@ -1,6 +1,6 @@
 
-Dataset interfaces
-******************
+Dataset interfaces (data)
+*************************
   
 .. toctree::
    :maxdepth: 1

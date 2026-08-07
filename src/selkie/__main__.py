@@ -2,7 +2,7 @@
 from .pyx.com import BaseMain
 from .pyx.io import xopen
 from .pyx.string import unidescribe, uencode, udecode
-from .nlpx.gdev import GDev
+from ._nlpx.gdev import GDev
 from .data.wiktionary import WiktDump, LanguageFile
 from .corpus.rom import Decoder
 
