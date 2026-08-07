@@ -5,7 +5,7 @@ import os, sys
 try:
     from libsvm import svmutil, svm_train, svm_predict
 except:
-    print('libsvm has not been installed', file=sys.stderr)
+    pass
 
 from ...cld.seal.misc import repeatable
 from . import num, sym

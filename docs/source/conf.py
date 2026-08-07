@@ -6,7 +6,7 @@ print('SELKIE:', selkie.__file__)
 # -- Project information
 
 project = 'Selkie'
-copyright = '2022, University of Michigan'
+copyright = '2022-2026, University of Michigan'
 author = 'Steven Abney'
 
 # release: x.y, version: x.y.z

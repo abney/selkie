@@ -100,10 +100,10 @@ class Node:
         self.cob = cob
         self.nid = nid
 
-    def by_nid (self, nid):
-        return self.root.nid_index.get(nid)
+    def node_by_nid (self, class_name, nid):
+        return self.root.nid_index.get((class_name, nid))
 
-    def by_sn (self, sn):
+    def node_by_sn (self, sn):
         return self.root.sn_index.get(sn)
 
     def add_choice (self, options):
@@ -287,7 +287,7 @@ class List (Node):
     def __iter__ (self): return iter(self.elements)
     def __getitem__ (self, i): return self.elements[i]
 
-    def by_nid (self, nid):
+    def element_by_nid (self, nid):
         if self._index is None:
             self._index = {elt.nid:elt for elt in self.elements}
         return self._index[nid]
@@ -402,14 +402,11 @@ class Corpus (Node):
     def corpus (self):
         return self
 
-    def filename (self):
-        return self.file.filename
-
     def language (self, nid):
-        return self.langs.by_nid(nid)
+        return self.langs.element_by_nid(nid)
 
     def rom (self, nid):
-        return self.roms.by_nid(nid)
+        return self.roms.element_by_nid(nid)
 
     def require_cob (self, sn):
         return self.file.deref(sn)
@@ -425,8 +422,16 @@ class Corpus (Node):
                 self.next_sn = sni + 1
         if node.nid:
             nid = node.nid
-            assert nid not in self.nid_index
-            self.nid_index[nid] = node
+            class_name = node.__class__.__name__
+            key = (class_name, nid)
+            if key in self.nid_index:
+                raise Exception(f'Duplicate entry in nid index: {key}')
+            self.nid_index[key] = node
+
+    def filename (self): return self.file.filename
+    def save (self, fn=None): self.file.save(fn=fn)
+    def export_cld (self): return self.file.export_cld()
+    def export_json (self): return self.file.export_json()
 
     def __str__ (self):
         return str(self.file)
@@ -567,7 +572,7 @@ class Text (Node):
     def children (self):
         ch = self.cob.get('ch')
         if ch:
-            return [self.by_nid(child_nid) for child_nid in ch.split()]
+            return [self.element_by_nid(child_nid) for child_nid in ch.split()]
 
 
 class Texts (List):

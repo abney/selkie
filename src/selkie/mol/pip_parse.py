@@ -17,7 +17,7 @@ def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
-from .ply import lex
+from .redist.ply import lex
 lexer = lex.lex()
 
 precedence = (
@@ -79,7 +79,7 @@ def p_error (p):
     else:
         print("Syntax error at EOF")
 
-from .ply import yacc
+from .redist.ply import yacc
 parser = yacc.yacc()
 
 def parse (s):

@@ -7,6 +7,9 @@ from .lang import (
 from .grammar import grule
 from .editor import E, F, R, done, erase, edit
 
+# to make sure that .redist.ply exists before turning on autosym
+from .redist import ply as _ply
+
 # This causes symbols and variables to be treated as sub-modules
 from . import autosym
 __path__ = ['autosym::']

@@ -13,9 +13,16 @@ To run all tests, do::
 This runs the python file ``run_tests.py``. That file consists of a
 class definition for ``Tester``; running the file instantiates Tester
 and calls it with argument ``:all``. This executes four varieties of
-tests; each can also be executed separately:
+tests; each can also be executed separately. The invocations are::
 
- * Distribution quality checks (``:dist``, method ``run_dist_test()``).
+   $ make dist    # tester.run_dist_test()
+   $ make rst     # tester.run_rst_tests()
+   $ make unit    # tester.run_unittests()
+   $ make doc     # tester.run_doctests()
+
+The test classes are as follows.
+
+ * Distribution quality checks
 
     - Check imports. Make sure that every module in the src directory imports without
       error.
@@ -24,14 +31,17 @@ tests; each can also be executed separately:
       ``.. automodule::`` and ``.. py:module::`` references. Make sure
       they are found in the src directory.
 
- * Documentation doctests (``:rst``, method ``run_rst_tests()``).
+ * Documentation doctests.
    Walk the docs directory to find all ``.rst`` files, and call
-   doctest on each.
+   doctest on each. One can also test individual files manually by
+   cd-ing to the directory in which it resides and doing ``python -m
+   doctest XXX.rst``.
 
- * Unit tests (``:unit``, method ``run_unittests()``).
+ * Unit tests.
    Run the unit tests in the tests directory.
 
- * Standalone doctests (``:doc``, method ``run_doctests()``).
+ * Standalone doctests.
    Go to the subdirectory tests/doctests. Run doctest on each file
-   with file suffix ``.doctest``.
-
+   with file suffix ``.doctest``. One can also test individual files
+   manually by cd-ing to the tests/doctests directory and doing
+   ``python -m doctest XXX.doctest``.

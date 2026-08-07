@@ -2,26 +2,18 @@
 Overview
 ********
 
-Selkie is a set of applications and a software
-library to support **language digitization**, which is to say,
-**computational documentary linguistics**.
-By *documentary linguistics* I mean the combination of language
-documentation and language description. Conventionally, the product of
-the former is a corpus, and the product of the latter is a grammar and
-lexicon. The products of language digitization are electronic versions
-of corpus, lexicon, and grammar, integrated with each other and
-supporting additional computational functionality, such as automated
-interpretation.
+Selkie is a software library to support **language digitization**,
+which is to say, **computational language description** (CLD).
+The classic products of language description are a corpus, lexicon,
+and grammar, and Selkie supports the production and use of electronic
+versions. "Use" includes an implementation of the entire NLP pipeline,
+including an automated reasoner at the back end.
 
 Selkie is experimental code, not a finished product. Much of it is
 under active development and is likely to change in the
 future. Similarly, this documentation is still in draft form.
 I am making it publicly available to give easier access to
 students and anyone else who may be interested.
-
-The two major pieces of Selkie are a **corpus editor** (an application for
-documentary linguistics), and a natural-language processing (NLP) pipeline. The pipeline is not
-currently integrated into the editor, though that is intended.
 
 Installation
 ============
@@ -30,8 +22,8 @@ Selkie is written in Python, and is installed in the usual way::
 
     $ pip install selkie
 
-The components of Selkie
-========================
+The toplevel modules of Selkie
+==============================
 
 **Corpus Editor.**
 A central piece of Selkie is an application for creating, editing, and
@@ -67,21 +59,36 @@ components of Selkie.
 Credits
 =======
 
-The following icons in selkie/data/seal are from
-gnome-icon-theme-3.12.0:
+ * **Pyfoma.** 
 
- * cog.png
- * gnome/16x16/categories/applications-system.png
+ * **Ply.** The directory ``src/selkie/ply`` contains the PLY lexer
+   and parser, written by David Beazley. It is taken from https://github.com/dabeaz/ply.
+   According to that page, PLY is a discontinued project, and the
+   author recommends copying it into one's own project, which is what
+   I have done.
 
-The files in selkie/data/census were downloaded from http://www.census.gov/genealogy/names/,
-though that is now a dead link. (One may instead use
-http://web.archive.org/web/19970617171355/http://www.census.gov/genealogy/names/.)
+ * **LIBSVM.** LIBSVM is written by Chih-Chung Chang and Chih-Jen Lin,
+   and is available at http://www.csie.ntu.edu.tw/~cjlin/libsvm. The
+   copyright notice (https://www.csie.ntu.edu.tw/~cjlin/libsvm/COPYRIGHT)
+   permits redistribution, provided that the copyright notice itself
+   is preserved.
 
-The files in selkie/data/iso were downloaded from:
+ * **Gnome Icons.** The following icons in selkie/data/seal are from
+   gnome-icon-theme-3.12.0:
 
- * https://www.loc.gov/standards/iso639-2/ascii_8bits.html (ISO 639-2)
- * https://iso639-3.sil.org/ (ISO 639-3)
- * https://www.loc.gov/standards/iso639-5/index.html (ISO 639-5)
+    - cog.png
+    - gnome/16x16/categories/applications-system.png
 
-The files in selkie/data/conll/2006/universal-pos-tags were
-downloaded from https://github.com/slavpetrov/universal-pos-tags.
+ * **Census Files.** The files in selkie/data/census were downloaded from
+   http://www.census.gov/genealogy/names/,
+   though that is now a dead link. (One may instead use
+   http://web.archive.org/web/19970617171355/http://www.census.gov/genealogy/names/.)
+
+ * **ISO Language Codes.** The files in selkie/data/iso were downloaded from:
+
+   - https://www.loc.gov/standards/iso639-2/ascii_8bits.html (ISO 639-2)
+   - https://iso639-3.sil.org/ (ISO 639-3)
+   - https://www.loc.gov/standards/iso639-5/index.html (ISO 639-5)
+
+ * **Universal POS Tags.** The files in selkie/data/conll/2006/universal-pos-tags were
+   downloaded from https://github.com/slavpetrov/universal-pos-tags.

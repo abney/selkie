@@ -6,13 +6,13 @@
 <File corp28.cld>
 >>> corpus
 <Corpus corp28>
->>> corpus.cob_index['0']
+>>> corpus.sn_index['0']
 <Top corp28>
 >>> list(corpus.props)
 ['filename']
 
 >>> root = corpus.root
->>> corpus.cob_index['3']
+>>> corpus.sn_index['3']
 <Language deu>
 
 >>> langs = root.langs

@@ -10,7 +10,7 @@ Example
 There is a sample corpus in ``selkie.data``::
 
     >>> from selkie.data import ex
-    >>> corpfn = ex('corp27.cld')
+    >>> corpfn = ex('corp28.cld')
 
 Open the corpus by instantiating the Corpus class::
 
@@ -21,53 +21,42 @@ The methods ``__str__()``, ``save()``, ``export_cld()``, and
 ``export_json()`` dispatch to the underlying file, which is ``corpus.file``::
 
     >>> corpus.file
-    <File corp27.cld>
+    <File corp28.cld>
     >>> s = str(corpus)
-    >>> print(s[:22])
-    lang.deu
-      name German
     >>> s = corpus.export_json()
-    >>> s[:30]
-    '{"lang.deu": {"name": "German"'
 
-The corpus behaves like a list of languages::
+The corpus contains a list of languages::
 
-    >>> len(corpus)
+    >>> langs = corpus.langs
+    >>> len(langs)
     1
-    >>> list(corpus)
-    [<Lang lang.deu>]
-    >>> deu = corpus[0]
+    >>> list(langs)
+    [<Language deu>]
+    >>> deu = langs[0]
     >>> deu
-    <Lang lang.deu>
+    <Language deu>
 
-The ``table`` member provides access to children by name. It behaves
-like a dict::
+One can also access languages by ID::
 
-    >>> deu2 = corpus.table['lang.deu']
-    >>> deu2 == deu
+    >>> deu2 = corpus.language('deu')
+    >>> deu2 is deu
     True
 
-Note that Nodes are lightweight wrappers. Each access may create a new
-wrapper::
+Going down the hierarchy, a language contains a list of texts::
 
-    >>> deu2 is deu
-    False
-
-Going down the hierarchy, a language behaves like a list of texts::
-
-    >>> len(deu)
+    >>> len(deu.texts)
     3
-    >>> list(deu)
-    [<Text text.1>, <Text text.2>, <Text text.3>]
-    >>> text = deu[1]
-    >>> text
-    <Text text.2>
+    >>> list(deu.texts)
+    [<Text deu.1>, <Text deu.2>, <Text deu.3>]
+    >>> text2 = deu.texts[1]
+    >>> text2
+    <Text deu.2>
 
-In addition to children, a Node also has properties. The ``props``
+In addition to texts, a Language also has properties. The ``props``
 member behaves like a dict::
 
     >>> sorted(deu.props)
-    ['glot', 'iso3', 'name', 'userom']
+    ['glot', 'iso3', 'name', 'rom']
     >>> deu.props['glot']
     'stan1295'
 
@@ -77,7 +66,7 @@ dedicated method. For example, in addition to its children, which are
 texts, a language also contains a lexicon::
 
     >>> deu.lexicon()
-    <Lexicon lexicon>
+    <Lexicon deu>
 
 Classes
 -------

@@ -12,4 +12,3 @@ The main goal of the revision is simplification and streamlining.
    node
    api
    rom/index
-   old/index
