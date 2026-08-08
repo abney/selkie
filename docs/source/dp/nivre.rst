@@ -81,7 +81,7 @@ The dataset spa.orig is Spanish, original format.  To get a list of available
 datasets::
 
    >>> from selkie.data import dep
-   >>> sorted(dep.datasets)
+   >>> sorted(dep.datasets(), key=lambda ds:ds.name)  # doctest: +SKIP
 
 See selkie.data.dep.datasets for details.
 
@@ -166,7 +166,7 @@ contains the contents::
 Then one creates the model directory ptb.model by doing::
 
    >>> from selkie.dp import nivre
-   >>> nivre.train('ptb')
+   >>> nivre.train('ptb')  # doctest: +SKIP
 
 Training also creates the directory foo.work.  The work directory can be
 used to evaluate parser accuracy, provided that the training dataset
@@ -186,7 +186,7 @@ proportion of correct predictions that it makes on the testing instances.
 
 To train:::
 
-   >>> nivre.train('foo')
+   >>> nivre.train('foo')  # doctest: +SKIP
 
 The file 'foo.exp' must exist.
 This writes a lot of files, split by part of speech of INPUT[0].
@@ -197,7 +197,7 @@ testing files exist.
 
 To compute the accuracy of the predictions on the test files:::
 
-   >>> nivre.accuracy()
+   >>> nivre.accuracy()  # doctest: +SKIP
    Accuracy: 0.581359329446 correct= 6381 ntest= 10976
    Fa acc= 0.333333333333 correct= 1 ntest= 3
    Fc acc= 0.639606396064 correct= 520 ntest= 813

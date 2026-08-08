@@ -10,5 +10,4 @@ Dependency parsers (dp)
    eval
    features
    nivre
-   mst
    ml/index

@@ -19,7 +19,7 @@ punctuation tokens.  (They are ignored by default.)  One may provide
 ``output=`` *stream* to specify
 an output stream other than stdout::
 
-   >>> evaluate(parser, sents)
+   >>> evaluate(parser, sents)  # doctest: +SKIP
 
 ispunc
 ------
@@ -54,8 +54,8 @@ sentence.  The length of the sentence includes the root token
 Also, by default, punctuation tokens are ignored.
 (One can cause them to be counted by specifying ``excludepunc=False``::
 
-   >>> pred = next(conll_sents(ex.depsent3_pred))
-   >>> gold = next(conll_sents(ex.depsent3_gold))
+   >>> pred = next(conll_sents(ex('depsent3_pred')))
+   >>> gold = next(conll_sents(ex('depsent3_gold')))
    >>> eval_sent(pred, gold)
    (2, 3, 2, 4)
    >>> eval_sent(pred, gold, excludepunc=False)
@@ -67,13 +67,13 @@ compare
 The function compare() prints out a detailed comparison of a
 predicted and a gold sentence::
 
-   >>> compare(pred, gold)
+   >>> compare(pred, gold)  # doctest: +NORMALIZE_WHITESPACE
    1   This G R 2 subj 2 subj   
    2   is   G R 0 mv   0 mv     
    3   a        2 pt   4 det    
    4   test G   2 obj  2 prednom
    5 * .        2 obj  2 prednom
-   
+   <BLANKLINE>
    LAS: 2 4 0.5 
    UAS: 3 4 0.75
    LA:  2 4 0.5

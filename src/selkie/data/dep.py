@@ -2,6 +2,7 @@
 #   The universal dependency treebank.
 
 import sys
+from pathlib import Path
 from ..cld.seal import io
 from ..cld.seal.config import conll, udt
 from ..nlp.dep import conll_sents, umapped_sents, load_umap, apply_umap
@@ -45,7 +46,7 @@ class Dataset (object):
         elif which == 'test': fn = self.test
         elif which == 'dev': fn = self.dev
         else: raise Exception('Argument must be one of: train, test, dev')
-        if fn.endswith('#proj'): return (fn[:-5], True)
+        if isinstance(fn, str) and fn.endswith('#proj'): return (fn[:-5], True)
         else: return (fn, False)
 
     ##  Return a list of filenames.
@@ -438,6 +439,14 @@ register(Dataset(
         'orig',
         conll/'2006/danish/ddt/train/danish_ddt_train.conll',
         conll/'2006/danish/ddt/test/danish_ddt_test.conll'))
+
+register(Dataset(
+    'dan.ud',
+    'Danish, CoNLL-2006',
+    'dan',
+    'orig',
+    Path(__file__).parent/'conll'/'UD_Danish-DDT-master'/'da_ddt-ud-train.conllu',
+    Path(__file__).parent/'conll'/'UD_Danish-DDT-master'/'da_ddt-ud-test.conllu'))
 
 register(Dataset(
         'nld.orig',

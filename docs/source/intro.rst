@@ -50,19 +50,21 @@ Selkie is written in Python, and is installed in the usual way::
 Credits
 -------
 
- * **Pyfoma.** 
+ * **Census Files.** The files in selkie/data/census were downloaded from
+   http://www.census.gov/genealogy/names/,
+   though that is now a dead link. (One may instead use
+   http://web.archive.org/web/19970617171355/http://www.census.gov/genealogy/names/.)
 
- * **Ply.** The directory ``src/selkie/ply`` contains the PLY lexer
-   and parser, written by David Beazley. It is taken from https://github.com/dabeaz/ply.
-   According to that page, PLY is a discontinued project, and the
-   author recommends copying it into one's own project, which is what
-   I have done.
-
- * **LIBSVM.** LIBSVM is written by Chih-Chung Chang and Chih-Jen Lin,
-   and is available at http://www.csie.ntu.edu.tw/~cjlin/libsvm. The
-   copyright notice (https://www.csie.ntu.edu.tw/~cjlin/libsvm/COPYRIGHT)
-   permits redistribution, provided that the copyright notice itself
-   is preserved.
+ * **Danish UD Treebank (Danish Dependency Treebank).** The files in
+   selkie/data/conll/UD_Danish-DDT-master were downloaded from
+   https://github.com/UniversalDependencies/UD_Danish-DDT/tree/master.
+   This is a conversion of the Danish Dependency Treebank to UD format,
+   released under the CC-BY-SA-4.0 license
+   (https://github.com/UniversalDependencies/UD_Danish-DDT/blob/master/LICENSE.txt),
+   which permits redistribution.
+   The contributors to the Danish UD Treebank are Anders Johannsen, Hector
+   Martinez Alonso, and Barbara Plank. The authors of the original Danish Dependency Treebank are
+   Matthias T. Buch-Kromann, Line Mikkelsen, and Stine Kern Lynge.
 
  * **Gnome Icons.** The following icons in selkie/data/seal are from
    gnome-icon-theme-3.12.0:
@@ -70,16 +72,25 @@ Credits
     - cog.png
     - gnome/16x16/categories/applications-system.png
 
- * **Census Files.** The files in selkie/data/census were downloaded from
-   http://www.census.gov/genealogy/names/,
-   though that is now a dead link. (One may instead use
-   http://web.archive.org/web/19970617171355/http://www.census.gov/genealogy/names/.)
-
  * **ISO Language Codes.** The files in selkie/data/iso were downloaded from:
 
    - https://www.loc.gov/standards/iso639-2/ascii_8bits.html (ISO 639-2)
    - https://iso639-3.sil.org/ (ISO 639-3)
    - https://www.loc.gov/standards/iso639-5/index.html (ISO 639-5)
+
+ * **LIBSVM.** LIBSVM is written by Chih-Chung Chang and Chih-Jen Lin,
+   and is available at http://www.csie.ntu.edu.tw/~cjlin/libsvm. The
+   copyright notice (https://www.csie.ntu.edu.tw/~cjlin/libsvm/COPYRIGHT)
+   permits redistribution, provided that the copyright notice itself
+   is preserved.
+
+ * **Pyfoma.** 
+
+ * **Ply.** The directory ``src/selkie/ply`` contains the PLY lexer
+   and parser, written by David Beazley. It is taken from https://github.com/dabeaz/ply.
+   According to that page, PLY is a discontinued project, and the
+   author recommends copying it into one's own project, which is what
+   I have done.
 
  * **Universal POS Tags.** The files in selkie/data/conll/2006/universal-pos-tags were
    downloaded from https://github.com/slavpetrov/universal-pos-tags.

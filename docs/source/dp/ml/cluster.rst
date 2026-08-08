@@ -11,8 +11,9 @@ the order of the indices does not matter.  The rows/columns of the
 matrix are identified not only by index but by name.  One provides a
 list of names to create the matrix::
 
+   >>> from selkie.dp.ml.cluster import UTM
    >>> utm = UTM(names=['foo', 'bar', 'baz'])
-   >>> print(utm)
+   >>> print(utm)  # doctest: +NORMALIZE_WHITESPACE
    foo bar	  0
    foo baz	  0
    bar baz	  0
@@ -23,7 +24,7 @@ matrix::
    >>> utm['foo','baz'] = 10
    >>> utm['baz','bar'] = 20
    >>> utm['bar','foo'] = 6
-   >>> print(utm)
+   >>> print(utm)  # doctest: +NORMALIZE_WHITESPACE
    foo bar	  6
    foo baz	  10
    bar baz	  20
@@ -31,7 +32,7 @@ matrix::
 One may alternatively use numeric indices::
 
    >>> utm[1,2] = 12
-   >>> print(utm)
+   >>> print(utm)  # doctest: +NORMALIZE_WHITESPACE
    foo bar	  6
    foo baz	  10
    bar baz	  12

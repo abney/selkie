@@ -9,15 +9,15 @@ The main function is compile(), which takes a set of feature
 specifications (a string) and produces a function that maps
 configurations to instances::
 
-   >>> from seal import ex
-   >>> from seal.dep import conll_sents
-   >>> from seal.data import dep
-   >>> from seal.dp.parser import computation, supervised_oracle
+   >>> from selkie.data import ex
+   >>> from selkie.nlp.dep import conll_sents
+   >>> from selkie.data import dep
+   >>> from selkie.dp.parser import computation, supervised_oracle
    
-   >>> s = next(conll_sents(ex.depsent1))
+   >>> s = next(conll_sents(ex('depsent1')))
    >>> comp = computation(s, supervised_oracle)
    
-   >>> from seal.dp.features import *
+   >>> from selkie.dp.features import *
    >>> cfgs = [cfg for (cfg,_,_) in comp]
    >>> f = compile('fpos stack 0, fpos input 0')
    >>> f(cfgs[0])
@@ -65,7 +65,7 @@ of the file.  The function compile() first splits the input text
 into feature specs.  Feature specs may be separated either by commas
 or newlines::
 
-   >>> from seal.dp.features import specs
+   >>> from selkie.dp.features import specs
    >>> sps = specs('form input 0, fpos input 0, role lc input 0')
    >>> sps
    ['form input 0', 'fpos input 0', 'role lc input 0']

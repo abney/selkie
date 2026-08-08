@@ -13,7 +13,7 @@ sentence::
 
    >>> from selkie.dp.parser import Configuration
    >>> c0 = Configuration(['the', 'dog', 'in', 'the', 'park', 'chased', 'the', 'cat'])
-   >>> print(c0)
+   >>> print(c0)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:                           
        role:                           
@@ -35,7 +35,7 @@ There are four parser actions, the first of which is **shift,**
 which moves one word from the input onto the stack::
 
    >>> c1 = c0.shift()
-   >>> print(c1)
+   >>> print(c1)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:                           
        role:                           
@@ -105,7 +105,7 @@ right::
 Next attach "park" as object of "in"::
 
    >>> c6 = c5.attach_left('pobj')
-   >>> print(c6)
+   >>> print(c6)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:    2     2  5  3          
        role:    sp    mo sp po         
@@ -117,7 +117,7 @@ The word "park" has all its dependents.  Sooner or later, the parser
 will pop it from the stack using the final action, **reduce**::
 
    >>> c7 = c6.reduce()
-   >>> print(c7)
+   >>> print(c7)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:    2     2  5  3          
        role:    sp    mo sp po         
@@ -129,7 +129,7 @@ will pop it from the stack using the final action, **reduce**::
 of "chased"::
 
    >>> c8 = c7.reduce().attach_right('subj')
-   >>> print(c8)
+   >>> print(c8)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:    2  6  2  5  3          
        role:    sp su mo sp po         
@@ -141,7 +141,7 @@ At this point, the parser may recognize that "chased" is the main
 verb, and attach it to the root pseudo-word::
 
    >>> c9 = c8.attach_left('root')
-   >>> print(c9)
+   >>> print(c9)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:    2  6  2  5  3  0       
        role:    sp su mo sp po ro      
@@ -153,7 +153,7 @@ To finish off the parse, we should shift, attach "the" rightwards to
 "cat," and attach "cat" leftwards to "chased"::
 
    >>> c10 = c9.shift().attach_right('spec').attach_left('obj')
-   >>> print(c10)
+   >>> print(c10)  # doctest: +NORMALIZE_WHITESPACE
    Configuration:
        govr:    2  6  2  5  3  0  8  6 
        role:    sp su mo sp po ro sp ob
@@ -317,10 +317,10 @@ Continuing with our previous example:::
 To illustrate the "supervised" methods, let us create a
 configuration from a CoNLL sentence::
 
-   >>> from selkie.core.io import ex
+   >>> from selkie.data import ex
    >>> from selkie.nlp.dep import conll_sents
-   >>> sent = next(conll_sents(ex.depsent2))
-   >>> print(sent)
+   >>> sent = next(conll_sents(ex('depsent2')))
+   >>> print(sent)  # doctest: +NORMALIZE_WHITESPACE
    0 *root* _   _     _ _
    1 a      pos a/pos A 2   
    2 b      pos b/pos B 4   
@@ -443,8 +443,8 @@ constructed from a labeled sentence, and looks at the true stemma to
 determine the next action.
 The configuration must have a value for conll::
 
-   >>> s = next(conll_sents(ex.depsent1))
-   >>> print(s)
+   >>> s = next(conll_sents(ex('depsent1')))
+   >>> print(s)  # doctest: +NORMALIZE_WHITESPACE
    0 *root* _    _    _       _
    1 This   pron this subj    2   
    2 is     vb   be   mv      0   
@@ -454,7 +454,7 @@ The configuration must have a value for conll::
 Here is an example of using the supervised oracle:::
 
    >>> c = Configuration(s)
-   >>> from selkie.nlp.dp.parser import supervised_oracle
+   >>> from selkie.dp.parser import supervised_oracle
    >>> supervised_oracle(c)
    ('sh', None)
    >>> (act, role) = _
@@ -480,7 +480,7 @@ One can perform an entire computation using the function
 computation().  The output is a list of triples
 (*config, act, role*)::
 
-   >>> from selkie.nlp.dp.parser import computation
+   >>> from selkie.dp.parser import computation
    >>> comp = computation(s, supervised_oracle)
    >>> (cfg, act, role) = comp[2]
    >>> print(cfg)
@@ -497,7 +497,7 @@ computation().  The output is a list of triples
 
 For convenience, there is also a print_computation() function:::
 
-   >>> from selkie.nlp.dp.parser import print_computation
+   >>> from selkie.dp.parser import print_computation
    >>> print_computation(comp)
    *r | Th is a te
     -> sh None
@@ -525,7 +525,7 @@ The action is the instance label (the role, if any, is appended to the
 action), and the instance's features are the result of applying the
 feature function to the configuration::
 
-   >>> from selkie.nlp.dp.parser import instances, simple_features
+   >>> from selkie.dp.parser import instances, simple_features
    >>> for inst in instances(s, simple_features):
    ...     print(inst)
    ...
@@ -558,7 +558,7 @@ trivial example::
 Features
 --------
 
-The module selkie.nlp.dp.features contains a feature compiler,
+The module selkie.dp.features contains a feature compiler,
 which takes a complex feature specification and constructs a function
 from it.  The function takes a computation as input and returns a
 feature vector (instance) as output.
@@ -570,7 +570,7 @@ The main function is compile(), which takes a set of feature
 specifications (a string) and produces a function that maps
 configurations to instances::
 
-   >>> from selkie.nlp.dp.features import *
+   >>> from selkie.dp.features import *
    >>> cfgs = [cfg for (cfg,_,_) in comp]
    >>> f = compile('fpos stack 0, fpos input 0')
    >>> f(cfgs[0])
@@ -624,7 +624,7 @@ of the file.  The function compile() first splits the input text
 into feature specs.  Feature specs may be separated either by commas
 or newlines::
 
-   >>> from selkie.nlp.dp.features import specs
+   >>> from selkie.dp.features import specs
    >>> sps = specs('form input 0, fpos input 0, role lc input 0')
    >>> sps
    ['form input 0', 'fpos input 0', 'role lc input 0']
@@ -658,7 +658,7 @@ and returns a string or None.
 Trees
 -----
 
-The module selkie.nlp.dp.tree provides the
+The module selkie.dp.tree provides the
 class DepTree, but it is not actually used and is likely to
 go away.
 
@@ -676,8 +676,8 @@ punctuation tokens.  (They are ignored by default.)  One may provide
 output=*stream* to specify
 an output stream other than stdout::
 
-   >>> from selkie.nlp.dp.eval import evaluate
-   >>> evaluate(parser, sents)
+   >>> from selkie.dp.eval import evaluate
+   >>> evaluate(parser, sents)  # doctest: +SKIP
 
 ispunc
 ......
@@ -685,7 +685,7 @@ ispunc
 The function ispunc() returns True if all the characters
 in the given string have a Unicode category beginning with "P"::
 
-   >>> from selkie.nlp.dp.eval import ispunc
+   >>> from selkie.dp.eval import ispunc
    >>> ispunc('.')
    True
    >>> ispunc('Dr.')
@@ -714,9 +714,9 @@ Also, by default, punctuation tokens are ignored.
 (One can cause them to be counted by specifying excludepunc=False.)
 ::
 
-   >>> from selkie.nlp.dp.eval import eval_sent
-   >>> pred = next(conll_sents(ex.depsent3_pred))
-   >>> gold = next(conll_sents(ex.depsent3_gold))
+   >>> from selkie.dp.eval import eval_sent
+   >>> pred = next(conll_sents(ex('depsent3_pred')))
+   >>> gold = next(conll_sents(ex('depsent3_gold')))
    >>> eval_sent(pred, gold)
    (2, 3, 2, 4)
    >>> eval_sent(pred, gold, excludepunc=False)
@@ -728,14 +728,14 @@ compare
 The function compare() prints out a detailed comparison of a
 predicted and a gold sentence::
 
-   >>> from selkie.nlp.dp.eval import compare
-   >>> compare(pred, gold)
+   >>> from selkie.dp.eval import compare
+   >>> compare(pred, gold)  # doctest: +NORMALIZE_WHITESPACE
    1   This G R 2 subj 2 subj   
    2   is   G R 0 mv   0 mv     
    3   a        2 pt   4 det    
    4   test G   2 obj  2 prednom
    5 * .        2 obj  2 prednom
-   
+   <BLANKLINE>
    LAS: 2 4 0.5 
    UAS: 3 4 0.75
    LA:  2 4 0.5

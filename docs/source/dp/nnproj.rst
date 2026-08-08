@@ -19,25 +19,25 @@ Stats
 The function print_stats() runs the projectivizer and reverter
 on a list of sentences, and reports the results.  For example:::
 
-   >>> from seal.nlp.dp.nnproj import print_stats
-   >>> from seal.data import dep
-   >>> print_stats(dep.sents('dan.orig', 'test'))
-   Projective:       280 / 322 (86.956522%)
-   Not projective:   42 / 322 (13.043478%)
-   
+   >>> from selkie.dp.nnproj import print_stats
+   >>> from selkie.data import dep
+   >>> print_stats(dep.sents('dan.ud', 'test'))  # doctest: +NORMALIZE_WHITESPACE
+   Projective:       474 / 565 (83.893805%)
+   Not projective:   91 / 565 (16.106195%)
+   <BLANKLINE>
    Not projective:
-     Revertible:     39 / 42 (92.857143%)
-     Not revertible: 3 / 42 (7.142857%)
-   
+     Revertible:     83 / 91 (91.208791%)
+     Not revertible: 8 / 91 (8.791209%)
+   <BLANKLINE>
    Revertible:
-      1 lifts:    33
-      2 lifts:     3
-      3 lifts:     1
-      4 lifts:     2
-   
+      1 lifts:    68
+      2 lifts:     8
+      3 lifts:     6
+      4 lifts:     1
+   <BLANKLINE>
    Not revertible:
-      1 lifts:     1
-      2 lifts:     2
+      1 lifts:     5
+      2 lifts:     3
 
 Nivre & Nilsson's algorithm
 ...........................
@@ -54,9 +54,9 @@ Functions
 
 Let us use the following sentence as a running example::
 
-   >>> from seal.core.config import ex
-   >>> from seal.nlp.dep import conll_sents
-   >>> s = next(conll_sents(ex.depsent2))
+   >>> from selkie.data import ex
+   >>> from selkie.nlp.dep import conll_sents
+   >>> s = next(conll_sents(ex('depsent2')))
    >>> print(s)
    0 *root* _   _     _ _
    1 a      pos a/pos A 2
@@ -69,13 +69,13 @@ Let us use the following sentence as a running example::
    8 h      pos h/pos H 7
    >>> govrs = s.column('govr')
 
-The following functions provided by seal.depparse apply to
+The following functions provided by selkie.dp.depparse apply to
 governor lists.
 
 **Dominates** determines whether a given word dominates
 another.  Domination is reflexive and transitive::
 
-   >>> from seal.nlp.dp.nnproj import dominates
+   >>> from selkie.dp.nnproj import dominates
    >>> dominates(4, 1, govrs)
    True
    >>> dominates(4, 5, govrs)
@@ -86,28 +86,28 @@ not.  An arc (*g,d*) is defined to be nonprojective just in case any
 word between *g* and *d* (exclusive) has a governor that is outside
 the range (*g,d*)::
 
-   >>> from seal.nlp.dp.nnproj import is_nonproj
+   >>> from selkie.dp.nnproj import is_nonproj
    >>> is_nonproj((3,6), govrs)
    True
 
 **Has nonproj arcs** returns True if there are any
 nonprojective arcs in the sentence::
 
-   >>> from seal.nlp.dp.nnproj import has_nonproj_arcs
+   >>> from selkie.dp.nnproj import has_nonproj_arcs
    >>> has_nonproj_arcs(govrs)
    True
 
 **Nonproj arcs** returns an iterator over the nonprojective
 arcs in the sentence::
 
-   >>> from seal.nlp.dp.nnproj import nonproj_arcs
+   >>> from selkie.dp.nnproj import nonproj_arcs
    >>> list(nonproj_arcs(govrs))
    [(7, 5), (3, 6)]
 
 **Next nonproj arc** returns the nonprojective arc with the
 smallest span.  It breaks ties in favor of the leftmost arc::
 
-   >>> from seal.nlp.dp.nnproj import next_nonproj_arc
+   >>> from selkie.dp.nnproj import next_nonproj_arc
    >>> next_nonproj_arc(govrs)
    (7, 5)
 
@@ -120,7 +120,7 @@ Projectivizer functions
 **Projectivize** takes either a sentence or iterator over
 sentences, and returns the same type of object::
 
-   >>> from seal.nlp.dp.nnproj import projectivize
+   >>> from selkie.dp.nnproj import projectivize
    >>> ps = projectivize(s)
    >>> print(ps)
    0 *root* _   _     _   _
@@ -141,7 +141,7 @@ to the old.
 **Revert** takes a projectivized sentence, or iterator over
 sentences, and attempts to reconstruct the original::
 
-   >>> from seal.nlp.dp.nnproj import revert
+   >>> from selkie.dp.nnproj import revert
    >>> rs = revert(ps)
    >>> rs == s
    True
@@ -154,7 +154,7 @@ is the number of lifts performed during projectivization.  (Zero lifts
 means that the original was already projective.)
 For example:::
 
-   >>> from seal.nlp.dp.nnproj import stats
+   >>> from selkie.dp.nnproj import stats
    >>> stats(s)
    ('revertible', 4)
 
@@ -164,27 +164,27 @@ indices of sentences that have those stats.  (Note that it uses
 *sent*.index(), not the actual position of the sentence in
 the input list.)::
 
-   >>> sents = dep.sents('dan.orig', 'test')
+   >>> sents = dep.sents('dan.ud', 'test')
    >>> tab = stats(sents)
    >>> for (k,v) in sorted(tab.items()):
    ...     print(k, len(v))
    ...
-   ('not-revertible', 1) 1
-   ('not-revertible', 2) 2
-   ('revertible', 0) 280
-   ('revertible', 1) 33
-   ('revertible', 2) 3
-   ('revertible', 3) 1
-   ('revertible', 4) 2
+   ('not-revertible', 1) 5
+   ('not-revertible', 2) 3
+   ('revertible', 0) 474
+   ('revertible', 1) 68
+   ('revertible', 2) 8
+   ('revertible', 3) 6
+   ('revertible', 4) 1
    >>> tab['not-revertible', 2]
-   [131, 198]
+   [141, 150, 333]
 
 Projectivizer implementation
 ............................
 
 A Projectivizer implements the Nivre & Nilsson algorithm::
 
-   >>> from seal.nlp.dp.nnproj import Projectivizer
+   >>> from selkie.dp.nnproj import Projectivizer
    >>> p = Projectivizer()
 
 It implements the following methods.
@@ -248,10 +248,10 @@ Reverter
 The function set_sent() initializes the reverter with a new
 sentence::
 
-   >>> from seal.nlp.dp.nnproj import Reverter
+   >>> from selkie.dp.nnproj import Reverter
    >>> r = Reverter()
    >>> r.set_sent(ps)
-   >>> print(r)
+   >>> print(r)  # doctest: +NORMALIZE_WHITESPACE
    0 None None
    1 2    A
    2 4    B
@@ -274,7 +274,7 @@ It calls find_govr() to find a new governor for *d*, and
 reattaches *d* to the new governor::
 
    >>> r.lower(5)
-   >>> print(r)
+   >>> print(r)  # doctest: +NORMALIZE_WHITESPACE
    0 None None
    1 2    A
    2 4    B
@@ -290,7 +290,7 @@ It calls lower() on each word whose role contains a vertical
 bar::
 
    >>> r.run()
-   >>> print(r)
+   >>> print(r)  # doctest: +NORMALIZE_WHITESPACE
    0 None None
    1 2    A
    2 4    B
