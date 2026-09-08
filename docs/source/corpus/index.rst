@@ -2,7 +2,8 @@
 Corpus file and API (corpus)
 ============================
 
-The main goal of the revision is simplification and streamlining.
+The ``selkie.corpus`` package contains support for creating and
+editing corpora, and representing them in a plaintext file format.
 
 .. toctree::
    :titlesonly:

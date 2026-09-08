@@ -55,6 +55,8 @@ general definition. Here is an example of a file in CLD format::
         form.Schuster
           g cobbler
 
+The indentation is optional; it makes the structure easier to see.
+
 Types
 -----
 
@@ -65,7 +67,16 @@ implemented simply as python dicts, whose (key, value) items represent
 the properties and sub-cobs. An item (key, value) represents a
 property if the value is a string, and it represents a child if the
 value is another dict. The key is thought of as a name for the
-property or sub-cob.
+property or sub-cob. For example, the following is a fragment of our
+running example corpus::
+
+   {...
+    'sent.2': {
+      'w': 'Ende',
+      'tr': 'the end',
+      'times': {
+        't.0': '3.688200',
+	't.1': '3.928300'}}}
 
 Each key consists of a **type** and an optional **identifier**, separated
 by a period. For example, 'lang.deu' is a key that consists of
@@ -74,39 +85,37 @@ that consists of the type 'lexicon' and no identifier. The
 following provides a complete list of types that take identifiers,
 indicating what kind of identifier each takes:
 
-+----------+----------------+
-| **Type** | **ID**         |
-+----------+----------------+
-| fg       | *form*         |
-+----------+----------------+
-| form     | *form*         |
-+----------+----------------+
-| lang     | *langid*       |
-+----------+----------------+
-| rom      | *romid*        |
-+----------+----------------+
-| sent     | *sentid*       |
-+----------+----------------+
-| sg       | *sentid*       |
-+----------+----------------+
-| t        | *int*          |
-+----------+----------------+
-| trans    | *langid*       |
-+----------+----------------+
-| text     | *textid*       |
-+----------+----------------+
-| u        | *ASCII string* |
-+----------+----------------+
-| xtext    | *textid*       |
-+----------+----------------+
++----------+----------------+-------------------------------------------+
+| **Type** | **ID**         | **Descr**                                 |
++----------+----------------+-------------------------------------------+
+| fg       | *form*         | Form gloss in alt glossing language       |
++----------+----------------+-------------------------------------------+
+| form     | *form*         | A form                                    |
++----------+----------------+-------------------------------------------+
+| lang     | *langid*       | A language                                |
++----------+----------------+-------------------------------------------+
+| rom      | *romid*        | A romanization                            |
++----------+----------------+-------------------------------------------+
+| sent     | *sentid*       | A sentence                                |
++----------+----------------+-------------------------------------------+
+| sg       | *sentid*       | A sentence gloss in alt glossing language |
++----------+----------------+-------------------------------------------+
+| t        | *int*          | A time                                    |
++----------+----------------+-------------------------------------------+
+| trans    | *langid*       | An alt glossing language                  |
++----------+----------------+-------------------------------------------+
+| text     | *textid*       | A text                                    |
++----------+----------------+-------------------------------------------+
+| u        | *ASCII string* | A unicode string                          |
++----------+----------------+-------------------------------------------+
+| xtext    | *textid*       | A text in an alt glossing language        |
++----------+----------------+-------------------------------------------+
 
-Any given type occurs at only one place in the
-hierarchy: each type has a unique **parent type**. The following is a
-complete **signature**, listing all parent types and their sub-cob
-types.
+The following is a
+complete **signature**, listing all parent types and their attributes.
 
 +----------+--------------------------------------------------+
-| **Type** | **Sub-cob types**                                |
+| **Type** | **Attributes**                                   |
 +----------+--------------------------------------------------+
 | corp     | lang, rom                                        |
 +----------+--------------------------------------------------+
@@ -133,14 +142,6 @@ types.
 
 The type 'corp' never appears in a corpus file; it is included as a
 name for the root of the hierarchy.
-
-Each type also has a **level** in the hierarchy. To be precise, the
-level of the root type, 'corp', is 0, and every other type has a
-level that is one greater than the level of its parent type.
-
-Signatures are represented by the class ``Signature``. It provides
-convenience methods for accessing levels, parent type, child types, and property
-types, given a key type as input.
 
 Values
 ------
@@ -294,10 +295,10 @@ key (the cob name) but no value. In lieu of a value, the
 key-value pairs of the subordinate cob are enumerated recursively, producing
 additional lines.
 
-Because each type has a unique parent type, indentation is unnecessary
-for reconstructing the structure. It is included
-optionally for ease of reading. Each line is indented by
-an amount corresponding to the level of the key type.
+Indentation is ignored when reconstructing the structure; its only
+purpose is for ease of reading. Each line is attached to the most
+recent object for which its key is valid. (See the table of attributes
+above.)
 
 Corpus files are represented by the class ``File``. It provides
 convenience methods for loading and saving files, and reading to and

@@ -37,8 +37,8 @@ structure, I have grouped the modules as follows:
    The bot is intended as a testing ground for a grammar as
    digital language description.
 
- * **Supporting Packages.**
-   The supporting packages contain general lower-level functionality.
+ * **Substrate.**
+   The substrate packages contain general lower-level functionality.
 
 Installation
 ------------
@@ -69,8 +69,8 @@ Credits
  * **Gnome Icons.** The following icons in selkie/data/seal are from
    gnome-icon-theme-3.12.0:
 
-    - cog.png
-    - gnome/16x16/categories/applications-system.png
+   - cog.png
+   - gnome/16x16/categories/applications-system.png
 
  * **ISO Language Codes.** The files in selkie/data/iso were downloaded from:
 

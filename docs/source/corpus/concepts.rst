@@ -17,7 +17,7 @@ documents, representing the linguistic
 content of the document. Simplicity and generality of
 representation are the primary desiderata; high-fidelity reproduction of the original form
 is not a requirement.
-The CLD format is a format for linguistic annotation.
+A file format for linguistic annotation is defined, called CLD.
 
 A collection of related documents is called a **corpus**, and
 its annotation is a **corpus annotation**. However, one often uses
@@ -39,14 +39,14 @@ and CLD is designed for stand-off annotation.
 Corpus objects
 --------------
 
-Briefly, a corpus annotation consists of a set of **languages**,
+Briefly, a corpus annotation of the type defined here consists of a set of **languages**,
 which consist of **texts**, which consist of **sentences**,
 which consist of references to **words**. Words are structured
-objects, and may be thought of as lexical entries. In fact, the
+objects, and may be thought of as lexical entries. Indeed, the
 collection of words for a given language is called a **lexicon**.
 
-The objects are named by **identifiers**, which are symbols in
-controlled vocabularies distinguished by type. For example, each
+Each object is named by an **identifier**, which is a symbol in a
+controlled vocabulary determined by the object type. For example, each
 language is named by a language ID (langid), each text within a
 language is identified by a text ID (textid), each sentence within a
 text is identified by a sentence ID (sentid), and each word is
@@ -77,7 +77,7 @@ The following table summarizes.
 +----------------+----------+------------------------+
 | **Object**     | **Type** | **Unique ID**          |
 +----------------+----------+------------------------+
-| corpus         |          |                        |
+| corpus         | corp     | -                      |
 +----------------+----------+------------------------+
 | language       | lang     | langid                 |
 +----------------+----------+------------------------+
@@ -101,7 +101,6 @@ Details
 
 **Corpus**. No corpus identifier is provided, because there is only ever one
 corpus under discussion. Collections of corpora are outside the scope of the CLD format.
-Only mono
 
 **Orthography**.
 As discussed in the introduction, CLD is an annotation format, not a
@@ -109,7 +108,7 @@ documentation format. Word forms are explicitly intended to represent
 linguistic distinctions, not conventional orthography. CLD follows
 the standard practice in computational linguistics of undoing
 sentence-initial capitalization, and treating punctuation marks as
-separate tokens. Dialectal and spelling variation is generally
+separate tokens. Dialectal and spelling variation are generally
 preserved, and a facility is provided for indicating that two forms
 are spelling variants or dialectal variants of each other.
 
@@ -132,9 +131,7 @@ sequence creates a distinction of form (and thus a distinct word type). One may 
 equivalence class of forms by choosing one of them as the canonical
 representative, and mapping each of the others to it. The canonical
 representative is known as the **canonical form** of the other
-forms in the equivalence class. The mapping from
-a word form to its canonical form
-is known as a *canonical form link*.
+forms in the equivalence class.
 
 **Texts**.
 Texts represent the contents of documents. A one-one
@@ -149,21 +146,15 @@ More complicated situations are also possible, such as a movie file
 digitized from a single videotape that contains two complete stories and
 part of a third.
 
-It is important to understand that texts are not intended to
+As already indicated, texts are not intended to
 be faithful replicas of original documents.
 Rather, they abstract away from most details of presentation to focus
 exclusively on linguistic content.
-For that reason, texts may well diverge from traditional
-orthography. For example, sentence-initial capitalization produces a
-plethora of equivalent-form pairs, one capitalized form and one
-lowercase form that are otherwise identical. Rather than recombining
-all those pairs with canonical-form links, it is generally better to
-eschew beginning-of-sentence capitalization altogether. To give another example,
+The elimination of sentence-initial capitalization has already been
+mentioned. To give another example,
 one may choose to distinguish homographs by introducing non-standard
 forms (say, with a numeric suffix, like ``cat.2``) to distinguish
-the homographs. That represents another divergence from the original
-printed text that is consistent with the view that texts in a corpus
-are content annotations rather than reproductions.
+the homographs.
 
 **Lexicon**. A lexicon is
 uniquely determined by its language - there is exactly one lexicon per
@@ -174,12 +165,12 @@ any text.
 
 A lexicon maps forms to words. A word includes
 linguistic information, such as part of
-speech, and (for example) a canonical form link, if the word form is not
+speech, and (for example) the canonical form, if the word form is not itself
 canonical. Words also include morphological information in the
 form of a list of the parts of the word. "Parts" is understood very
 broadly. The parts are other forms, but there is no assumption
-that concatenating the keystrokes of those forms yields the form
-of which they are parts. Non-concatenative morphemes such
+that concatenating the keystrokes of the parts' forms yields the form
+of the composite word. Non-concatenative morphemes such
 as Arabic roots or templates can freely be used. Morphemes may even be
 entirely abstract.
 
@@ -188,8 +179,3 @@ morphemes obviously do not appear explicitly in printed documents. But
 they also do not appear in corpus texts. Their occurrence at a
 particular place in a text is, rather, implicit in the occurrence of a
 form of which they are parts.
-
-**Additional glossing languages**.
-In the translation identifiers, the first language is the language
-that is being documented, and the second is the language into which it
-is being translated.
