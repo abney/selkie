@@ -1,7 +1,8 @@
 
 from pathlib import Path
-from .file import File
+from ..pyx.dct import File, DCTFormat
 
+CLDFORMAT = 'cld29'
 
 def split_key (key):
     i = key.find('.')
@@ -20,24 +21,37 @@ def nth (iter, n):
 
 
 #--  Node  ---------------------------------------------------------------------
+#
+#  The corpus file is read using selkie.pyx.dct.File. The contents consist of
+#  nested dicts, which we call CORPUS OBJECTS (COBS).
+#
+#  At a higher level, the corpus is represented by Nodes.
+#
+#    * Nodes are organized in a tree structure. Each Node (except the root) has
+#      a unique parent. 
+#
+#    * A first distinction is between primary and secondary nodes. Primary nodes
+#      are visitable in the UI. They constitute a separate tree structure, in
+#      which children are called "Choices". Each child is identified with a Choice.
+# 
+#    * The "choice graph" consists of nodes that either have Choices (state parents)
+#     or provide a Choice (state children). A nonterminal's children are the
+#     options in the Selections of its state; each is associated with a choice.
+#     The child's Choice must match the Selection's choice. The state parent is
+#     recorded as the child's state_parent. Children are added using
+#     add_selectables(choice, options).
+# 
+#     A node is "viewable" just in case it has a Page. It must either be a
+#     state-graph node, or declared to be a view of a given state-graph node,
+#     using add_view(view). A viewable state-graph node is not permitted to have
+#     views.
+# 
+#     A node is "selectable" just in case it is a viewable state-graph node or
+#     a view.
+# 
+
 
 class Node:
-    '''
-    The "state graph" consists of nodes that either have Choices (state parents)
-    or provide a Choice (state children). A nonterminal's children are the
-    options in the Selections of its state; each is associated with a choice.
-    The child's Choice must match the Selection's choice. The state parent is
-    recorded as the child's state_parent. Children are added using
-    add_selectables(choice, options).
-
-    A node is "viewable" just in case it has a Page. It must either be a
-    state-graph node, or declared to be a view of a given state-graph node,
-    using add_view(view). A viewable state-graph node is not permitted to have
-    views.
-
-    A node is "selectable" just in case it is a viewable state-graph node or
-    a view.
-    '''
 
     Cob = None
     Choice = None
@@ -380,7 +394,7 @@ class Corpus (Node):
 
     def __init__ (self, fn, nid=None, contents=None, create=False):
         fn = Path(fn)
-        file = File(fn, contents=contents, create=create)
+        file = File(fn, format=CLDFORMAT, contents=contents, create=create)
         if nid is None: nid = fn.stem
 
         Node.__init__(self, None, nid)
@@ -712,3 +726,22 @@ class Toc (Node):
             print('parent_table=', parent_table)
             self._roots = [text for text in lang.texts if not parent_table.get(text.nid)]
         return self._roots
+
+
+#--  CLD file format  ----------------------------------------------------------
+
+File.__formats__[CLDFORMAT] = DCTFormat(
+    CLDFORMAT,
+    {'corp'},
+    corp={'lang', 'rom'},
+    lang={'name', 'glot', 'iso3', 'rom', 'text', 'lexicon', 'trans'},
+    text={'ty', 'ti', 'au', 'de', 'ch', 'pdf', 'audio', 'video', 'xid', 'sent'},
+    lexicon={'form'},
+    sent={'w', 'tr', 'times'},
+    form={'ty', 'g', 'c', 'pp', 'cf', 'of'},
+    rom={'u'},
+    trans={'xlexicon', 'xtext'},
+    xlexicon={'xform'},
+    xtext={'xsent'},
+    times={'t'}
+)

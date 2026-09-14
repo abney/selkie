@@ -45,56 +45,45 @@ which consist of references to **words**. Words are structured
 objects, and may be thought of as lexical entries. Indeed, the
 collection of words for a given language is called a **lexicon**.
 
-Each object is named by an **identifier**, which is a symbol in a
-controlled vocabulary determined by the object type. For example, each
-language is named by a language ID (langid), each text within a
-language is identified by a text ID (textid), each sentence within a
-text is identified by a sentence ID (sentid), and each word is
-written in ASCII as a word **form**.
-
-More precisely, an identifier is a string of
-printable ASCII characters - no whitespace and no control
-characters. IDs other than forms are more stringently
-constrained: they must have the form of programming-language identifiers, meaning that
-they may contain only letters, digits, and underscore, and must begin
-with a letter or underscore.
-
-Since the IDs are generally relative to some containing object - for
-example, a sentence ID is relative to the containing text, and a text
-ID is relative to the containing language - one generally requires
-multiple identifiers to uniquely identify an object within the
-corpus. For example, a particular sentence is identified by a triple
-(*langid*, *textid*, *sentid*).
-
-There are three types of supporting object. An **orthography**
-maps forms (which are ASCII strings) to unicode for native display. A
+There are three types of supporting object. A **romanization**
+maps word forms (which are ASCII strings) to unicode for native display. A
 **lexicon translation** and **text translations** are used if
 one wishes to provide translations into languages other than the default
 glossing language.
 
-The following table summarizes.
+Each object has an **identifier**, such that the combination of object
+type and identifier uniquely identifies the object. The object types
+and identifier examples (illustrating the general pattern) are as follows:
 
-+----------------+----------+------------------------+
-| **Object**     | **Type** | **Unique ID**          |
-+----------------+----------+------------------------+
-| corpus         | corp     | -                      |
-+----------------+----------+------------------------+
-| language       | lang     | langid                 |
-+----------------+----------+------------------------+
-| text           | text     | langid, textid         |
-+----------------+----------+------------------------+
-| sentence       | sent     | langid, textid, sentid |
-+----------------+----------+------------------------+
-| word           | word     | langid, form           |
-+----------------+----------+------------------------+
-| lexicon        | lexicon  | langid                 |
-+----------------+----------+------------------------+
-| orthography    | orth     | orthid                 |
-+----------------+----------+------------------------+
-| lexicon trans. | xlexicon | langid, langid         |
-+----------------+----------+------------------------+
-| text trans.    | xtext    | langid, textid, langid |
-+----------------+----------+------------------------+
++-----------------+----------+------------------------+
+| **Description** | **Type** | **ID**                 |
++-----------------+----------+------------------------+
+| corpus          | corp     |                        |
++-----------------+----------+------------------------+
+| language        | lang     | deu                    |
++-----------------+----------+------------------------+
+| text            | text     | deu.1                  |
++-----------------+----------+------------------------+
+| sentence        | sent     | deu.1.1                |
++-----------------+----------+------------------------+
+| word            | word     | deu.katze              |
++-----------------+----------+------------------------+
+| lexicon         | lexicon  | deu                    |
++-----------------+----------+------------------------+
+| romanization    | rom      | gothic                 |
++-----------------+----------+------------------------+
+| lexicon trans.  | xlexicon | oji.fra                |
++-----------------+----------+------------------------+
+| text trans.     | xtext    | oji.1.fra              |
++-----------------+----------+------------------------+
+
+Word IDs are also called **forms**. Note that IDs consist exclusively
+of printable ASCII characters - no whitespace and no control
+characters.
+
+A lexicon translation named oji.fra represents the glossing of the
+Ojibwe lexicon into French. A text translation named oji.1.fra
+represents the glossing of the Ojibwe text oji.1 into French.
 
 Details
 -------
@@ -102,7 +91,7 @@ Details
 **Corpus**. No corpus identifier is provided, because there is only ever one
 corpus under discussion. Collections of corpora are outside the scope of the CLD format.
 
-**Orthography**.
+**Romanization**.
 As discussed in the introduction, CLD is an annotation format, not a
 documentation format. Word forms are explicitly intended to represent
 linguistic distinctions, not conventional orthography. CLD follows

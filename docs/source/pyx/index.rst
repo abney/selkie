@@ -10,6 +10,7 @@ Python extensions (pyx)
    xterm
    io
    table
+   dct
    formats
    disk
    persist

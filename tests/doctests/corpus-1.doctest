@@ -1,11 +1,11 @@
 
 >>> from selkie.corpus import Corpus
 >>> from selkie.data import ex
->>> corpus = Corpus(ex('corp28.cld'))
+>>> corpus = Corpus(ex('corp29.cld'))
 >>> corpus.file
-<File corp28.cld>
+<File corp29.cld>
 >>> corpus
-<Corpus corp28>
+<Corpus corp29>
 >>> corpus.sn_index['0']
 <Top corp28>
 >>> list(corpus.props)

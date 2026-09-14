@@ -1,4 +1,6 @@
 
+import json, os
+from io import StringIO
 from pathlib import Path
 
 
@@ -16,7 +18,42 @@ def key_prefix (key):
     if i < 0:
         return key
     else:
-        return key[:i+1]
+        return key[:i]
+
+
+#--  Location  -----------------------------------------------------------------
+
+class TestLocation:
+
+    def __init__ (self, contents):
+        assert isinstance(contents, str)
+        self.contents = contents
+
+    def read (self):
+        return self.contents
+
+    def write (self, s):
+        assert isinstance(s, str)
+        self.contents = s
+
+
+class PathLocation:
+
+    def __init__ (self, fn):
+        if not isinstance(fn, Path):
+            fn = Path(fn)
+        self.fn = fn
+
+    def read (self):
+        if self.fn.exists():
+            with open(self.fn) as f:
+                return f.read()
+        else:
+            return ''
+
+    def write (self, s):
+        with open(self.fn, 'w') as f:
+            f.write(s)
 
 
 #--  File  ---------------------------------------------------------------------
@@ -25,75 +62,49 @@ class File:
 
     __formats__ = None
 
-    def __init__ (self, fn, signature, contents=None, format='dct', create=False):
-        '''
-        The signature is passed to the format.
-        '''
-
-        if format not in self.__formats__:
-            raise Exception(f'Unrecognized format: {format}')            
-        if fn and not isinstance(fn, Path):
-            fn = Path(fn)
-
-        self.filename = fn
-        self.signature = signature
-        self.format = self.__formats__[format](signature)
-        self.contents = None
-
-        if contents is None:
-            if fn:
-                self.load(fn, create)
-            else:
-                self.contents = {}
-        else:
-            self.parse(contents)
-
-    def __len__ (self): return len(self.contents)
-    def __getitem__ (self, key): return self.contents[key]
-    def __iter__ (self): return iter(self.contents)
-    def keys (self): return self.contents.keys()
-    def values (self): return self.contents.values()
-    def items (self): return self.contents.items()
-
-    def load (self, fn, create=False):
-        fn = Path(fn)
-        if not (fn.exists() or create):
-            raise Exception(f'File not found: {fn}')
-        with open(fn) as f:
-            self.read(f)
-
-    def read (self, f):
-        self.parse(f.read())
-
-    def parse (self, s):
-        self.contents = self.format.decode(s)
-
-    def save (self, fn=None):
+    def __init__ (self, fn=None, format=None):
         if fn is None:
-            fn = self.filename
-        with open(fn, 'w') as f:
-            self.write(f)
+            self.location = TestLocation('')
+        else:
+            self.location = PathLocation(fn)
 
-    def write (self, f):
-        f.write(self.format.encode(self.contents, pretty=False))
+        content_string = self.location.read()
+
+        if format is None:
+            if not content_string.startswith('#!selkie file '):
+                raise Exception('No format provided, cannot determine format from file')
+            i = j = 14
+            while j < len(content_string) and not content_string[j].isspace():
+                j += 1
+            format = content_string[i:j]
+
+        if isinstance(format, str):
+            if format not in self.__formats__:
+                raise Exception(f'Unrecognized format: {format}')            
+            format = self.__formats__[format]
+            
+        assert hasattr(format, 'decode')
+        assert hasattr(format, 'encode')
+
+        self.format = format
+        self.contents = format.decode(content_string)
+
+    def save (self):
+        self.location.write(self.format.encode(self.contents))
 
     def __str__ (self):
         return self.format.encode(self.contents, pretty=True)
 
     def __repr__ (self):
-        return f'<{self.__class__.__name__} {self.filename.name}>'
+        return f'<{self.__class__.__name__} {self.location}>'
 
-    def export_cld (self):
-        return CLDFormat(self.signature).encode(self.contents)
-
-    def export_json (self):
-        return JSONFormat(self.signature).encode(self.contents)
+    def export (self, format):
+        if isinstance(format, str):
+            format = self.__formats__[format]
+        return format.encode(self.contents)
 
 
 class JSONFormat:
-
-    def __init__ (self, signature):
-        pass
 
     def encode (self, contents, pretty=False):
         return json.dumps(contents, indent=(2 if pretty else None))
@@ -120,18 +131,22 @@ class DCTFormat:
     The root object type is the empty string.
     '''
 
-    def __init__ (self, signature):
-        self.signature = signature
+    def __init__ (self, name, roots, **kwargs):
+        self.name = name
+        self.signature = {}
+        self.signature[''] = set(roots)
+        for (k,v) in kwargs.items():
+            self.signature[k] = set(v)
         
     def decode (self, s):
         keys = self.signature['']
         stack = [(keys,{})]
         for (lno, key, value) in self._records(s):
             t = key_prefix(key)
-            while stack and t not in stack[-1][0]:
+            while t not in stack[-1][0]:
+                if len(stack) <= 1:
+                    raise Exception(f'No parent found for {repr(key)} [lno {lno}] t={repr(t)} stack={repr(stack)}')
                 stack.pop()
-            if not stack:
-                raise Exception(f'No parent for {t} [lno {lno}]')
             parent = stack[-1][1]
             if key in parent:
                 raise Exception(f'Duplicate key: {repr(key)} [lno {lno}]')
@@ -155,10 +170,11 @@ class DCTFormat:
 
     def encode (self, contents, pretty=False):
         with StringIO() as f:
+            print(f'#!selkie file {self.name}', file=f)
             self._write_dict(contents, f, pretty, -1)
             return f.getvalue()
 
-    def _write_dict (self, d, f, level):
+    def _write_dict (self, d, f, pretty, level):
         assert isinstance(d, dict)
         for (k,v) in d.items():
             if pretty: self._write_indent(level+1, f)
@@ -173,5 +189,4 @@ class DCTFormat:
             f.write(' ')
 
 
-File.__formats__ = {'dct': DCTFormat,
-                    'json': JSONFormat}
+__formats__ = File.__formats__ = {'json': JSONFormat()}

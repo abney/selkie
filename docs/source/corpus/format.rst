@@ -2,7 +2,7 @@
 File format
 ===========
 
-*This is CLD format v27.*
+*This is CLD format v29.*
 
 Concrete example
 ----------------
@@ -45,14 +45,14 @@ general definition. Here is an example of a file in CLD format::
             t.0 3.688200
             t.1 3.928300
       lexicon
-        form.eines
+        deu.eines
           pp ein -gen
           g of a(n)
-        form.ein
+        deu.ein
           g a(n)
-        form.-gen
+        deu.-gen
           g (genitive case)
-        form.Schuster
+        deu.Schuster
           g cobbler
 
 The indentation is optional; it makes the structure easier to see.
@@ -60,14 +60,11 @@ The indentation is optional; it makes the structure easier to see.
 Types
 -----
 
-A corpus consists of a set of **corpus objects** ("**cobs**", for
-short), organized hierarchically. Conceptually, a cob has
-**sub-cobs**, which are themselves cobs, and **properties**, which are strings. Cobs are
-implemented simply as python dicts, whose (key, value) items represent
-the properties and sub-cobs. An item (key, value) represents a
-property if the value is a string, and it represents a child if the
-value is another dict. The key is thought of as a name for the
-property or sub-cob. For example, the following is a fragment of our
+The corpus is read in as a nested dict, using selkie.pyx.dct.
+The dicts are called **corpus objects** ("**cobs**", for
+short). Conceptually, a cob has
+**sub-cobs**, which are themselves cobs, and **properties**, which are strings.
+For example, the following is a fragment of our
 running example corpus::
 
    {...
