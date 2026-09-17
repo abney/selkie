@@ -31,10 +31,9 @@ editors, and co-authors, the "original" document may even be pure
 fiction: a convenient pretense to simplify a complex process of
 genesis.
 
-In *stand-off* annotation, the corpus annotation is kept
-separate from the corpus that it annotates. Experience has shown this
-to be a better practice than intermingling originals and annotation,
-and CLD is designed for stand-off annotation.
+In CLD, annotation is *stand-off*, meaning that the corpus annotation is kept
+separate from the original documents that are annotated. Experience has shown this
+to be a better practice than intermingling originals and annotation.
 
 Corpus objects
 --------------
