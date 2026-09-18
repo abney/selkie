@@ -2,6 +2,8 @@
 Dict file format — ``selkie.pyx.dct``
 =====================================
 
+.. py:module:: selkie.pyx.dct
+
 File format
 -----------
 

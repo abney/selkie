@@ -60,11 +60,9 @@ The indentation is optional; it makes the structure easier to see.
 Types
 -----
 
-The corpus is read in as a nested dict, using selkie.pyx.dct.
+The corpus is read in as a nested dict, using :py:mod:`selkie.pyx.dct`.
 The dicts are called **corpus objects** ("**cobs**", for
-short). Conceptually, a cob has
-**sub-cobs**, which are themselves cobs, and **properties**, which are strings.
-For example, the following is a fragment of our
+short). For example, the following is a fragment of the dict for our
 running example corpus::
 
    {...
@@ -75,127 +73,104 @@ running example corpus::
         't.0': '3.688200',
 	't.1': '3.928300'}}}
 
-Each key consists of a **type** and an optional **identifier**, separated
-by a period. For example, 'lang.deu' is a key that consists of
-the type 'lang' and the identifier 'deu', whereas 'lexicon' is a key
-that consists of the type 'lexicon' and no identifier. The
-following provides a complete list of types that take identifiers,
-indicating what kind of identifier each takes:
+As usual, a dict associates **keys** with **values**.
+If a key contains a period, the period divides the key into **prefix**
+and **discriminator**. Otherwise, the entire key is considered to be the prefix.
 
-+----------+----------------+-------------------------------------------+
-| **Type** | **ID**         | **Descr**                                 |
-+----------+----------------+-------------------------------------------+
-| fg       | *form*         | Form gloss in alt glossing language       |
-+----------+----------------+-------------------------------------------+
-| form     | *form*         | A form                                    |
-+----------+----------------+-------------------------------------------+
-| lang     | *langid*       | A language                                |
-+----------+----------------+-------------------------------------------+
-| rom      | *romid*        | A romanization                            |
-+----------+----------------+-------------------------------------------+
-| sent     | *sentid*       | A sentence                                |
-+----------+----------------+-------------------------------------------+
-| sg       | *sentid*       | A sentence gloss in alt glossing language |
-+----------+----------------+-------------------------------------------+
-| t        | *int*          | A time                                    |
-+----------+----------------+-------------------------------------------+
-| trans    | *langid*       | An alt glossing language                  |
-+----------+----------------+-------------------------------------------+
-| text     | *textid*       | A text                                    |
-+----------+----------------+-------------------------------------------+
-| u        | *ASCII string* | A unicode string                          |
-+----------+----------------+-------------------------------------------+
-| xtext    | *textid*       | A text in an alt glossing language        |
-+----------+----------------+-------------------------------------------+
+If a key *K* has a sub-cob as value, then the prefix of *K* is treated
+as a **parent type**, and it determines the
+the legal prefixes (**attribute types**) for keys within the sub-cob.
+For example, ``sent`` is considered to be parent type for the dict
+that is the value of ``sent.2``, and the legal attribute types for a sent
+are ``w``, ``tr``, and ``times``. In turn, ``times`` is the parent
+type for its value (a dict), and the only legal attribute type is ``t``.
 
 The following is a
-complete **signature**, listing all parent types and their attributes.
+complete **signature**, listing all parent types and their attribute
+types. It also indicates what kind of discriminator the parent type
+takes, if any.
+(Note: the type ``corp`` never appears in a corpus file; it is included as a
+name for the root of the hierarchy.)
 
-+----------+--------------------------------------------------+
-| **Type** | **Attributes**                                   |
-+----------+--------------------------------------------------+
-| corp     | lang, rom                                        |
-+----------+--------------------------------------------------+
-| lang     | name, glot, iso3, userom, text, lexicon, trans   |
-+----------+--------------------------------------------------+
-| rom      |  u                                               |
-+----------+--------------------------------------------------+
-| text     | ty, ti, de, au, ch, pdf, audio, video, sent, xid |
-+----------+--------------------------------------------------+
-| lexicon  | form                                             |
-+----------+--------------------------------------------------+
-| trans    | xlexicon, xtext                                  |
-+----------+--------------------------------------------------+
-| sent     | w, tr, times                                     |
-+----------+--------------------------------------------------+
-| form     | fy, g, c, pp, cf, of                             |
-+----------+--------------------------------------------------+
-| xlexicon | fg                                               |
-+----------+--------------------------------------------------+
-| xtext    | sg                                               |
-+----------+--------------------------------------------------+
-| times    | t                                                |
-+----------+--------------------------------------------------+
-
-The type 'corp' never appears in a corpus file; it is included as a
-name for the root of the hierarchy.
++----------+-------------+--------------------------------------------------+
+| **Type** | **Descrim** | **Attributes**                                   |
++----------+-------------+--------------------------------------------------+
+| corp     |             | lang, rom                                        |
++----------+-------------+--------------------------------------------------+
+| lang     | *langid*    | name, glot, iso3, userom, text, lexicon, trans   |
++----------+-------------+--------------------------------------------------+
+| rom      | *romid*     | u                                                |
++----------+-------------+--------------------------------------------------+
+| text     | *textid*    | ty, ti, de, au, ch, pdf, audio, video, sent, xid |
++----------+-------------+--------------------------------------------------+
+| lexicon  |             | form                                             |
++----------+-------------+--------------------------------------------------+
+| trans    | *langid*    | xlexicon, xtext                                  |
++----------+-------------+--------------------------------------------------+
+| sent     | *sentid*    | w, tr, times                                     |
++----------+-------------+--------------------------------------------------+
+| form     | *form*      | fy, g, c, pp, cf, of                             |
++----------+-------------+--------------------------------------------------+
+| xlexicon | *langid*    | fg                                               |
++----------+-------------+--------------------------------------------------+
+| xtext    | *langid*    | sg                                               |
++----------+-------------+--------------------------------------------------+
+| times    |             | t                                                |
++----------+-------------+--------------------------------------------------+
 
 Values
 ------
 
-The following tables describe the values associated with the keys of
-each cob type.
+The following tables describe the values associated with the attributes of
+each parent type. The second column again indicates the kind of discriminator.
 
 **Lang**
 
-+----------------+----------------------------------------------+
-| name           | the language name (recommended)              |
-+----------------+----------------------------------------------+
-| glot           | the 8-character glottolog code (recommended) |
-+----------------+----------------------------------------------+
-| iso3           | the 3-character ISO code (optional)          |
-+----------------+----------------------------------------------+
-| userom         | a romid (optional)                           |
-+----------------+----------------------------------------------+
-| text.<textid>  | a cob of type 'text'                         |
-+----------------+----------------------------------------------+
-| trans.<langid> | a cob of type 'trans'                        |
-+----------------+----------------------------------------------+
-| lexicon        | a cob of type 'lexicon'                      |
-+----------------+----------------------------------------------+
-
- * The value of e.g. 'trans.fra' is a trans object containing
-   alternative glosses in French.
++---------+----------+----------------------------------------------+
+| name    |          | the language name (recommended)              |
++---------+----------+----------------------------------------------+
+| glot    |          | the 8-character glottolog code (recommended) |
++---------+----------+----------------------------------------------+
+| iso3    |          | the 3-character ISO code (optional)          |
++---------+----------+----------------------------------------------+
+| userom  |          | a romid (optional)                           |
++---------+----------+----------------------------------------------+
+| text    | *textid* | a cob of type 'text'                         |
++---------+----------+----------------------------------------------+
+| trans   | *langid* | translations into *langid* (cob)             |
++---------+----------+----------------------------------------------+
+| lexicon |          | a cob of type 'lexicon'                      |
++---------+----------+----------------------------------------------+
 
 **Rom**
 
-+----------------+----------------------------------------------+
-| u.<ASCII>      | Unicode string                               |
-+----------------+----------------------------------------------+
++---------+----------+----------------------------------------------+
+| u       | *ASCII*  | Unicode string                               |
++---------+----------+----------------------------------------------+
 
 **Text**
 
-+----------------+----------------------------------------------+
-| ty             | the type of text (book, page, etc)           |
-+----------------+----------------------------------------------+
-| ti             | title                                        |
-+----------------+----------------------------------------------+
-| de             | description                                  |
-+----------------+----------------------------------------------+
-| au             | author                                       |
-+----------------+----------------------------------------------+
-| ch             | children: space-separated textids            |
-+----------------+----------------------------------------------+
-| pdf            | pathname of a PDF file                       |
-+----------------+----------------------------------------------+
-| audio          | *fn* or *fn*:*start*:*end*                   |
-+----------------+----------------------------------------------+
-| video          | *fn* or *fn*:*start*:*end*                   |
-+----------------+----------------------------------------------+
-| xid            | an external identifier                       |
-+----------------+----------------------------------------------+
-| sent.<sentid>  | a cob of type 'sent'                         |
-+----------------+----------------------------------------------+
++---------+----------+----------------------------------------------+
+| ty      |          | the type of text (book, page, etc)           |
++---------+----------+----------------------------------------------+
+| ti      |          | title                                        |
++---------+----------+----------------------------------------------+
+| de      |          | description                                  |
++---------+----------+----------------------------------------------+
+| au      |          | author                                       |
++---------+----------+----------------------------------------------+
+| ch      |          | children: space-separated textids            |
++---------+----------+----------------------------------------------+
+| pdf     |          | pathname of a PDF file                       |
++---------+----------+----------------------------------------------+
+| audio   |          | *fn* or *fn*:*start*:*end*                   |
++---------+----------+----------------------------------------------+
+| video   |          | *fn* or *fn*:*start*:*end*                   |
++---------+----------+----------------------------------------------+
+| xid     |          | an external identifier                       |
++---------+----------+----------------------------------------------+
+| sent    | *sentid* | a cob of type 'sent'                         |
++---------+----------+----------------------------------------------+
 
 **Lexicon**
 

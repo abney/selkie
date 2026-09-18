@@ -44,14 +44,14 @@ which consist of references to **words**. Words are structured
 objects, and may be thought of as lexical entries. Indeed, the
 collection of words for a given language is called a **lexicon**.
 
-There are three types of supporting object. A **romanization**
+In addition, there are three types of supporting object. A **romanization**
 maps word forms (which are ASCII strings) to unicode for native display. A
 **lexicon translation** and **text translations** are used if
 one wishes to provide translations into languages other than the default
 glossing language.
 
 Each object has an **identifier**, such that the combination of object
-type and identifier uniquely identifies the object. The object types
+type and identifier uniquely identifies the object witin the corpus. The object types
 and identifier examples (illustrating the general pattern) are as follows:
 
 +-----------------+----------+------------------------+
@@ -59,15 +59,15 @@ and identifier examples (illustrating the general pattern) are as follows:
 +-----------------+----------+------------------------+
 | corpus          | corp     |                        |
 +-----------------+----------+------------------------+
-| language        | lang     | deu                    |
+| language        | lang     | oji                    |
 +-----------------+----------+------------------------+
-| text            | text     | deu.1                  |
+| text            | text     | oji.1                  |
 +-----------------+----------+------------------------+
-| sentence        | sent     | deu.1.1                |
+| sentence        | sent     | oji.1.1                |
 +-----------------+----------+------------------------+
-| word            | word     | deu.katze              |
+| word            | word     | oji.aanii              |
 +-----------------+----------+------------------------+
-| lexicon         | lexicon  | deu                    |
+| lexicon         | lexicon  | oji                    |
 +-----------------+----------+------------------------+
 | romanization    | rom      | gothic                 |
 +-----------------+----------+------------------------+
@@ -76,13 +76,9 @@ and identifier examples (illustrating the general pattern) are as follows:
 | text trans.     | xtext    | oji.1.fra              |
 +-----------------+----------+------------------------+
 
-Word IDs are also called **forms**. Note that IDs consist exclusively
+IDs consist exclusively
 of printable ASCII characters - no whitespace and no control
 characters.
-
-A lexicon translation named oji.fra represents the glossing of the
-Ojibwe lexicon into French. A text translation named oji.1.fra
-represents the glossing of the Ojibwe text oji.1 into French.
 
 Details
 -------
@@ -114,6 +110,10 @@ from the corpus romanization to Unicode strings may be provided. These
 are called *orthographies*.
 
 **Forms**.
+A word ID consists of the language ID and a **word form**,
+called a **form** for short. For example, ``oji.aanii`` is the ID for
+a word of Ojibwe with form ``aanii``.
+
 Any variation in a word's character
 sequence creates a distinction of form (and thus a distinct word type). One may define an
 equivalence class of forms by choosing one of them as the canonical
@@ -167,3 +167,9 @@ morphemes obviously do not appear explicitly in printed documents. But
 they also do not appear in corpus texts. Their occurrence at a
 particular place in a text is, rather, implicit in the occurrence of a
 form of which they are parts.
+
+**Additional glossing languages.**
+A lexicon translation named ``oji.fra`` represents the glossing of the
+Ojibwe lexicon into French. A text translation named ``oji.1.fra``
+represents the glossing of the Ojibwe text ``oji.1`` into French.
+
