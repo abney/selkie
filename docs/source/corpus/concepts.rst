@@ -43,21 +43,27 @@ which consist of **texts**, which consist of **sentences**,
 which consist of references to **words**. Words are structured
 objects, and may be thought of as lexical entries. Indeed, the
 collection of words for a given language is called a **lexicon**.
+These various objects are called **items**.
 
-In addition, there are three types of supporting object. A **romanization**
+In addition, there are three types of supporting item. A **romanization**
 maps word forms (which are ASCII strings) to unicode for native display. A
 **lexicon translation** and **text translations** are used if
 one wishes to provide translations into languages other than the default
 glossing language.
 
-Each object has an **identifier**, such that the combination of object
-type and identifier uniquely identifies the object witin the corpus. The object types
+Finally, one item type never appears in a corpus file, but is used in the UI,
+namely, a **registry** of corpora.
+
+Each item has an **identifier**, such that the combination of item
+type and identifier uniquely identifies the item witin the corpus (or UI). The item types
 and identifier examples (illustrating the general pattern) are as follows:
 
 +-----------------+----------+------------------------+
 | **Description** | **Type** | **ID**                 |
 +-----------------+----------+------------------------+
-| corpus          | corp     |                        |
+| registry        | reg      |                        |
++-----------------+----------+------------------------+
+| corpus          | corp     | mycorp                 |
 +-----------------+----------+------------------------+
 | language        | lang     | oji                    |
 +-----------------+----------+------------------------+
@@ -83,8 +89,11 @@ characters.
 Details
 -------
 
-**Corpus**. No corpus identifier is provided, because there is only ever one
-corpus under discussion. Collections of corpora are outside the scope of the CLD format.
+**Registry and Corpus**. The registry is used
+in the UI, but never appears in a corpus file. A corpus item also does
+not appear in a corpus file, but is created as a toplevel item when
+one loads the corpus file. The corpus identifier is the filename, sans
+suffix.
 
 **Romanization**.
 As discussed in the introduction, CLD is an annotation format, not a

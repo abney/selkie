@@ -1,0 +1,12 @@
+
+>>> from selkie.data import ex
+>>> from selkie.corpus.corpus import open_cld_file
+>>> fi = open_cld_file(ex('corp29.cld'))
+>>> list(fi.contents)
+['corp.corp29']
+>>> corpus = fi.contents['corp.corp29']
+>>> deu = corpus['lang.deu']
+>>> text3 = deu['text.3']
+>>> sent2 = text3['sent.2']
+>>> sent2
+{'w': 'Ende', 'tr': 'the end', 'times': {'t.0': '3.688200', 't.1': '3.928300'}}

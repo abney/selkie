@@ -1,12 +1,26 @@
 
-Nodes and views
-===============
+Nodes
+=====
 
 The result of reading a corpus file is a single large python dict (a
 cob). The primary desiderata are simplicity and non-redundancy.
-For ease of use, the classes Item and Node provide a higher-level
-interface. Items and Nodes may be "virtual" elements that do not stand
+For ease of use, the class Node provides a higher-level
+interface. Nodes may be "virtual" elements that do not stand
 in one-one correspondence with the cobs.
+
+There are three kinds of node:
+
+ * An **item** is a node that is backed by a cob. It can be selected
+   for viewing or editting in the UI.
+
+ * A **view** is a particular view of an item. Each item has a
+   member ``views`` containing a list of views, and each view has a
+   member ``view_of``, which is an item.
+
+ * A **list** is a node that represents a choice among options. The
+   elements of the list are items.
+
+The class Node is instantiated with a parent node
 
 An Item has a *parent* and a *key*. It also has a direct pointer to
 the *file*, to make it easy to save the file. The parent link allows

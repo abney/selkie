@@ -20,6 +20,12 @@ def nth (iter, n):
             return elt
 
 
+#--  File  ---------------------------------------------------------------------
+
+def open_cld_file (fn):
+    return File(fn, format=CLDFORMAT)
+
+
 #--  Node  ---------------------------------------------------------------------
 #
 #  The corpus file is read using selkie.pyx.dct.File. The contents consist of

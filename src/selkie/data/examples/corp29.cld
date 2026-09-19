@@ -28,7 +28,7 @@ corp.corp29
       ti p2
       ty page
   
-      sent.3
+      sent.1
         w eines Tages begegnete der Schuster einen Bettler
         tr one day the cobbler met a beggar
         times
@@ -37,7 +37,7 @@ corp.corp29
           t.5 2.783300
           t.7 3.326900
   
-      sent.4
+      sent.2
         w Ende
         tr the end
         times
@@ -46,28 +46,28 @@ corp.corp29
   
     lexicon
   
-      deu.begegnete
+      form.begegnete
   
-      deu.Bettler
+      form.Bettler
   
-      deu.der
+      form.der
         c det
         g the
   
-      deu.einen
+      form.einen
         g a(n)
   
-      deu.eines
+      form.eines
         g of a(n)
   
-      deu.Schuster
+      form.Schuster
         g cobbler
   
-      deu.Tag
+      form.Tag
         g day
   
-      deu.Tages
+      form.Tages
         pp Tag .gen
   
-      deu.-gen
+      form.-gen
         g <genitive>
