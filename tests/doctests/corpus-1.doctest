@@ -1,24 +1,30 @@
 
->>> from selkie.corpus import Corpus
 >>> from selkie.data import ex
->>> corpus = Corpus(ex('corp29.cld'))
->>> corpus.file
-<File corp29.cld>
+>>> corpfn = ex('corp29.cld')
+
+>>> from selkie.corpus.corpus import Registry
+>>> reg = Registry()
+>>> reg.corpora
+<List of Corpus>
+
+>>> corpus = reg.open(corpfn)
 >>> corpus
 <Corpus corp29>
->>> corpus.sn_index['0']
-<Top corp28>
+>>> type(corpus.file)
+<class 'selkie.pyx.dct.File'>
 >>> list(corpus.props)
 ['filename']
+>>> corpus.props['filename'].endswith('corp29.cld')
+True
 
->>> root = corpus.root
->>> corpus.sn_index['3']
-<Language deu>
+>>> corpus.cob
+{'lang.deu': {'name': 'German', 'glot': 'stan1295', 'iso3': 'deu', 'text.1': {'ti': 'Eine kleine Geschichte', 'ty': 'story', 'ch': '2 3'}, 'text.2': {'ti': 'p1', 'ty': 'page', 'sent.1': {'w': 'in einem kleinen Dorf am Fluss wohnte ein Schuster', 'tr': 'in a little village on a river there lived a cobbler'}, 'sent.2': {'w': 'der Schuster war sehr arm', 'tr': 'the cobbler was very poor'}}, 'text.3': {'ti': 'p2', 'ty': 'page', 'sent.1': {'w': 'eines Tages begegnete der Schuster einen Bettler', 'tr': 'one day the cobbler met a beggar', 'times': {'t.0': '1.495800', 't.2': '1.939400', 't.5': '2.783300', 't.7': '3.326900'}}, 'sent.2': {'w': 'Ende', 'tr': 'the end', 'times': {'t.0': '3.688200', 't.1': '3.928300'}}}, 'lexicon': {'form.begegnete': {}, 'form.Bettler': {}, 'form.der': {'c': 'det', 'g': 'the'}, 'form.einen': {'g': 'a(n)'}, 'form.eines': {'g': 'of a(n)'}, 'form.Schuster': {'g': 'cobbler'}, 'form.Tag': {'g': 'day'}, 'form.Tages': {'pp': 'Tag .gen'}, 'form.-gen': {'g': '<genitive>'}}}}
 
->>> langs = root.langs
->>> len(langs)
+>>> corpus.langs
+<List of Language>
+>>> len(corpus.langs)
 1
->>> deu = langs[0]
+>>> deu = corpus.langs[0]
 >>> deu
 <Language deu>
 
@@ -45,7 +51,7 @@
 >>> sent = sents[0]
 >>> sent
 <Sentence deu.2.1>
->>> sent.nid
+>>> sent.itemid
 'deu.2.1'
 >>> sent.cob['w']
 'in einem kleinen Dorf am Fluss wohnte ein Schuster'

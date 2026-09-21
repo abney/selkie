@@ -36,6 +36,9 @@ class TestLocation:
         assert isinstance(s, str)
         self.contents = s
 
+    def __str__ (self):
+        return '(string)'
+
 
 class PathLocation:
 
@@ -55,6 +58,9 @@ class PathLocation:
         with open(self.fn, 'w') as f:
             f.write(s)
 
+    def __str__ (self):
+        return str(self.fn)
+
 
 #--  File  ---------------------------------------------------------------------
 
@@ -64,11 +70,11 @@ class File:
 
     def __init__ (self, fn=None, format=None):
         if fn is None:
-            self.location = TestLocation('')
+            self.filename = TestLocation('')
         else:
-            self.location = PathLocation(fn)
+            self.filename = PathLocation(fn)
 
-        content_string = self.location.read()
+        content_string = self.filename.read()
 
         if format is None:
             if not content_string.startswith('#!selkie file '):
@@ -90,13 +96,13 @@ class File:
         self.contents = format.decode(content_string)
 
     def save (self):
-        self.location.write(self.format.encode(self.contents))
+        self.filename.write(self.format.encode(self.contents))
 
     def __str__ (self):
         return self.format.encode(self.contents, pretty=True)
 
     def __repr__ (self):
-        return f'<{self.__class__.__name__} {self.location}>'
+        return f'<{self.__class__.__name__} {str(self.filename)}>'
 
     def export (self, format):
         if isinstance(format, str):

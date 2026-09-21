@@ -75,15 +75,20 @@ short). For example:
 {'w': 'Ende', 'tr': 'the end', 'times': {'t.0': '3.688200', 't.1': '3.928300'}}
 
 As usual, a dict associates **keys** with **values**.
-If a key contains a period, the period divides the key into **prefix**
-and **discriminator**. Otherwise, the entire key is considered to be the prefix.
+If a key contains a period, the period divides the key into an
+**attribute type** and **discriminator**. Otherwise, the entire key is
+considered to be the attribute type. If the value is another object
+(rather than a string), the attribute type doubles as the object
+type.
 
-In our example, the key ``sent.2`` has the displayed cob as value.
-When such is the case, the key's prefix provides the type of the cob.
-The cob type in turn determines which key prefixes (**attribute
-types**) are legal within the cob. In particular,
-the legal attribute types for a ``sent`` cob are ``w``, ``tr``, and ``times``.
-A ``times`` cob, in turn, has only one legal attribute type, namely, ``t``.
+For example, the key ``sent.2`` divides into type ``sent`` and
+discriminator ``2``, and ``sent`` is the type of the value, which is
+an object.
+
+The object type in turn determines which attribute
+types are legal within the object. In particular,
+the legal attribute types for a ``sent`` are ``w``, ``tr``, and ``times``.
+A ``times`` object, in turn, has only one legal attribute type, namely, ``t``.
 
 The following is a
 complete **signature**, listing all cob types and their attribute
@@ -115,13 +120,18 @@ types. The second column gives an example of a discriminator for the cob type.
 | times    |             | t                                                |
 +----------+-------------+--------------------------------------------------+
 
+To reach any give cob, one follows a path of keys.
+Concatenating the discriminators along that path gives the **pathname**
+for the object that one reaches. To identify an object within the
+corpus, the corpus discriminator may be omitted. The resulting
+relative pathname is called the **item ID**. 
+The pairing of object type and item
+ID uniquely identifies the object in the corpus.
+
 The following table gives information about discriminators and
-**item IDs**. A cob's item ID
-is obtained by concatenating the parent's item ID with the child's
-discriminator, using a period as separator. (Exception: the corpus item ID is the empty string.)
-An item is uniquely determined within a corpus by the
-pairing of its type and item ID. An item is uniquely determined within the UI
-by the triple of the corpus discriminator, the item type, and the item ID.
+item IDs. For each object type, it gives the parent type, an example
+of the parent item ID, an example of the object's discriminator, and
+the resulting item ID for the object.
 
 +----------+-----------+---------------+-------------+------------+
 | **Type** | **PType** | **PItemID**   | **Discrim** | **ItemID** |
@@ -151,7 +161,7 @@ Values
 ------
 
 The following tables describe the values associated with the attributes of
-each parent type. The second column again gives an example of a discriminator for the attribute.
+each object type. The second column gives an example of a discriminator for the attribute.
 
 **Lang**
 

@@ -10,7 +10,7 @@ Example
 There is a sample corpus in ``selkie.data``::
 
     >>> from selkie.data import ex
-    >>> corpfn = ex('corp28.cld')
+    >>> corpfn = ex('corp29.cld')
 
 Open the corpus by instantiating the Corpus class::
 
@@ -70,67 +70,6 @@ texts, a language also contains a lexicon::
 
 Classes
 -------
-
-.. py:class:: File
-
-   .. py:attribute:: cob
-
-      A python dict representing the contents of the file.
-
-   .. py:method:: filename()
-
-      A Path or None.
-
-   .. py:method:: load(fn)
-
-      Loads the contents from a file, given the
-      filename. One may optionally specify create=True to cause the file
-      to be created if it does not already exist.
-
-   .. py:method:: read(f)
-
-      Reads the contents from an open stream.
-
-   .. py:method:: parse(s)
-
-      Creates the contents from the string contents of the
-      file.
-
-   .. py:method:: save()
-
-      Saves the contents to the file associated with this File
-      object. One may optionally provide a filename to do "save as".
-
-   .. py:method:: write(f)
-
-      Writes the contents to an open stream.
-
-   .. py:method:: __str__()
-
-      Produces the string contents of the file.
-
-   .. py:method:: export_cld()
-
-      Produces the string contents in CLD format.
-
-   .. py:method:: export_json()
-
-      Produces the string contents in JSON format.
-
-.. py:class:: Signature
-
-   .. py:method:: level(ty)
-
-      Returns the level of the given type.
-
-   .. py:method:: children(ty)
-
-      Returns the list of child types for the given
-      type, or None if the type is an attribute type.
-
-   .. py:method:: parent(ty)
-
-      Returns the parent type of the given type.
 
 .. py:class:: Node
 
@@ -231,3 +170,6 @@ Classes
       distinguish two locations that display differently, but involve
       all the same Nodes.
 
+.. py:class:: Corpus
+
+   
