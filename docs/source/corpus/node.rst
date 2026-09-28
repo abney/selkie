@@ -12,16 +12,16 @@ are simplicity and non-redundancy.
 
 For better support of UI operations, the cob and its pieces are accessed via a
 higher-level structure consisting of instances of
-the class Node. Nodes may be "virtual" elements that do not stand
-in one-one correspondence with the cobs.
+the class Node. Nodes may be "virtual" elements that package up
+information from parts of cobs or multiple cobs.
 
 There are three kinds of node:
 
  * An **item** is a node that can be selected for viewing or editing
    in the UI. It is backed by a cob. (The Registry item is
-   exceptional, in the sense that its cobe is not taken directly from
+   exceptional, in the sense that its cob is not taken directly from
    a file. Rather, its key-value pairs represent toplevel
-   key-value pairs from corpus files, each file providing a single
+   key-value pairs from different corpus files, each file providing a single
    pair.)
 
  * A **view** pairs an item with a UI Page. Each item has a
@@ -83,20 +83,9 @@ romanizations.
 An element in a list is accessed by discriminator, using square
 brackets. 
 
-Each item provides members that contain the child lists. For example,
+An item typically provides a member for each child list. For example,
 Corpus has members ``langs`` and ``roms``. One can access the Ojibwe
 language in a corpus as ``corpus.langs['oji']``.
-
-Each item also has a member ``state`` whose value is a dict that maps
-child types to lists. For example, one can also access the Ojibwe
-language of a corpus as ``corpus.state['lang']['oji']``.
-
-Each list has a member ``selected`` whose value is the currently selected
-element. For example, if ``reg`` is the registry, then
-the currently selected corpus is ``corpus = reg.state['corp'].selected``.
-Additional selections can be accessed recursively, for example,
-``lang = corpus.state['lang'].selected``.
-
 
 Views
 -----
@@ -104,3 +93,20 @@ Views
 A View is associated with a displayable Page in the UI. As mentioned
 above, each item has a member ``views`` containing the available
 views, and each view has a member ``view_of`` pointing to the item.
+
+State
+-----
+
+Each item has a member ``state`` whose value is a dict that maps
+child types to lists. For example, another way to access the Ojibwe
+language of a corpus is as ``corpus.state['lang']['oji']``.
+
+Each list has a member ``selected`` whose value is the currently selected
+element. For example, if ``reg`` is the registry, then
+the currently selected corpus is ``corpus = reg.state['corp'].selected``.
+Additional selections can be accessed recursively, for example,
+``lang = corpus.state['lang'].selected``.
+
+In the user interface, the state is walked recursively to construct a
+sequence of menus, one menu per item list: a menu of corpora, a menu
+of languages, a menu of texts, etc.
