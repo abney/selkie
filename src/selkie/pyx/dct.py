@@ -23,9 +23,19 @@ def key_prefix (key):
 
 #--  Location  -----------------------------------------------------------------
 
-class TestLocation:
+class Location:
+
+    def __init__ (self, name=None):
+        self.name = name
+
+    def rename (self, name):
+        self.name = name
+
+
+class TestLocation (Location):
 
     def __init__ (self, contents):
+        Location.__init__(self)
         assert isinstance(contents, str)
         self.contents = contents
 
@@ -40,26 +50,26 @@ class TestLocation:
         return '(string)'
 
 
-class PathLocation:
+class PathLocation (Location):
 
     def __init__ (self, fn):
         if not isinstance(fn, Path):
             fn = Path(fn)
-        self.fn = fn
+        Location.__init__(self, fn)
 
     def read (self):
-        if self.fn.exists():
-            with open(self.fn) as f:
+        if self.name.exists():
+            with open(self.name) as f:
                 return f.read()
         else:
             return ''
 
     def write (self, s):
-        with open(self.fn, 'w') as f:
+        with open(self.name, 'w') as f:
             f.write(s)
 
     def __str__ (self):
-        return str(self.fn)
+        return str(self.name)
 
 
 #--  File  ---------------------------------------------------------------------
@@ -76,19 +86,27 @@ class File:
 
         content_string = self.filename.read()
 
-        if format is None:
-            if not content_string.startswith('#!selkie file '):
-                raise Exception('No format provided, cannot determine format from file')
+        file_format = None
+        if content_string.startswith('#!selkie file '):
             i = j = 14
             while j < len(content_string) and not content_string[j].isspace():
                 j += 1
-            format = content_string[i:j]
+            file_format = content_string[i:j]
+
+        if format is None:
+            if file_format is None:
+                raise Exception('No format provided, cannot determine format from file')
+            format = file_format
 
         if isinstance(format, str):
             if format not in self.__formats__:
                 raise Exception(f'Unrecognized format: {format}')            
             format = self.__formats__[format]
             
+        if file_format is not None:
+            if format.name != file_format:
+                raise Exception(f'File format {file_format} does not match format parameter {format.name}')
+
         assert hasattr(format, 'decode')
         assert hasattr(format, 'encode')
 
@@ -97,6 +115,9 @@ class File:
 
     def save (self):
         self.filename.write(self.format.encode(self.contents))
+
+    def rename (self, name):
+        self.filename.rename(name)
 
     def __str__ (self):
         return self.format.encode(self.contents, pretty=True)
@@ -111,6 +132,8 @@ class File:
 
 
 class JSONFormat:
+
+    name = 'json'
 
     def encode (self, contents, pretty=False):
         return json.dumps(contents, indent=(2 if pretty else None))

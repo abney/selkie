@@ -6,20 +6,20 @@ General
 -------
 
 The result of reading a corpus file is a single large python dict (a
-cob), containing a single key, with prefix ``corp``.
-The primary desiderata in the design of the cob structure
+record), containing a single key whose prefix is ``corp``.
+The primary desiderata in the design of the record structure
 are simplicity and non-redundancy.
 
-For better support of UI operations, the cob and its pieces are accessed via a
+For better support of UI operations, the record and its pieces are accessed via a
 higher-level structure consisting of instances of
 the class Node. Nodes may be "virtual" elements that package up
-information from parts of cobs or multiple cobs.
+information from parts of records or multiple records.
 
 There are three kinds of node:
 
  * An **item** is a node that can be selected for viewing or editing
-   in the UI. It is backed by a cob. (The Registry item is
-   exceptional, in the sense that its cob is not taken directly from
+   in the UI. It is backed by a record. (The Registry item is
+   exceptional, in the sense that its record is not taken directly from
    a file. Rather, its key-value pairs represent toplevel
    key-value pairs from different corpus files, each file providing a single
    pair.)
@@ -28,16 +28,17 @@ There are three kinds of node:
    member ``views`` containing a list of views, and each view has a
    member ``view_of``, which is an item.
 
- * A **list** is a node that represents a set of sub-cobs that have a
-   common object type. A list, like an item, is taken from a corpus
-   file, but it has no cob of it own. Its elements correspond to a
-   subset of key-value pairs from its parent's cob.
+ * A **list** is a node that represents a set of sub-records that have a
+   common record type. A list, like an item, is taken from a corpus
+   file, but it has no record of it own. Its elements correspond to a
+   subset of key-value pairs from its parent's record.
 
-Nodes also record **state** information for the UI. In particular, at any point in
+Nodes also record **state** information for the UI, specifically,
+**selection** information. At any point in
 time, the user may have selected a particular corpus, a particular
 language within the corpus, a particular text within the language, and
-so on, and that information is represented in the node
-structure.
+so on, and that information is recorded by designating a selected
+element in each list.
 
 All Nodes are instantiated with a parent. Walking the tree upward
 gives access to contextual information, including the
@@ -45,23 +46,23 @@ gives access to contextual information, including the
 belongs to. Access to the corpus permits any node to ``save()`` all
 modifications to the corpus to disk. Moreover, the corpus contains an
 index that allows one to access arbitrary items (within the same
-corpus) by type and itemid.
+corpus) by type and item ID.
 
 Items
 -----
 
-The item structure is a tree that overlies the cob tree.
+The item structure is a tree that overlies the record tree.
 Accordingly, each item is instantiated with a parent node and a
 discriminator, and the discriminator is used to
-identify the current item's cob relative to the parent item's cob.
+identify the current item's record within the parent item's record.
 Modifications to the item translate to modifications to the underlying
-cob. Items and cobs stand in one-one correspondence.
+record. Items and records stand in one-one correspondence.
 
 When an item is an element in a list, it also has a member
 ``element_of`` pointing to the list.
 
 There is an Item subclass for each type
-of object in the corpus. Subclasses include ``Corpus``,
+of record in the corpus. Subclasses include ``Corpus``,
 ``Lang``, ``Rom``, ``Text``, ``Lexicon``, ``Trans``, ``Sent``,
 ``Form``, ``Xlexicon``, ``Xtext``, and ``Times``.
 
@@ -83,7 +84,8 @@ romanizations.
 An element in a list is accessed by discriminator, using square
 brackets. 
 
-An item typically provides a member for each child list. For example,
+An item typically provides, for each child list, a member that gives
+direct access to the child list. For example,
 Corpus has members ``langs`` and ``roms``. One can access the Ojibwe
 language in a corpus as ``corpus.langs['oji']``.
 

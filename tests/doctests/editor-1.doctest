@@ -1,0 +1,4 @@
+
+>>> from selkie.wap.app import Context
+>>> from selkie.editor import Editor
+>>> context = Context(Editor, ['editor'])

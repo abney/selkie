@@ -61,8 +61,8 @@ Types
 -----
 
 The corpus is read in as a nested dict, using :py:mod:`selkie.pyx.dct`.
-The dicts are called **corpus objects** ("**cobs**", for
-short). For example:
+The dicts are called **records**.
+For example:
 
 >>> from selkie.data import ex
 >>> from selkie.corpus.corpus import open_cld_file
@@ -77,22 +77,23 @@ short). For example:
 As usual, a dict associates **keys** with **values**.
 If a key contains a period, the period divides the key into an
 **attribute type** and **discriminator**. Otherwise, the entire key is
-considered to be the attribute type. If the value is another object
-(rather than a string), the attribute type doubles as the object
+considered to be the attribute type. If the value is an embedded record
+(rather than a string), the attribute type doubles as the record
 type.
 
 For example, the key ``sent.2`` divides into type ``sent`` and
 discriminator ``2``, and ``sent`` is the type of the value, which is
-an object.
+an embedded record.
 
-The object type in turn determines which attribute
-types are legal within the object. In particular,
+The record type in turn determines which attribute
+types are legal within the record. In particular,
 the legal attribute types for a ``sent`` are ``w``, ``tr``, and ``times``.
-A ``times`` object, in turn, has only one legal attribute type, namely, ``t``.
+A ``times`` record, in turn, has only one legal attribute type, namely, ``t``.
 
 The following is a
-complete **signature**, listing all cob types and their attribute
-types. The second column gives an example of a discriminator for the cob type.
+complete **signature**, listing all record types and their attribute
+types. The second column gives an example of a discriminator, for
+each record type that takes a discriminator.
 
 +----------+-------------+--------------------------------------------------+
 | **Type** | **Discrim** | **Attributes**                                   |
@@ -120,18 +121,21 @@ types. The second column gives an example of a discriminator for the cob type.
 | times    |             | t                                                |
 +----------+-------------+--------------------------------------------------+
 
-To reach any give cob, one follows a path of keys.
+Since records are nested, the location of any record can be specified by
+giving the sequence of keys ("path") that one uses to reach it from the root.
 Concatenating the discriminators along that path gives the **pathname**
-for the object that one reaches. To identify an object within the
-corpus, the corpus discriminator may be omitted. The resulting
-relative pathname is called the **item ID**. 
-The pairing of object type and item
-ID uniquely identifies the object in the corpus.
+for the record. For example, the pathname for sent32 (using period as
+a separator) is ``corp29.deu.3.2``.
+To identify a record within the corpus, the corpus discriminator may
+be omitted. The resulting relative pathname, such as ``deu.3.2`` is called the **item ID**. 
+The pairing of record type and item
+ID uniquely identifies the record in the corpus.
 
 The following table gives information about discriminators and
-item IDs. For each object type, it gives the parent type, an example
-of the parent item ID, an example of the object's discriminator, and
-the resulting item ID for the object.
+item IDs. For each record type, it gives the parent record type, an example
+of the parent item ID, an example of the record's discriminator, and
+the resulting item ID for the record, which is the concatenation of
+the parent item ID and the discriminator.
 
 +----------+-----------+---------------+-------------+------------+
 | **Type** | **PType** | **PItemID**   | **Discrim** | **ItemID** |
@@ -160,8 +164,8 @@ the resulting item ID for the object.
 Values
 ------
 
-The following tables describe the values associated with the attributes of
-each object type. The second column gives an example of a discriminator for the attribute.
+The following tables describe the values associated with the attributes for
+each record type. The second column gives an example of a discriminator for the attribute.
 
 **Lang**
 

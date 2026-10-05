@@ -1,6 +1,6 @@
 >>> from selkie.data import ex
 >>> from selkie.corpus import File
->>> fi = File(ex('corp28.cld'))
+>>> fi = File(ex('corp29.cld'))
 >>> from io import StringIO
 >>> with StringIO() as f:
 ...     print(fi, file=f)

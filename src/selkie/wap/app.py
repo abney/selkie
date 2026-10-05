@@ -86,7 +86,7 @@ class Context:
         if 'document_directory' not in kwargs:
             if com == 'build':
                 kwargs['document_directory'] = '.'
-            elif com in ('start', 'open'):
+            else:
                 kwargs['document_directory'] = '~/.cache/wap'
         if 'servlet' not in kwargs:
             if com == 'start':
@@ -192,7 +192,10 @@ class Application:
 
     def execute (self):
         ctx = self.context
-        getattr(self, 'com_' + ctx.com)(*ctx.args)
+        attr = 'com_' + ctx.com
+        if not hasattr(self, attr):
+            raise Exception(f'Unrecognized command: {ctx.com}')
+        getattr(self, attr)(*ctx.args)
 
     def com_help (self):
         print('start - start tornado web server and open start page')

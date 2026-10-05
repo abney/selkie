@@ -2,35 +2,37 @@
 >>> from selkie.corpus import Registry
 >>> reg = Registry()
 >>> from selkie.data import ex
->>> corpus = reg.open(ex('corp28.cld'))
->>> list(corpus.root.langs)
+>>> corpus = reg.open(ex('corp29.cld'))
+>>> list(corpus.langs)
 [<Language deu>]
 
 >>> list(reg)
-[<Corpus corp28>]
->>> reg.get('corp28')
-<Corpus corp28>
+[<Corpus corp29>]
+>>> reg.get('corp29')
+<Corpus corp29>
 
 >>> corpus = reg.new()
 >>> corpus
 <Corpus untitled-1>
 >>> print(corpus)
-#!selkie file cld 28
-0
-class Root
+#!selkie file cld29
+corp.untitled-1
 <BLANKLINE>
 
 >>> corpus.select()
->>> for lst in corpus.current(): print(lst, repr(lst.selected))
-<Corpora> <Corpus untitled-1>
-<Langs> None
-<Roms> None
-
->>> corpus = reg.get('corp28')
->>> for lst in corpus.current(): print(lst, repr(lst.selected))
-<Corpora> <Corpus untitled-1>
-<Langs> None
-<Roms> None
+>>> corpus.print_state()
+corp:
+  <Corpus corp29> 
+  <Corpus untitled-1> == selected
+    lang:
+    rom:
+>>> corpus = reg.get('corp29')
+>>> corpus.print_state()
+corp:
+  <Corpus corp29> 
+  <Corpus untitled-1> == selected
+    lang:
+    rom:
 
 >>> deu = corpus.langs[0]
 >>> deu
@@ -40,23 +42,35 @@ class Root
 <Text deu.1>
 
 >>> deu1.select()
->>> for lst in corpus.current(): print(lst, repr(lst.selected))
-<Corpora> <Corpus corp28>
-<Langs> <Language deu>
-<Texts> <Text deu.1>
-<Sents> None
-<Roms> None
-
+>>> deu1.print_state()
+corp:
+  <Corpus corp29> == selected
+    lang:
+      <Language deu> == selected
+        text:
+          <Text deu.1> == selected
+            sent:
+          <Text deu.2> 
+          <Text deu.3> 
+    rom:
+  <Corpus untitled-1> 
 >>> reg.get('untitled-1').select()
->>> for lst in corpus.current(): print(lst, repr(lst.selected))
-<Corpora> <Corpus untitled-1>
-<Langs> None
-<Roms> None
-
->>> reg.get('corp28').select()
->>> for lst in corpus.current(): print(lst, repr(lst.selected))
-<Corpora> <Corpus corp28>
-<Langs> <Language deu>
-<Texts> <Text deu.1>
-<Sents> None
-<Roms> None
+>>> reg.print_state()
+corp:
+  <Corpus corp29> 
+  <Corpus untitled-1> == selected
+    lang:
+    rom:
+>>> reg.get('corp29').select()
+>>> reg.print_state()
+corp:
+  <Corpus corp29> == selected
+    lang:
+      <Language deu> == selected
+        text:
+          <Text deu.1> == selected
+            sent:
+          <Text deu.2> 
+          <Text deu.3> 
+    rom:
+  <Corpus untitled-1> 
