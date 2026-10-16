@@ -209,7 +209,8 @@ Generic classes
    .. py:method:: choices()
 
       Walks the root state recursively, going from state to list to
-      selected element's state. Iterates over the lists.
+      the state of the list's selected element. Returns an iteration
+      over lists.
 
    .. py:method:: print_state()
 
@@ -218,6 +219,13 @@ Generic classes
 .. py:class:: Item
 
    A specialization of Node.
+
+   .. py:attribute:: Page
+
+      Not set in Item, but may be set in subclasses to make it
+      possible to wrap instances of the subclass in a view:
+      ``View(item)``. The view inherits its Page from the wrapped
+      (parent) item.
 
    .. py:attribute:: TypeString
 		     
@@ -315,7 +323,8 @@ Generic classes
 
    .. py:attribute:: Page
 
-      The UI page.
+      The UI page. If it is not set (None), the parent's value for
+      Page (if any) will be inherited.
 
    .. py:attribute:: view_of
 

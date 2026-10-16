@@ -102,6 +102,7 @@ class Node:
 
 class Item (Node):
 
+    Page = None
     TypeString = None
 
     def __init__ (self, parent, name=None):

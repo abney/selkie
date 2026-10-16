@@ -6,8 +6,8 @@ In addition to the framework for launching an application, the WAP
 provides a library of UI elements, built on top of the elements
 provided by the DOM.
 
-Element
--------
+Overview
+--------
 
 All UI elements are specializations of ``Element``.
 Element is instantiated with a parent element, an HTML tag, and
@@ -23,7 +23,7 @@ The parent is automatically set to ``document``, the HTML tag is set
 automatically, and the paragraph is added to the list of children of
 the document.
 
-When definining new specializations of Element, one may instead use
+When defining new specializations of Element, one may instead use
 the ``create()`` method. For example, the Button method is defined as
 follows::
 
@@ -38,6 +38,9 @@ initializes the Element with the appropriate label and attributes::
        def __init__ (self, parent, text=None, action=None):
            Element.__init__(self, parent, 'button', type='button')
            ...
+
+API
+---
 
 .. py:class:: selkie.wap.ui.Element
 
@@ -91,4 +94,117 @@ initializes the Element with the appropriate label and attributes::
 
       Appends an HTML BR node.
 
-   
+   .. py:method:: Button()
+
+      Append a button to this element. Keyword argument ``text``
+      provides the text displayed on the button, and ``action``
+      provides an action to be invoked when the button is pressed.
+
+   .. py:method:: Element(label)
+
+      Append an Element to this one.
+
+   .. py:method:: DictEditor(dct)
+
+      Appends a DictEditor to this element. A DictEditor takes a dict
+      and an action (keyword argument ``action``). It displays the
+      dict items as a table in which the values can be editted. When a
+      value is editted, the dict is updated and the action is called
+      with two arguments: the key and the new value.
+
+   .. py:method:: Div()
+
+      Appends a Div to this element.
+
+   .. py:method:: H1(s)
+
+      Appends a first-level heading with text *s* to this element.
+
+   .. py:method:: H2(s)
+
+      Appends a second-level heading with text *s* to this element.
+
+   .. py:method:: H3(s)
+
+      Appends a third-level heading with text *s* to this element.
+
+   .. py:method:: H4(s)
+
+      Appends a fourth-level heading with text *s* to this element.
+
+   .. py:method:: LI()
+
+      Appends a list item to this element, which should be a list.
+
+   .. py:method:: MenuBar()
+
+      Appends a MenuBar to this element. (See class MenuBar.)
+
+   .. py:method:: P()
+
+      Appends a paragraph to this element.
+
+   .. py:method:: Row()
+
+      Append a table row to this element (which should be a table).
+
+   .. py:method:: Table()
+
+      Append an HTML table to this element.
+
+   .. py:method:: TD()
+
+      Append a table cell to this element (which should be a table row).
+
+   .. py:method:: TextEntry()
+
+      Append a TextEntry object to this element. A TextEntry is a
+      generalization of a text box and a text area. One can specify
+      the number of rows of text using the keyword argument ``rows``;
+      the default is one. A TextEntry with one row is a text box, and
+      one with multiple rows is a text area. One can provide initial
+      text for the entry using keyword argument ``init``. One uses the
+      keyword argument ``submit`` to provide an action to execute when
+      enter is pressed. It will be called with the text that has been
+      entered.
+
+   .. py:method:: TH()
+
+      Append a header cell to this element (which should be a table row).
+
+   .. py:method:: UL()
+
+      Appends a bullet list to this element.
+
+   .. py:method:: Upload(action)
+
+      Append an Upload object to this element. Displays a "browse"
+      button which can be used to select a filename. When a filename
+      is selected, its contents are uploaded as an UploadedFile
+      object, and passed as argument to *action*. An UploadedFile
+      object has two attributes: ``name`` and ``contents``. Both have
+      string values.
+
+.. py:class:: MenuBar
+
+   A MenuBar is a horizontally-arranged collection of menus.
+
+   .. py:method:: Menu(title, action=None, [arg, ...])
+
+      Appends a new Menu. It displays as a link with the given *title*
+      text. Hovering over the title causes the menu items to display as a
+      (temporary) vertical list. The title itself also behaves like a
+      menu item, with the given *action* and *args*. Clicking on a
+      menu item invokes its action on its args. A menu item with no
+      action is not clickable, and its title is grayed out.
+
+.. py:class:: Menu
+
+   A menu in a menu bar.
+
+   .. py:method:: MenuItem(string, action, [arg, ...])
+
+      Appends a MenuItem to the menu.
+      The menu item displays as a link with the given *string* as text. Clicking on
+      the link causes the *action* to be invoked on the *args*.
+

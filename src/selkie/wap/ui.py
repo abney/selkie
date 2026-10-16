@@ -24,6 +24,13 @@ if in_browser:
 #         return data
 
 
+def _split_action (action):
+    if isinstance(action, (tuple, list)):
+        return (action[0], action[1:])
+    else:
+        return (action, ())
+
+
 #--  Element  ------------------------------------------------------------------
 
 class Element:
@@ -309,43 +316,41 @@ class MenuBar (Element):
 
         self.bar = self.Element('ul', classname='menu-bar')
 
-    def Menu (self, title, action=None, *args):
-        return self.bar.create(Menu, title, action, *args)
+    def Menu (self, title, action=None):
+        return self.bar.create(Menu, title, action)
 
 
 class Menu (Element):
 
-    def __init__ (self, parent, title, action=None, *args, **kwargs):
+    def __init__ (self, parent, title, action=None, **kwargs):
         kwargs['classname'] = 'dropdown-menu'
         Element.__init__(self, parent, 'li', **kwargs)
         self.name = title
-        self.action = action
-        self.args = args
+        (self.action, self.args) = _split_action(action)
 
         a = self.Element('a')
         a.write(title)
-        if action:
+        if self.action:
             a.add_listener('click', self.on_click)
         self.items = self.Element('ul', classname='dropdown-items')
 
     def on_click (self, _):
         self.action(*self.args)
 
-    def MenuItem (self, string, action, *args):
-        return self.items.create(MenuItem, string, action, *args)
+    def MenuItem (self, string, action):
+        return self.items.create(MenuItem, string, action)
 
 
 class MenuItem (Element):
 
-    def __init__ (self, parent, string, action, *args):
+    def __init__ (self, parent, string, action):
         Element.__init__(self, parent, 'li')
         self.string = string
-        self.action = action
-        self.args = args
+        (self.action, self.args) = _split_action(action)
 
         a = self.Element('a')
         a.write(string)
-        if action is None:
+        if self.action is None:
             a.set_attribute('class', 'disabled');
             print('a', string, 'disabled')
         else:
@@ -361,14 +366,7 @@ class Button (Element):
 
     def __init__ (self, parent, text=None, action=None):
         Element.__init__(self, parent, 'button', type='button')
-
-        if isinstance(action, tuple):
-            self.action = action[0]
-            self.args = action[1:]
-        else:
-            self.action = action
-            self.args = ()
-
+        (self.action, self.args) = _split_action(action)
         if text is not None:
             self.write(text)
         if self.action is not None:
