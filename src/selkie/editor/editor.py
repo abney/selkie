@@ -286,8 +286,8 @@ class StandardPage (Page):
         editor = self.editor
         menubar = self.document.MenuBar()
 
-        for lst in editor.selected.current():
-            nodetype = lst.ElementType.Choice
+        for lst in editor.selected.choices():
+            nodetype = lst.ElementClass.TypeString
             selected = lst.selected
             editfun = getattr(editor, 'edit_' + nodetype)
             newfun = getattr(editor, 'new_' + nodetype)

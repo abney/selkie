@@ -50,13 +50,13 @@ class Element:
 
     def create (self, cls, *args, **kwargs):
         elt = cls(self, *args, **kwargs)
-        self.append(elt)
+        self._append(elt)
         return elt
 
     def set_attribute (self, key, value):
         self._js.setAttribute(key, value)
 
-    def append (self, elt):
+    def _append (self, elt):
         elt.parent = self
         self._js.appendChild(elt._js)
 
@@ -77,23 +77,23 @@ class Element:
     def clear (self):
         self._js.replaceChildren()
 
-    def replace_children (self, *newchildren):
-        newjschildren = [newchild._js for newchild in newchildren]
-        self._js.replaceChildren(*newjschildren)
-        for newchild in newchildren:
-            newchild.parent = self
+#     def replace_children (self, *newchildren):
+#         newjschildren = [newchild._js for newchild in newchildren]
+#         self._js.replaceChildren(*newjschildren)
+#         for newchild in newchildren:
+#             newchild.parent = self
 
-    def delete (self):
-        self._js.remove()
+#     def delete (self):
+#         self._js.remove()
 
-    def value (self):
-        return self._js.value
+#     def value (self):
+#         return self._js.value
 
     def Element (self, label, **kwargs):
         return self.create(Element, label, **kwargs)
 
-    def Button (self, text=None, action=None, **kwargs):
-        return self.create(Button, text=text, action=action, **kwargs)
+    def Button (self, text=None, action=None):
+        return self.create(Button, text=text, action=action)
 
     def Upload (self, action=None):
         return self.create(Upload, action=action)

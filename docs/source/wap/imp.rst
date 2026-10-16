@@ -100,18 +100,10 @@ a CGI servlet with a third-party web server, use 'build' with 'servlet=cgi'.
 Pypi is not used unless one specifies 'use_pypi=True'. (One may do so
 either with 'start' or 'build'.)
 
-The contents of 'index.html' vary depending on the configuration. It
-is sensitive to a number of configuration parameters. To install 
-
- * ``start_fnc_package``
- * ``start_fnc_module``
- * ``start_fnc_name``
- * ``servlet``
- * ``servlet_name``
- * ``selkie_use_pypi``
- * ``app_use_pypi``
- * ``archiver_suffix``
- * ``document_source_directory``
+The contents of 'index.html' vary depending on configuration
+parameters. The overall shape, the points of variation, and the
+settings it is sensitive to are described in the section on "Starting
+the application", below.
 
 2. Specialized web server
 -------------------------
@@ -130,14 +122,18 @@ standard module 'webbrowser'.
 4. Starting the application
 ---------------------------
 
+The name of the start page is taken from the setting ``start_page``;
+it defaults to 'index.html'.
 The start page is written when the document directory is set
-up. Although the exact code differs depending on configuration, the
+up. (The location of the document directory is taken from the setting
+``document_directory``.)
+Although the exact contents of the start page varies depending on configuration, the
 overall structure remains constant.
 
  * Pyodide is installed from a public repository. This is done in a
    script that is linked in the 'head' element.
  * The stylesheet is also linked in the head.
- * The body has an 'onload' action that runs a Javscript function
+ * The body has an 'onload' action that runs a Javascript function
    called 'main', defined in the body.
  * The body consists exclusively of a 'script' element containing a
    definition of 'main'.
@@ -146,17 +142,28 @@ The main function does the following:
 
  * Pyodide is loaded.
  * Micropip is loaded, if needed, and it is used to install selkie
-   and/or the application, if they use pypi.
+   and/or the application, if they use pypi. The application package
+   name is taken from the setting ``start_fnc_package``. Whether to use
+   PYPI or the local server is determined by the settings
+   ``selkie_use_pypi`` and ``app_use_pypi``.
  * Pyodide then runs a block of python code, asynchronously.
 
 The python code does the following:
 
  * Pyfetch is imported, if needed, and it is used to install selkie
-   and/or the application, if they do not use pypi.
- * The start function is imported. If a servlet is available, the
-   class ServerConnection is also imported.
- * The start function is called with a ServerConnection as
-   argument. (If there is no servlet, the argument is None.)
+   and/or the application from the local server, if they are not
+   installed from pypi. The local filename is
+   the same as the package name, plus a suffix taken from the setting
+   ``archiver_suffix``.
+ * If a servlet is available (as determined by the setting ``servlet``),
+   the class ServerConnection is imported
+   and instantiated, providing it with the name of the servlet, taken from the setting
+   ``servlet_name``.
+ * The start function is imported. The name of the module is taken
+   from the setting ``start_fnc_module``, and the name of the function
+   is taken from ``start_fnc_name``.
+ * The start function is called, with the server connection or None as
+   argument.
 
 5. Serving application requests
 -------------------------------

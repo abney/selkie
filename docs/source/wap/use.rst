@@ -26,7 +26,7 @@ the Introduction.
 Elements
 --------
 
-In software, an HTML is represented by the Document Object Model
+In software, an HTML document is represented by the Document Object Model
 (DOM), in which a web page consists of Elements. Wap provides an
 Element class. Here is an example of creating a web page with some
 structure::

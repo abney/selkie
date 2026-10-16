@@ -273,6 +273,8 @@ class View (Node):
 
     def __init__ (self, parent):
         Node.__init__(self, parent)
+        if self.Page is True:
+            self.Page = parent.Page
         self.view_of = None
 
     def select (self):
@@ -329,6 +331,7 @@ class Registry (Item):
         self.corpora = Corpora(self)
         self.n_untitled = 0
         self.add_children(self.corpora)
+        self.add_views(View(self))
 
     def __iter__ (self): return iter(self.corpora)
     def __len__ (self): return len(self.corpora)
