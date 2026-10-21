@@ -2,7 +2,7 @@
 from asyncio import ensure_future
 from pathlib import Path
 from ..corpus import (Registry, Corpus, Node, Language, Toc, Text, Sents, Sentence, Props, Roms, Rom)
-from ..wap import Element, EditableCell
+from ..wap import Element, EditableCell, UploadedFile
 
 
 class Location:
@@ -85,7 +85,8 @@ class Editor (EditorElement):
         self.selected = item
         item.select()
         view = item.current_view
-        self.goto_page(view.Page, view)
+        self.clear()
+        self.create(view.Page, view)
 
 #     def update_location (self, item):
 #         if isinstance(item, Node):
@@ -144,10 +145,6 @@ class Editor (EditorElement):
 #                 self.corpus_table[node.key] = node
 #         return item
 
-    def goto_page (self, cls, item):
-        self.clear()
-        self.create(cls, item)
-
     def open_corpus (self, fn):
         doc = self.document
         doc.clear()
@@ -155,12 +152,10 @@ class Editor (EditorElement):
         ensure_future(self._open_corpus(fn))
 
     async def _open_corpus (self, fn):
-        if isinstance(fn, str):
-            contents = await self.server.load(fn)
-        else:
-            contents = fn.contents
-            fn = fn.name
-        self.edit(self.registry.open(fn, contents=contents))
+        assert isinstance(fn, str)
+        contents = await self.server.load(fn)
+        fn = UploadedFile(fn, contents)
+        self.edit(self.registry.open(fn))
 
     def create_corpus (self):
         self.edit(self.registry.new())

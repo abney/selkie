@@ -33,9 +33,11 @@ def _all_files (d):
 
 #--  exec_app  -----------------------------------------------------------------
 
-def exec_app (fnc, context=None):
-    if context is None:
+def exec_app (fnc):
+    if not isinstance(fnc, Context):
         context = Context(fnc)
+    else:
+        context = fnc
     Application(context).execute()
 
 
@@ -58,12 +60,14 @@ class Context:
         with open(fn) as f:
             for (lno, line) in enumerate(f):
                 line = line.rstrip('\r\n')
+                if line.startswith('#') or not line:
+                    continue
                 i = line.find(' ')
                 if i < 0:
                     print('** Line', lno, 'in', str(config_fn), '- no space')
                 else:
                     key = line[:i]
-                    value = line[i+1:]
+                    value = line[i+1:].strip()
                     config[key] = value
     
     def parse_command_line (self, argv):

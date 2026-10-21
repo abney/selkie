@@ -25,11 +25,28 @@ def key_prefix (key):
 
 class Location:
 
+    __formats__ = None
+
     def __init__ (self, name=None):
-        self.name = name
+        self._name = name
+
+    def name (self):
+        return self._name
 
     def rename (self, name):
-        self.name = name
+        self._name = name
+
+    def open (self, fmt):
+        return File(self, fmt)
+
+    def read (self):
+        raise NotImplementedError()
+
+    def write (self, contents):
+        raise NotImplementedError()
+
+    def save (self):
+        raise NotImplementedError()
 
 
 class TestLocation (Location):
@@ -37,20 +54,33 @@ class TestLocation (Location):
     def __init__ (self, contents):
         Location.__init__(self)
         assert isinstance(contents, str)
-        self.contents = contents
+        self._contents = contents
 
     def read (self):
-        return self.contents
+        return self._contents
 
     def write (self, s):
         assert isinstance(s, str)
-        self.contents = s
+        self._contents = s
 
     def __str__ (self):
         return '(string)'
 
 
-class PathLocation (Location):
+class UploadedFile (Location):
+
+    def __init__ (self, name, contents):
+        Location.__init__(self, name)
+        self._contents = contents
+
+    def read (self):
+        return self._contents
+    
+    def __repr__ (self):
+        return f'<UploadedFile {self.name()}>'
+
+
+class Pathname (Location):
 
     def __init__ (self, fn):
         if not isinstance(fn, Path):
@@ -58,78 +88,22 @@ class PathLocation (Location):
         Location.__init__(self, fn)
 
     def read (self):
-        if self.name.exists():
-            with open(self.name) as f:
+        fn = self.name()
+        if fn.exists():
+            with open(fn) as f:
                 return f.read()
         else:
             return ''
 
     def write (self, s):
-        with open(self.name, 'w') as f:
+        with open(self.name(), 'w') as f:
             f.write(s)
 
     def __str__ (self):
-        return str(self.name)
+        return str(self.name())
 
 
-#--  File  ---------------------------------------------------------------------
-
-class File:
-
-    __formats__ = None
-
-    def __init__ (self, fn=None, format=None):
-        if fn is None:
-            self.filename = TestLocation('')
-        else:
-            self.filename = PathLocation(fn)
-
-        content_string = self.filename.read()
-
-        file_format = None
-        if content_string.startswith('#!selkie file '):
-            i = j = 14
-            while j < len(content_string) and not content_string[j].isspace():
-                j += 1
-            file_format = content_string[i:j]
-
-        if format is None:
-            if file_format is None:
-                raise Exception('No format provided, cannot determine format from file')
-            format = file_format
-
-        if isinstance(format, str):
-            if format not in self.__formats__:
-                raise Exception(f'Unrecognized format: {format}')            
-            format = self.__formats__[format]
-            
-        if file_format is not None:
-            if format.name != file_format:
-                raise Exception(f'File format {file_format} does not match format parameter {format.name}')
-
-        assert hasattr(format, 'decode')
-        assert hasattr(format, 'encode')
-
-        self.format = format
-        self.contents = format.decode(content_string)
-
-    def save (self):
-        self.filename.write(self.format.encode(self.contents))
-
-    def rename (self, name):
-        self.filename.rename(name)
-
-    def __str__ (self):
-        return self.format.encode(self.contents, pretty=True)
-
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {str(self.filename)}>'
-
-    def export (self, format):
-        if isinstance(format, str):
-            format = self.__formats__[format]
-        return format.encode(self.contents)
-
+#--  Formats  ------------------------------------------------------------------
 
 class JSONFormat:
 
@@ -218,4 +192,82 @@ class DCTFormat:
             f.write(' ')
 
 
-__formats__ = File.__formats__ = {'json': JSONFormat()}
+
+#--  File  ---------------------------------------------------------------------
+
+class File (Location):
+
+    __formats__ = {'json': JSONFormat()}
+
+    def __init__ (self, loc=None, format=None):
+        if loc is None:
+            loc = TestLocation('')
+        elif isinstance(loc, str):
+            loc = PathLocation(loc)
+        elif not isinstance(loc, Location):
+            raise Exception(f'Invalid location argument: {repr(loc)}')
+
+        Location.__init__(self, loc)
+        content_string = loc.read()
+
+        file_format = None
+        if content_string.startswith('#!selkie file '):
+            i = j = 14
+            while j < len(content_string) and not content_string[j].isspace():
+                j += 1
+            file_format = content_string[i:j]
+
+        if format is None:
+            if file_format is None:
+                raise Exception('No format provided, cannot determine format from file')
+            format = file_format
+
+        if isinstance(format, str):
+            if format not in self.__formats__:
+                raise Exception(f'Unrecognized format: {format}')            
+            format = self.__formats__[format]
+            
+        if file_format is not None:
+            if format.name != file_format:
+                raise Exception(f'File format {file_format} does not match format parameter {format.name}')
+
+        assert hasattr(format, 'decode')
+        assert hasattr(format, 'encode')
+
+        self.format = format
+        self.contents = format.decode(content_string)
+
+    def location (self):
+        return self._name
+
+    def name (self):
+        return self.location().name()
+
+    def rename (self, name):
+        self.location().rename(name)
+
+    def read (self):
+        return self.contents
+
+    def write (self, newcontents):
+        self.contents = newcontents
+        self.save()
+
+    def save (self):
+        self.location().write(self.format.encode(self.contents))
+
+    def __str__ (self):
+        return self.format.encode(self.contents, pretty=True)
+
+    def __repr__ (self):
+        return f'<{self.__class__.__name__} {str(self.filename)}>'
+
+    def export (self, format):
+        if isinstance(format, str):
+            format = self.__formats__[format]
+        return format.encode(self.contents)
+
+
+#-------------------------------------------------------------------------------
+
+__formats__ = File.__formats__

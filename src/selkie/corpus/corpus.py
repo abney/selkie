@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from ..pyx.dct import File, DCTFormat
+from ..pyx import File, DCTFormat, Pathname, __formats__
 
 CLDFORMAT = 'cld29'
 
@@ -22,13 +22,14 @@ def nth (iter, n):
 
 #--  Toplevel  -----------------------------------------------------------------
 
-def open_cld_file (fn):
-    fn = Path(fn)
-    fi = File(fn, format=CLDFORMAT)
-    if not fi.contents:
-        name = fn.name
-        fi.contents['corp.' + name] = {}
-    return fi
+class CLDFile (File):
+
+    def __init__ (self, loc):
+        File.__init__(self, loc, CLDFORMAT)
+        if not self.contents:
+            name = self.name()
+            self.contents['corp.' + name] = {}
+
 
 def open_corpus (fn):
     return Registry().open(fn)
@@ -342,8 +343,10 @@ class Registry (Item):
     def _compute_itemid (self):
         return None
 
-    def open (self, fn):
-        fi = open_cld_file(Path(fn))
+    def open (self, loc):
+        if isinstance(loc, str):
+            loc = Pathname(loc)
+        fi = CLDFile(loc)
         for (key, value) in fi.contents.items():
             self.record[key] = value
             (_, discrim) = key.split('.')
@@ -594,7 +597,7 @@ class Sents (List):
 
 #--  CLD file format  ----------------------------------------------------------
 
-File.__formats__[CLDFORMAT] = DCTFormat(
+__formats__[CLDFORMAT] = DCTFormat(
     CLDFORMAT,
     {'corp'},
     corp={'lang', 'rom'},
