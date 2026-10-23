@@ -130,11 +130,16 @@ class Item (Node):
 
     def _compute_itemid (self):
         words = []
-        if self.parent is not None and self.parent.itemid is not None:
-            words.append(self.parent.itemid)
+        if self.parent is not None:
+            pfx = self.parent.child_itemid_prefix()
+            if pfx:
+                words.append(pfx)
         if self.name:
             words.append(self.name)
         return '.'.join(words)
+
+    def child_itemid_prefix (self):
+        return self.itemid
 
     def _find_record (self):
         if self.parent is None:
@@ -165,8 +170,6 @@ class Item (Node):
         for view in views:
             if not isinstance(view, View):
                 raise Exception(f'Not a View: {repr(view)}')
-            if view.Page is None:
-                raise Exception(f'Cannot add an unviewable node as view: {repr(view)}')
             if view.view_of is not None:
                 raise Exception(f'Attempt to re-use a View: {repr(view)} -> {repr(view.view_of)}')
             self.views.append(view)
@@ -286,7 +289,8 @@ class View (Node):
         item.select()
 
     def __repr__ (self):
-        return f'<{self.__class__.__name__} {self.view_of.itemid}>'
+        s = '--' if self.view_of is None else self.view_of.itemid
+        return f'<{self.__class__.__name__} {s}>'
 
 
 #-------------------------------------------------------------------------------
@@ -366,7 +370,8 @@ class Corpus (Item):
         Item.__init__(self, registry, name)
 
         self.file = fi
-        self.props = Props(self, {'filename': str(fi.filename)})
+        # str() because it may be a Pathname
+        self.props = Props(self, {'filename': str(fi.name)})
         self.langs = Langs(self)
         self.roms = Roms(self)
 
@@ -374,7 +379,7 @@ class Corpus (Item):
         self.add_children(self.roms)
         self.add_views(self.props, View(self.roms))
 
-    def _compute_itemid (self):
+    def child_itemid_prefix (self):
         return None
 
     def export_cld (self):
@@ -599,7 +604,7 @@ class Sents (List):
 
 __formats__[CLDFORMAT] = DCTFormat(
     CLDFORMAT,
-    {'corp'},
+    root={'corp'},
     corp={'lang', 'rom'},
     lang={'name', 'glot', 'iso3', 'rom', 'text', 'lexicon', 'trans'},
     text={'ty', 'ti', 'au', 'de', 'ch', 'pdf', 'audio', 'video', 'xid', 'sent'},

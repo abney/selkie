@@ -134,21 +134,23 @@ class DCTFormat:
     The root object type is the empty string.
     '''
 
-    def __init__ (self, name, roots, **kwargs):
+    def __init__ (self, name, **kwargs):
         self.name = name
+        self.root = next(iter(kwargs))
         self.signature = {}
-        self.signature[''] = set(roots)
         for (k,v) in kwargs.items():
             self.signature[k] = set(v)
         
+    def _stack_repr (self, stack):
+        return ' '.join(f"{t}{' '.join(sorted(keys))}" for (t,keys,_) in stack)
+
     def decode (self, s):
-        keys = self.signature['']
-        stack = [(keys,{})]
+        stack = [(self.signature[self.root], {})]
         for (lno, key, value) in self._records(s):
             t = key_prefix(key)
             while t not in stack[-1][0]:
                 if len(stack) <= 1:
-                    raise Exception(f'No parent found for {repr(key)} [lno {lno}] t={repr(t)} stack={repr(stack)}')
+                    raise Exception(f'[lno {lno}] No parent found: key={repr(key)} t={repr(t)}')
                 stack.pop()
             parent = stack[-1][1]
             if key in parent:
@@ -203,7 +205,7 @@ class File (Location):
         if loc is None:
             loc = TestLocation('')
         elif isinstance(loc, str):
-            loc = PathLocation(loc)
+            loc = Pathname(loc)
         elif not isinstance(loc, Location):
             raise Exception(f'Invalid location argument: {repr(loc)}')
 
@@ -260,7 +262,7 @@ class File (Location):
         return self.format.encode(self.contents, pretty=True)
 
     def __repr__ (self):
-        return f'<{self.__class__.__name__} {str(self.filename)}>'
+        return f'<{self.__class__.__name__} {self.name()}>'
 
     def export (self, format):
         if isinstance(format, str):

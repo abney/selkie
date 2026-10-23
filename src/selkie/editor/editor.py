@@ -192,12 +192,15 @@ class Editor (EditorElement):
 #         lang = self.location.corpus.table[name]
 #         self.edit(lang)
 
-    def edit_lang (self, nid):
-        lang = self.corpus().language(nid)
+    def edit_lang (self, name):
+        lang = self.corpus().langs[name]
         self.edit(lang)
 
-    def edit_text (self, name):
-        text = self.language().texts[name]
+    def edit_text (self, itemid):
+        (lgname, name) = itemid.split('.')
+        lang = self.language()
+        assert lang.name() == lgname
+        text = lang.texts[name]
         self.edit(text)
         
     def edit_sent (self, name):
@@ -289,10 +292,12 @@ class StandardPage (Page):
             if selected is None:
                 menu = menubar.Menu(f'({nodetype})')
             else:
-                menu = menubar.Menu(selected.nid, editfun, selected.nid)
+                if not selected.itemid:
+                    raise Exception(f'Selected has no itemid: {repr(selected)}')
+                menu = menubar.Menu(selected.itemid, editfun, selected.itemid)
             for alt in lst:
                 if alt is not selected:
-                    menu.MenuItem(alt.nid, editfun, alt.nid)
+                    menu.MenuItem(alt.itemid, editfun, alt.itemid)
             menu.MenuItem('+', newfun)
 
 #     def construct_menu_safe (self):
