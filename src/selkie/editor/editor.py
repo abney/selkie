@@ -1,7 +1,7 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import (Registry, Corpus, Node, Language, Toc, Text, Sents, Sentence, Props, Roms, Rom)
+from ..corpus import (View, Registry, Corpus, Node, Language, Toc, Text, Sents, Sentence, Props, Roms, Rom)
 from ..wap import Element, EditableCell, UploadedFile
 
 
@@ -82,11 +82,18 @@ class Editor (EditorElement):
     def form (self): return self.selected.form()
 
     def edit (self, item):
+        if isinstance(item, View):
+            view = item
+            item = view.view_of
+        else:
+            view = item.current_view
         self.selected = item
         item.select()
-        view = item.current_view
         self.clear()
-        self.create(view.Page, view)
+        call = view.page()
+        if call[0] is True:
+            raise Exception(f'No Page defined for {repr(view)}')
+        self.create(*call)
 
 #     def update_location (self, item):
 #         if isinstance(item, Node):
@@ -199,7 +206,7 @@ class Editor (EditorElement):
     def edit_text (self, itemid):
         (lgname, name) = itemid.split('.')
         lang = self.language()
-        assert lang.name() == lgname
+        assert lang.name == lgname
         text = lang.texts[name]
         self.edit(text)
         
@@ -352,7 +359,7 @@ class StandardPage (Page):
         if node.views and len(node.views) > 1:
             h2.write(' : ')
             for view in node.views:
-                button = h2.Button(view.view_name(), (editor.edit, view))
+                button = h2.Button(view.view_type(), (editor.edit, view))
                 button.style.marginLeft = '5px'
                 if view is selected_view:
                     button.disable()
@@ -400,8 +407,7 @@ class CorpusPage (StandardPage):
     def __init__ (self, editor, corpus):
         StandardPage.__init__(self, editor, corpus)
         self.corpus = corpus
-        self.table = {'filename': corpus.filename()}
-        self.DictEditor(self.table, self.property_change)
+        self.DictEditor(corpus.props, self.property_change)
         p = self.P()
         button = p.Button()
         button.write('Download')

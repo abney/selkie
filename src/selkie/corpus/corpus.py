@@ -170,14 +170,10 @@ class Item (Node):
         for view in views:
             if not isinstance(view, View):
                 raise Exception(f'Not a View: {repr(view)}')
-            if view.view_of is not None:
-                raise Exception(f'Attempt to re-use a View: {repr(view)} -> {repr(view.view_of)}')
+            view.set_view_of(self)
             self.views.append(view)
-            view.view_of = self
-        if self.current_view is self:
-            assert self.view_of is self
+        if self.current_view is None:
             self.current_view = self.views[0]
-            self.view_of = None
 
     def select (self):
         if self.current_view is None:
@@ -238,7 +234,7 @@ class List (Node):
                 self.ElementClass(self, name)
 
     def __repr__ (self):
-        return f'<List of {self.ElementClass.__name__}>'
+        return f'<{self.__class__.__name__} {repr(self.parent)}>'
 
     def index_element (self, elt):
         self.elements.append(elt)
@@ -278,9 +274,18 @@ class View (Node):
 
     def __init__ (self, parent):
         Node.__init__(self, parent)
-        if self.Page is True:
-            self.Page = parent.Page
         self.view_of = None
+
+    def set_view_of (self, item):
+        if self.view_of is not None:
+            raise Exception(f'Attempt to re-use a View: {repr(view)} -> {repr(view.view_of)}')
+        self.view_of = item
+
+    def page (self):
+        return (self.Page, self)
+
+    def view_type (self):
+        return self.__class__.__name__.lower()
 
     def select (self):
         item = self.view_of
@@ -289,8 +294,43 @@ class View (Node):
         item.select()
 
     def __repr__ (self):
-        s = '--' if self.view_of is None else self.view_of.itemid
+        s = '--' if self.view_of is None else repr(self.view_of)
         return f'<{self.__class__.__name__} {s}>'
+
+
+class ViewOf (View):
+
+    def __init__ (self, item):
+        View.__init__(self, item)
+        self.view_of = item
+
+    def set_view_of (self, item):
+        pass
+
+    def page (self):
+        item = self.view_of
+        return (item.Page, item)
+
+    def view_type (self):
+        return self.view_of.__class__.__name__.lower()
+
+
+# class Listing (View):
+# 
+#     def __init__ (self, lst):
+#         View.__init__(self, lst.parent)
+#         self._list = lst
+# 
+#     def page (self):
+#         lst = self._list
+#         return (lst.Page, lst)
+# 
+#     def view_type (self):
+#         return self._list.__class__.__name__.lower()
+# 
+#     def __repr__ (self):
+#         s = '--' if self._list is None else repr(self._list)
+#         return f'<{self.__class__.__name__} {s}>'
 
 
 #-------------------------------------------------------------------------------
@@ -337,7 +377,7 @@ class Registry (Item):
         self.corpora = Corpora(self)
         self.n_untitled = 0
         self.add_children(self.corpora)
-        self.add_views(View(self))
+        self.add_views(ViewOf(self))
 
     def __iter__ (self): return iter(self.corpora)
     def __len__ (self): return len(self.corpora)
@@ -370,14 +410,17 @@ class Corpus (Item):
         Item.__init__(self, registry, name)
 
         self.file = fi
-        # str() because it may be a Pathname
-        self.props = Props(self, {'filename': str(fi.name)})
+        self.props = Props(self, {'filename': self.filename()})
         self.langs = Langs(self)
         self.roms = Roms(self)
 
         self.add_children(self.langs)
         self.add_children(self.roms)
-        self.add_views(self.props, View(self.roms))
+        self.add_views(self.props, ViewOf(self.roms))
+
+    def filename (self):
+        # str() because it may be a Pathname
+        return str(self.file.name())
 
     def child_itemid_prefix (self):
         return None
@@ -393,7 +436,7 @@ class Corpus (Item):
 
     def rename (self, filename):
         self.file.rename(filename)
-        self.props['filename'] = str(self.file.filename)
+        self.props['filename'] = str(self.file.name())
 
     def corpus (self):
         return self
@@ -443,7 +486,7 @@ class Text (Item):
         self.sents = Sents(self)
 
         self.add_children(self.sents)
-        self.add_views(self.props, View(self.sents))
+        self.add_views(self.props, SentsView(self))
 
     def text (self):
         return self
