@@ -39,6 +39,8 @@ def open_corpus (fn):
 
 class Node:
 
+    Page = None
+
     def __init__ (self, parent):
         self.parent = parent
 
@@ -95,6 +97,11 @@ class Node:
                 if elt is lst.selected:
                     self._print_state_1(elt.state, indent4)
         
+    def page (self):
+        assert self.Page is not None, f'No Page for {repr(self)}'
+        return (self.Page, self)
+        
+
 #     def view_name (self):
 #         return self.__class__.__name__.lower()
 
@@ -103,7 +110,6 @@ class Node:
 
 class Item (Node):
 
-    Page = None
     TypeString = None
 
     def __init__ (self, parent, name=None):
@@ -270,11 +276,17 @@ class List (Node):
 
 class View (Node):
     
-    Page = True
-
-    def __init__ (self, parent):
+    def __init__ (self, parent, displayable=None, view_type=None):
+        if displayable is None:
+            displayable = self
+        if view_type is None:
+            view_type = displayable.__class__.__name__.lower()
         Node.__init__(self, parent)
         self.view_of = None
+        self.displayable = displayable
+        self.view_type = view_type
+
+        assert displayable.Page is not None, f'No Page: {repr(displayable)}'
 
     def set_view_of (self, item):
         if self.view_of is not None:
@@ -282,10 +294,10 @@ class View (Node):
         self.view_of = item
 
     def page (self):
-        return (self.Page, self)
-
-    def view_type (self):
-        return self.__class__.__name__.lower()
+        if self.displayable is self:
+            return Node.page(self)
+        else:
+            return self.displayable.page()
 
     def select (self):
         item = self.view_of
@@ -296,23 +308,6 @@ class View (Node):
     def __repr__ (self):
         s = '--' if self.view_of is None else repr(self.view_of)
         return f'<{self.__class__.__name__} {s}>'
-
-
-class ViewOf (View):
-
-    def __init__ (self, item):
-        View.__init__(self, item)
-        self.view_of = item
-
-    def set_view_of (self, item):
-        pass
-
-    def page (self):
-        item = self.view_of
-        return (item.Page, item)
-
-    def view_type (self):
-        return self.view_of.__class__.__name__.lower()
 
 
 # class Listing (View):
@@ -377,7 +372,7 @@ class Registry (Item):
         self.corpora = Corpora(self)
         self.n_untitled = 0
         self.add_children(self.corpora)
-        self.add_views(ViewOf(self))
+        self.add_views(View(self, displayable=self))
 
     def __iter__ (self): return iter(self.corpora)
     def __len__ (self): return len(self.corpora)
@@ -416,7 +411,7 @@ class Corpus (Item):
 
         self.add_children(self.langs)
         self.add_children(self.roms)
-        self.add_views(self.props, ViewOf(self.roms))
+        self.add_views(self.props, View(self, displayable=self.roms))
 
     def filename (self):
         # str() because it may be a Pathname
@@ -486,7 +481,7 @@ class Text (Item):
         self.sents = Sents(self)
 
         self.add_children(self.sents)
-        self.add_views(self.props, SentsView(self))
+        self.add_views(self.props, Plaintext(self))
 
     def text (self):
         return self
@@ -623,6 +618,10 @@ class Toc (View):
             print('parent_table=', parent_table)
             self._roots = [text for text in lang.texts if not parent_table.get(text.nid)]
         return self._roots
+
+
+class Plaintext (View):
+    pass
 
 
 #--  Lists  --------------------------------------------------------------------

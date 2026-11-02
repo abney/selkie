@@ -182,9 +182,19 @@ Generic classes
 
 .. py:class:: Node
 
+   .. py:attribute:: Page
+
+      A node with a value for Page is **displayable**. Typically,
+      displayables are Views, but Items or Lists may be displayable,
+      too.
+
    .. py:attribute:: parent
 
       The parent of this node (a Node).
+
+   .. py:method:: page()
+
+      Returns the pair (self.Page, self). Signals an error if Page is None.
 
    .. py:method:: root()
 
@@ -219,13 +229,6 @@ Generic classes
 .. py:class:: Item
 
    A specialization of Node.
-
-   .. py:attribute:: Page
-
-      Not set in Item, but may be set in subclasses to make it
-      possible to wrap instances of the subclass in a view:
-      ``View(item)``. The view inherits its Page from the wrapped
-      (parent) item.
 
    .. py:attribute:: TypeString
 		     
@@ -321,14 +324,22 @@ Generic classes
 
    A specialization of Node.
 
-   .. py:attribute:: Page
-
-      The UI page. If it is not set (None), the parent's value for
-      Page (if any) will be inherited.
-
    .. py:attribute:: view_of
 
       The item that this is a view of.
+
+   .. py:attribute:: displayable
+
+      The host for the Page to be displayed.
+
+   .. py:attribute:: view_type
+
+      A string representation of the displayable.
+
+   .. py:method:: __init__ (parent, [displayable, view_type])
+
+      Displayable defaults to self. View type defaults to the class
+      name of the displayable, in lower case.
 
    .. py:method:: select()
 

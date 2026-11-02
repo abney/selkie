@@ -1,56 +1,57 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import (View, Registry, Corpus, Node, Language, Toc, Text, Sents, Sentence, Props, Roms, Rom)
+from ..corpus import (View, Registry, Corpus, Node, Language,
+                      Toc, Text, Plaintext, Sents, Sentence, Tokens, Props, Roms, Rom)
 from ..wap import Element, EditableCell, UploadedFile
 
 
-class Location:
-        
-    node_types = ('corp', 'lang', 'text', 'sent', 'form')
-    NNodes = 5
+# class Location:
+#         
+#     node_types = ('corp', 'lang', 'text', 'sent', 'form')
+#     NNodes = 5
+# 
+#     def __init__ (self):
+#         self.node = None
+#         self.item = None
+#         self.nodes = [None] * self.NNodes
+# 
+#     def corpus (self): return self.nodes[0]
+#     def language (self): return self.nodes[1]
+#     def text (self): return self.nodes[2]
+#     def sentence (self): return self.nodes[3]
+#     def form (self): return self.nodes[4]
+# 
+# #     def _compute_nodes (self, oldloc):
+# #         node = self.node
+# #         if oldloc is None:
+# #             if node is None:
+# #                 return [None] * self.NNodes
+# #             else:
+# #                 return list(node.ancestors())
+# #         else:
+# #             nodes = list(oldloc.nodes)
+# #             if node is not None:
+# #                 ancs = list(node.ancestors())
+# #                 lvl = node.level()
+# #                 # if this is a new node, clear old-node descendants
+# #                 if nodes[lvl] != node:
+# #                     for i in range(lvl+1, self.NNodes):
+# #                         nodes[i] = None
+# #                 while lvl >= 0 and node is not None and nodes[lvl] != node:
+# #                     nodes[lvl] = node
+# #                     node = node.parent
+# #                     lvl -= 1
+# #             return nodes
+# 
+#     def __repr__ (self):
+#         return f"<Location {' '.join(node.key for node in self.nodes if node is not None)}>"
 
-    def __init__ (self):
-        self.node = None
-        self.item = None
-        self.nodes = [None] * self.NNodes
 
-    def corpus (self): return self.nodes[0]
-    def language (self): return self.nodes[1]
-    def text (self): return self.nodes[2]
-    def sentence (self): return self.nodes[3]
-    def form (self): return self.nodes[4]
-
-#     def _compute_nodes (self, oldloc):
-#         node = self.node
-#         if oldloc is None:
-#             if node is None:
-#                 return [None] * self.NNodes
-#             else:
-#                 return list(node.ancestors())
-#         else:
-#             nodes = list(oldloc.nodes)
-#             if node is not None:
-#                 ancs = list(node.ancestors())
-#                 lvl = node.level()
-#                 # if this is a new node, clear old-node descendants
-#                 if nodes[lvl] != node:
-#                     for i in range(lvl+1, self.NNodes):
-#                         nodes[i] = None
-#                 while lvl >= 0 and node is not None and nodes[lvl] != node:
-#                     nodes[lvl] = node
-#                     node = node.parent
-#                     lvl -= 1
-#             return nodes
-
-    def __repr__ (self):
-        return f"<Location {' '.join(node.key for node in self.nodes if node is not None)}>"
-
-
-class EditorElement (Element):
-
-    def PlainTextPanel (self, text, **kwargs):
-        return self.create(PlainTextPanel, text, **kwargs)
+# class EditorElement (Element):
+# 
+#     def PlainTextPanel (self, text, **kwargs):
+#         return self.create(PlainTextPanel, text, **kwargs)
 
 
 class State:
@@ -65,10 +66,10 @@ class State:
         return f'<State item={repr(item)} child={repr(child)}>'
 
 
-class Editor (EditorElement):
+class Editor (Element):
 
     def __init__ (self, server):
-        EditorElement.__init__(self, None, None)
+        Element.__init__(self, None, None)
         self.server = server
         self.selected = None
         self.registry = Registry()
@@ -91,8 +92,6 @@ class Editor (EditorElement):
         item.select()
         self.clear()
         call = view.page()
-        if call[0] is True:
-            raise Exception(f'No Page defined for {repr(view)}')
         self.create(*call)
 
 #     def update_location (self, item):
@@ -228,7 +227,7 @@ class SentenceCell (EditableCell):
         EditableCell.__init__(self, parent, sent.string, sent.set_string, **kwargs)
 
 
-class PlainTextPanel (EditorElement):
+class PlainTextPanel (Element):
 
     def __init__ (self, parent, sents):
         Element.__init__(self, parent, 'div')
@@ -256,7 +255,7 @@ class PlainTextPanel (EditorElement):
 #         self.meta[self.key] = value
 #     
 # 
-# class PropertyTable (EditorElement):
+# class PropertyTable (Element):
 # 
 #     def __init__ (self, parent, meta):
 #         Element.__init__(self, parent, 'table', classname='noborder')
@@ -272,7 +271,7 @@ class PlainTextPanel (EditorElement):
         
 #--  Pages  --------------------------------------------------------------------
 
-class Page (EditorElement):
+class Page (Element):
 
     def __init__ (self, editor, item):
         Element.__init__(self, editor, 'div')
@@ -359,19 +358,19 @@ class StandardPage (Page):
         if node.views and len(node.views) > 1:
             h2.write(' : ')
             for view in node.views:
-                button = h2.Button(view.view_type(), (editor.edit, view))
+                button = h2.Button(view.view_type, (editor.edit, view))
                 button.style.marginLeft = '5px'
                 if view is selected_view:
                     button.disable()
 
-    def goto_view (self, cls):
-        editor = self.editor
-        node = editor.location.node
-        if isinstance(node, cls):
-            item = node
-        else:
-            item = cls(node)
-        editor.edit(item)
+#     def goto_view (self, cls):
+#         editor = self.editor
+#         node = editor.location.node
+#         if isinstance(node, cls):
+#             item = node
+#         else:
+#             item = cls(node)
+#         editor.edit(item)
 
 
 class RegistryPage (StandardPage):
@@ -447,12 +446,12 @@ class TocPage (StandardPage):
                 self._produce_ul(li, children)
 
 
-class SentsPage (StandardPage):
+class PlaintextPage (StandardPage):
 
     def __init__ (self, editor, text):
         StandardPage.__init__(self, editor, text)
-        self.PlainTextPanel(text)
-        
+        self.create(PlainTextPanel, text)
+
 
 class IGTPage (StandardPage):
 
@@ -470,6 +469,10 @@ class RomsPage (StandardPage):
         ul.LI().Button(text='+ rom', action=self.editor.new_rom)
 
 
+class TokensPage (StandardPage):
+    pass
+
+
 #--  Node updates  -------------------------------------------------------------
 
 Registry.Page = RegistryPage
@@ -477,4 +480,5 @@ Corpus.Page = CorpusPage
 Props.Page = PropsPage
 Toc.Page = TocPage
 Roms.Page = RomsPage
-Sents.Page = SentsPage
+Plaintext.Page = PlaintextPage
+Tokens.Page = TokensPage
