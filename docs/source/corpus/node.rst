@@ -5,8 +5,8 @@ Nodes
 General
 -------
 
-The result of reading a corpus file is a single large python dict (a
-record), containing a single key whose prefix is ``corp``.
+As discussed in the previous section, the result of reading a corpus
+file is a collection of nested dicts (records).
 The primary desiderata in the design of the record structure
 are simplicity and non-redundancy.
 
@@ -15,41 +15,27 @@ higher-level structure consisting of instances of
 the class Node. Nodes may be "virtual" elements that package up
 information from parts of records or multiple records.
 
-There are three kinds of node:
-
- * An **item** is a node that can be selected for viewing or editing
-   in the UI. It is backed by a record. (The Registry item is
-   exceptional, in the sense that its record is not taken directly from
-   a file. Rather, its key-value pairs represent toplevel
-   key-value pairs from different corpus files, each file providing a single
-   pair.)
-
- * A **view** pairs an item with a UI Page. Each item has a
-   member ``views`` containing a list of views, and each view has a
-   member ``view_of``, which is an item.
-
- * A **list** is a node that represents a set of sub-records that have a
-   common record type. A list, like an item, is taken from a corpus
-   file, but it has no record of it own. Its elements correspond to a
-   subset of key-value pairs from its parent's record.
-
-Nodes also record **state** information for the UI, specifically,
-**selection** information. At any point in
-time, the user may have selected a particular corpus, a particular
-language within the corpus, a particular text within the language, and
-so on, and that information is recorded by designating a selected
-element in each list.
-
-All Nodes are instantiated with a parent. Walking the tree upward
-gives access to contextual information, including the
+A Node (unlike the record it wraps) contains a backlink to its
+parent. This permits us to walk the tree upward and
+access contextual information, such as the
 ``corpus()``, ``language()``, and ``text()`` that a given node
 belongs to. Access to the corpus permits any node to ``save()`` all
-modifications to the corpus to disk. Moreover, the corpus contains an
-index that allows one to access arbitrary items (within the same
-corpus) by type and item ID.
+modifications to the corpus to disk.
+
+Node subclasses
+---------------
+
+There are three kinds of node, as follows.
 
 Items
------
+.....
+
+An item is a node that can be selected for viewing or editing
+in the UI. It is backed by a record. The Registry item is
+an exception, in that its record is not taken directly from
+a file. Rather, its key-value pairs represent toplevel
+key-value pairs from different corpus files, each file providing a single
+pair.
 
 The item structure is a tree that overlies the record tree.
 Accordingly, each item is instantiated with a parent node and a
@@ -67,7 +53,18 @@ of record in the corpus. Subclasses include ``Corpus``,
 ``Form``, ``Xlexicon``, ``Xtext``, and ``Times``.
 
 Lists
------
+.....
+
+A list represents a set of records that have the
+same type and same parent. For example, a corpus might contain records
+with keys ``lang.deu``, ``lang.fla``, ``rom.gothic``, and ``rom.fla``.
+(The ISO code 'fla' represents Montana Salish.)
+The languages (``lang.deu``, ``lang.fla``) and romanizations (``rom.gothic``,
+``rom.fla``) are packaged as two separate lists.
+Since all keys in a list have the same attribute, the names uniquely
+identify the elements in a list. Note that the names alone do not
+uniquely identify a record within the corpus as a whole, however: ``fla`` is the name of
+both a language and a romanization.
 
 A List represents a group of children of an item.
 The list also includes information about which, if any, child is
@@ -90,25 +87,46 @@ Corpus has members ``langs`` and ``roms``. One can access the Ojibwe
 language in a corpus as ``corpus.langs['oji']``.
 
 Views
------
+.....
 
-A View is associated with a displayable Page in the UI. As mentioned
-above, each item has a member ``views`` containing the available
-views, and each view has a member ``view_of`` pointing to the item.
+A view is associated with a displayable page in the UI. Each item has a
+member ``views`` containing a list of views, and each view has a
+member ``view_of``, which is an item.
 
 State
 -----
 
-Each item has a member ``state`` whose value is a dict that maps
-child types to lists. For example, another way to access the Ojibwe
-language of a corpus is as ``corpus.state['lang']['oji']``.
+A state facilitates user interaction with the corpus. 
+One can mark the "current working item" by calling its ``select()`` method.
+The state of the corpus then marks the
+sequence of **choices** in the pathname leading to that item.
 
-Each list has a member ``selected`` whose value is the currently selected
+More generally, each Item has a member ``state`` whose value is
+a dict that maps child types to Lists. For example, if ``corpus`` is a
+corpus, then ``corpus.langs`` is a List of items of type ``lang``;
+thus the corpus state maps the key ``"lang"`` to the List ``corpus.langs``.
+That is, ``corpus.langs`` and ``corpus.state['lang']`` are two ways to
+access the same List.
+
+A List, in turn, has a member ``selected`` whose value is the currently selected
 element. For example, if ``reg`` is the registry, then
-the currently selected corpus is ``corpus = reg.state['corp'].selected``.
-Additional selections can be accessed recursively, for example,
-``lang = corpus.state['lang'].selected``.
+the currently selected corpus is::
 
-In the user interface, the state is walked recursively to construct a
-sequence of menus, one menu per item list: a menu of corpora, a menu
-of languages, a menu of texts, etc.
+   corpus = reg.state['corp'].selected
+
+Selecting an item causes all of its ancestors that are List elements
+to become the selected elements in their Lists.
+
+Descending from a List, one can access additional selections recursively, for example::
+
+   lang = corpus.state['lang'].selected
+
+The states and selected elements define a **selection tree**.
+
+Every Item has a method ``choices()`` that returns an iteration over
+the Lists that are encountered in a preorder walk of the selection tree.
+
+The choices support the construction of menus in the user interface,
+with one menu per List. Depending on which items are selected,
+one might have a menu of corpora, a menu of languages (for the
+selected corpus), a menu of texts (for the selected language), etc.

@@ -159,6 +159,12 @@ class Element:
     def P (self, **kwargs):
         return self.Element('p', **kwargs)
 
+    def bold (self, **kwargs):
+        return self.Element('b', **kwargs)
+
+    def italic (self, **kwargs):
+        return self.Element('i', **kwargs)
+
     def download_file (self, name, contents):
         headers = to_js({'type': 'text/plain'}, dict_converter=js.Object.fromEntries)
         contents = to_js([contents])

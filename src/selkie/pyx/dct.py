@@ -2,6 +2,7 @@
 import json, os
 from io import StringIO
 from pathlib import Path
+from os import PathLike
 
 
 def split_at_ws (line):
@@ -103,6 +104,17 @@ class Pathname (Location):
         return str(self.name())
 
 
+def as_location (loc):
+    if isinstance(loc, Location):
+        return loc
+    elif loc is None:
+        return TestLocation('')
+    elif isinstance(loc, (str, Path, PathLike)):
+        return Pathname(loc)
+    else:
+        raise Exception(f'Invalid location argument: {repr(loc)}')
+
+
 #--  Formats  ------------------------------------------------------------------
 
 class JSONFormat:
@@ -197,19 +209,12 @@ class DCTFormat:
 
 #--  File  ---------------------------------------------------------------------
 
-class File (Location):
+class File:
 
     __formats__ = {'json': JSONFormat()}
 
     def __init__ (self, loc=None, format=None):
-        if loc is None:
-            loc = TestLocation('')
-        elif isinstance(loc, str):
-            loc = Pathname(loc)
-        elif not isinstance(loc, Location):
-            raise Exception(f'Invalid location argument: {repr(loc)}')
-
-        Location.__init__(self, loc)
+        loc = as_location(loc)
         content_string = loc.read()
 
         file_format = None
@@ -236,17 +241,15 @@ class File (Location):
         assert hasattr(format, 'decode')
         assert hasattr(format, 'encode')
 
+        self.location = loc
         self.format = format
         self.contents = format.decode(content_string)
 
-    def location (self):
-        return self._name
-
     def name (self):
-        return self.location().name()
+        return self.location.name()
 
     def rename (self, name):
-        self.location().rename(name)
+        self.location.rename(name)
 
     def read (self):
         return self.contents
@@ -255,8 +258,10 @@ class File (Location):
         self.contents = newcontents
         self.save()
 
-    def save (self):
-        self.location().write(self.format.encode(self.contents))
+    def save (self, fn=None):
+        if fn is not None:
+            self.location.rename(fn)
+        self.location.write(self.format.encode(self.contents))
 
     def __str__ (self):
         return self.format.encode(self.contents, pretty=True)

@@ -7,8 +7,6 @@
 >>> corpus
 <Corpus corp29>
 
->>> type(corpus.file)
-<class 'selkie.pyx.dct.File'>
 >>> list(corpus.props)
 ['filename']
 >>> corpus.props['filename'].endswith('corp29.cld')
@@ -70,7 +68,7 @@ lang.deu
 <Lexicon deu>
 
 >>> deu.views
-[<Props deu>, <Toc deu>]
+[<Props <Language deu>>, <Toc <Language deu>>]
 
 >>> sents = text2.sents
 >>> len(sents)
@@ -111,7 +109,7 @@ True
 
 >>> text2.select()
 >>> text2.current_view
-<Props deu.2>
+<Props <Text deu.2>>
 >>> for lst in text2.choices(): print(lst, repr(lst.selected))
 <List of Corpus> <Corpus corp29>
 <List of Language> <Language deu>

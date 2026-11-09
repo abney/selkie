@@ -24,15 +24,16 @@ def nth (iter, n):
 
 class CLDFile (File):
 
-    def __init__ (self, loc):
+    def __init__ (self, loc, name=None):
         File.__init__(self, loc, CLDFORMAT)
         if not self.contents:
-            name = self.name()
+            if name is None:
+                name = str(self.name())
             self.contents['corp.' + name] = {}
 
 
-def open_corpus (fn):
-    return Registry().open(fn)
+def open_corpus (fn, name=None):
+    return Registry().open(fn, name=name)
 
 
 #--  Node  ---------------------------------------------------------------------
@@ -97,9 +98,8 @@ class Node:
                 if elt is lst.selected:
                     self._print_state_1(elt.state, indent4)
         
-    def page (self):
-        assert self.Page is not None, f'No Page for {repr(self)}'
-        return (self.Page, self)
+    def get_displayable (self):
+        return self
         
 
 #     def view_name (self):
@@ -112,27 +112,27 @@ class Item (Node):
 
     TypeString = None
 
-    def __init__ (self, parent, name=None):
+    def __init__ (self, parent, name=None, record=None):
         assert self.TypeString is not None, f'Subclasses of Item must provide TypeString'
 
-        # The discriminator. lst.index_element() relies on this
+        # The discriminator. If this is an element of a list, the name is the key.
         self.name = name
 
-        lst = None
+        element_of = None
         if isinstance(parent, List):
-            lst = parent
-            assert lst.parent is not None
-            assert self.__class__ is lst.ElementClass
-            parent = lst.parent
-            lst.index_element(self)
+            element_of = parent
+            parent = element_of.parent
+            assert parent is not None
+            assert self.__class__ is element_of.ElementClass
+            assert record is not None
 
         Node.__init__(self, parent)
-        self.element_of = lst
+        self.element_of = element_of
         self.views = None
         self.current_view = None
         self.state = {}
         self.itemid = self._compute_itemid()
-        self.record = self._find_record()
+        self.record = record
 
     def _compute_itemid (self):
         words = []
@@ -194,6 +194,9 @@ class Item (Node):
             lst.selected = node
             node = lst.parent
 
+    def save (self):
+        self.corpus().save()
+
     def __repr__ (self):
         if self.itemid:
             s = ' ' + self.itemid
@@ -210,23 +213,12 @@ class List (Node):
     a value in a record. The key is the List's class name.
     '''
 
-    ElementClass = None
-
-    def __init__ (self, parent):
-        assert self.ElementClass is not None
+    def __init__ (self, eltclass, parent):
         assert isinstance(parent, Item)
         assert parent.record is not None
-        
+
         Node.__init__(self, parent)
-
-#         parent = self.parent
-#         key = self.__class__.__name__.lower()
-#         if key in parent.record:
-#             discrims = parent.record[key].split()
-#             elements = [self.ElementClass(self, sn) for sn in sns]
-#             else:
-#                 elements = []
-
+        self.ElementClass = eltclass
         self.elements = []
         self._index = {}
         self.selected = None
@@ -236,17 +228,35 @@ class List (Node):
         prefix = self.ElementClass.TypeString + '.'
         for (key, value) in parent.record.items():
             if key.startswith(prefix):
-                name = key[len(prefix):]
-                self.ElementClass(self, name)
+                self.add_element_from_record(key[len(prefix):], value)
 
-    def __repr__ (self):
-        return f'<{self.__class__.__name__} {repr(self.parent)}>'
+    def new (self, name=None, constructor=None):
+        if name is None:
+            name = str(len(self.elements) + 1)
+        return self.add_record(name, {}, constructor)
+
+    def add_record (self, name, record, constructor=None):
+        key = self.ElementClass.TypeString + '.' + name
+        if key in self.parent.record:
+            raise Exception('Name already in use')
+        self.parent.record[key] = record
+        return self.add_element_from_record(name, record, constructor)
+
+    def add_element_from_record (self, name, record, constructor=None):
+        if constructor is None:
+            constructor = self.ElementClass
+        elt = constructor(self, name, record)
+        self.elements.append(elt)
+        self.index_element(elt)
+        return elt
 
     def index_element (self, elt):
-        self.elements.append(elt)
         assert elt.name is not None
         assert elt.name not in self._index
         self._index[elt.name] = elt
+
+    def __repr__ (self):
+        return f'<{self.__class__.__name__} of {self.ElementClass.__name__}>'
 
     def __len__ (self): return len(self.elements)
     def __iter__ (self): return iter(self.elements)
@@ -256,6 +266,9 @@ class List (Node):
             return self._index[i]
         else:
             return self.elements[i]
+
+    def __contains__ (self, i):
+        return i in self._index
 
     def get (self, name):
         return self._index.get(name)
@@ -286,18 +299,13 @@ class View (Node):
         self.displayable = displayable
         self.view_type = view_type
 
-        assert displayable.Page is not None, f'No Page: {repr(displayable)}'
-
     def set_view_of (self, item):
         if self.view_of is not None:
             raise Exception(f'Attempt to re-use a View: {repr(view)} -> {repr(view.view_of)}')
         self.view_of = item
 
-    def page (self):
-        if self.displayable is self:
-            return Node.page(self)
-        else:
-            return self.displayable.page()
+    def get_displayable (self):
+        return Node.get_displayable(self.displayable)
 
     def select (self):
         item = self.view_of
@@ -308,24 +316,6 @@ class View (Node):
     def __repr__ (self):
         s = '--' if self.view_of is None else repr(self.view_of)
         return f'<{self.__class__.__name__} {s}>'
-
-
-# class Listing (View):
-# 
-#     def __init__ (self, lst):
-#         View.__init__(self, lst.parent)
-#         self._list = lst
-# 
-#     def page (self):
-#         lst = self._list
-#         return (lst.Page, lst)
-# 
-#     def view_type (self):
-#         return self._list.__class__.__name__.lower()
-# 
-#     def __repr__ (self):
-#         s = '--' if self._list is None else repr(self._list)
-#         return f'<{self.__class__.__name__} {s}>'
 
 
 #-------------------------------------------------------------------------------
@@ -366,10 +356,10 @@ class Registry (Item):
     TypeString = 'registry'
 
     def __init__ (self):
-        Item.__init__(self, None)
+        Item.__init__(self, None, None, None)
         # Corpora(self) relies on self.record existing
         self.record = {}
-        self.corpora = Corpora(self)
+        self.corpora = List(Corpus, self)
         self.n_untitled = 0
         self.add_children(self.corpora)
         self.add_views(View(self, displayable=self))
@@ -382,14 +372,15 @@ class Registry (Item):
     def _compute_itemid (self):
         return None
 
-    def open (self, loc):
-        if isinstance(loc, str):
-            loc = Pathname(loc)
-        fi = CLDFile(loc)
-        for (key, value) in fi.contents.items():
-            self.record[key] = value
-            (_, discrim) = key.split('.')
-            corpus = Corpus(self.corpora, fi, discrim)
+    def open (self, loc, name=None):
+        fi = CLDFile(loc, name=name)
+        constructor = lambda parent, name, record: Corpus(parent, fi, name, record)
+        assert len(fi.contents) == 1
+        (key, record) = next(iter(fi.contents.items()))
+        if name is None:
+            assert key.startswith('corp.')
+            name = key[5:]
+        corpus = self.corpora.add_record(name, record, constructor)
         return corpus
 
     def new (self):
@@ -401,13 +392,13 @@ class Corpus (Item):
 
     TypeString = 'corp'
 
-    def __init__ (self, registry, fi, name):
-        Item.__init__(self, registry, name)
+    def __init__ (self, registry, cldfile, name, record):
+        Item.__init__(self, registry, name, record)
 
-        self.file = fi
+        self.file = cldfile
         self.props = Props(self, {'filename': self.filename()})
-        self.langs = Langs(self)
-        self.roms = Roms(self)
+        self.langs = List(Language, self)
+        self.roms = List(Rom, self)
 
         self.add_children(self.langs)
         self.add_children(self.roms)
@@ -449,10 +440,10 @@ class Language (Item):
 
     TypeString = 'lang'
 
-    def __init__ (self, parent, name):
-        Item.__init__(self, parent, name)
+    def __init__ (self, parent, name, record):
+        Item.__init__(self, parent, name, record)
         self.props = Props(self, ['name', 'glot', 'iso3', 'rom'])
-        self.texts = Texts(self)
+        self.texts = List(Text, self)
         self.toc = Toc(self)
         self.lexicon = Lexicon(self)
 
@@ -461,6 +452,10 @@ class Language (Item):
 
     def language (self):
         return self
+
+
+class Roms (View):
+    pass
 
 
 class Rom (Node):
@@ -475,10 +470,10 @@ class Text (Item):
 
     TypeString = 'text'
 
-    def __init__ (self, parent, name):
-        Item.__init__(self, parent, name)
+    def __init__ (self, parent, name, record):
+        Item.__init__(self, parent, name, record)
         self.props = Props(self, ['au', 'ti', 'ty', 'ch'])
-        self.sents = Sents(self)
+        self.sents = List(Sentence, self)
 
         self.add_children(self.sents)
         self.add_views(self.props, Plaintext(self))
@@ -510,8 +505,8 @@ class Sentence (Item):
 
     TypeString = 'sent'
 
-    def __init__ (self, parent, sn):
-        Item.__init__(self, parent, sn)
+    def __init__ (self, parent, name, record):
+        Item.__init__(self, parent, name, record)
         self.tokens = Tokens(self)
         self.times = Times(self)
         self.add_views(self.tokens)
@@ -520,7 +515,7 @@ class Sentence (Item):
         return self
 
     def string (self):
-        return self.record['w']
+        return self.record.get('w', '')
 
     def set_string (self, s):
         self.record['w'] = s
@@ -539,7 +534,7 @@ class Tokens (View):
         self.rebuild()
 
     def rebuild (self):
-        self._tokens = [Token(self, i, s) for (i, s) in enumerate(self.parent.record['w'].split())]
+        self._tokens = [Token(self, i, s) for (i, s) in enumerate(self.parent.record.get('w','').split())]
 
     def __len__ (self): return len(self._tokens)
     def __iter__ (self): return iter(self._tokens)
@@ -587,7 +582,7 @@ class Toc (View):
 
     def __init__ (self, lang):
         View.__init__(self, lang)
-        # _parents maps sn -> node
+        # _parents maps child name -> parent item
         self._parents = None
         self._roots = None
 
@@ -602,44 +597,29 @@ class Toc (View):
             self._parents = parent_table = {}
             for parent_text in lang.texts:
                 if 'ch' in parent_text.record:
-                    for child_nid in parent_text.record['ch'].split():
+                    for child_name in parent_text.record['ch'].split():
                         # silently overwrites any older value
-                        parent_table[child_nid] = parent_text
+                        parent_table[child_name] = parent_text
         return self._parents
 
     def parent (self, text):
-        return self._need_parents().get(text.sn)
+        return self._need_parents().get(text.name)
 
     def roots (self):
         if self._roots is None:
             parent_table = self._need_parents()
             lang = self.parent
             assert isinstance(lang, Language)
-            print('parent_table=', parent_table)
-            self._roots = [text for text in lang.texts if not parent_table.get(text.nid)]
+            # print('parent_table=', parent_table)
+            self._roots = [text for text in lang.texts if not parent_table.get(text.name)]
         return self._roots
 
 
 class Plaintext (View):
-    pass
 
-
-#--  Lists  --------------------------------------------------------------------
-
-class Corpora (List):
-    ElementClass = Corpus
-
-class Langs (List):
-    ElementClass = Language
-
-class Roms (List):
-    ElementClass = Rom
-
-class Texts (List):
-    ElementClass = Text
-
-class Sents (List):
-    ElementClass = Sentence
+    def __init__ (self, text):
+        View.__init__(self, text)
+        self.sents = text.sents
 
 
 #--  CLD file format  ----------------------------------------------------------

@@ -1,7 +1,7 @@
 
 >>> from selkie.data import ex
->>> from selkie.corpus.corpus import open_cld_file
->>> fi = open_cld_file(ex('corp29.cld'))
+>>> from selkie.corpus.corpus import CLDFile
+>>> fi = CLDFile(ex('corp29.cld'))
 >>> list(fi.contents)
 ['corp.corp29']
 >>> corpus = fi.contents['corp.corp29']

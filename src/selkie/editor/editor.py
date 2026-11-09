@@ -1,8 +1,8 @@
 
 from asyncio import ensure_future
 from pathlib import Path
-from ..corpus import (View, Registry, Corpus, Node, Language,
-                      Toc, Text, Plaintext, Sents, Sentence, Tokens, Props, Roms, Rom)
+from ..corpus import (View, List, Registry, Corpus, Node, Language,
+                      Toc, Text, Plaintext, Sentence, Tokens, Props, Roms, Rom)
 from ..wap import Element, EditableCell, UploadedFile
 
 
@@ -86,13 +86,16 @@ class Editor (Element):
         if isinstance(item, View):
             view = item
             item = view.view_of
+            item.current_view = view
         else:
             view = item.current_view
         self.selected = item
         item.select()
         self.clear()
-        call = view.page()
-        self.create(*call)
+        displayable = view.get_displayable()
+        if displayable.Page is None:
+            raise Exception('Page is missing')
+        self.create(displayable.Page, displayable)
 
 #     def update_location (self, item):
 #         if isinstance(item, Node):
@@ -231,7 +234,7 @@ class PlainTextPanel (Element):
 
     def __init__ (self, parent, sents):
         Element.__init__(self, parent, 'div')
-        assert isinstance(sents, Sents)
+        assert isinstance(sents, List) and sents.ElementClass is Sentence
         self.sents = sents
         self.table = self.Table(classname='grid')
 
@@ -356,6 +359,9 @@ class StandardPage (Page):
         h2 = self.H2()
         h2.write(node.display_string())
         if node.views and len(node.views) > 1:
+            h2.write(' ')
+            b = h2.bold()
+            b.write(selected_view.view_type)
             h2.write(' : ')
             for view in node.views:
                 button = h2.Button(view.view_type, (editor.edit, view))
@@ -440,7 +446,7 @@ class TocPage (StandardPage):
         ul = parent.UL()
         for text in texts:
             li = ul.LI()
-            li.Button(text=f'[{text.nid}] {text.title()}', action=(self.editor.edit, text))
+            li.Button(text=f'[{text.name}] {text.title()}', action=(self.editor.edit, text))
             children = text.children()
             if children:
                 self._produce_ul(li, children)
@@ -448,9 +454,9 @@ class TocPage (StandardPage):
 
 class PlaintextPage (StandardPage):
 
-    def __init__ (self, editor, text):
-        StandardPage.__init__(self, editor, text)
-        self.create(PlainTextPanel, text)
+    def __init__ (self, editor, plaintext):
+        StandardPage.__init__(self, editor, plaintext)
+        self.create(PlainTextPanel, plaintext.sents)
 
 
 class IGTPage (StandardPage):

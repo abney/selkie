@@ -1,0 +1,35 @@
+
+>>> import tempfile
+>>> tmp = tempfile.NamedTemporaryFile()
+
+>>> from selkie.corpus import open_corpus
+>>> corpus = open_corpus(tmp.name, 'test')
+
+>>> deu = corpus.langs.new('deu')
+>>> deu
+<Language deu>
+>>> corpus.langs['deu'] is deu
+True
+
+>>> text = deu.texts.new()
+>>> text
+<Text deu.1>
+>>> sent = text.sents.new()
+>>> sent
+<Sentence deu.1.1>
+>>> list(sent.tokens)
+[]
+
+>>> sent.set_string('es war einmal ein Koenig')
+>>> list(sent.tokens)
+[<Token 0 es>, <Token 1 war>, <Token 2 einmal>, <Token 3 ein>, <Token 4 Koenig>]
+
+>>> sent.save()
+>>> print(corpus.file.location.read())
+#!selkie file cld29
+corp.test
+lang.deu
+text.1
+sent.1
+w es war einmal ein Koenig
+<BLANKLINE>

@@ -10,59 +10,81 @@ Concrete example
 Having a concrete example in mind will make it easier to discuss the
 general definition. Here is an example of a file in CLD format::
 
-    lang.deu
-      name German
-      glot stan1295
-      iso3 deu
-      text.1
-        ti Eine kleine Geschichte
-        ty story
-        ch 2 3
-      text.2
-        ti p1
-        ty page
-        sent.1
-          w in einem kleinen Dorf am Fluss wohnte ein Schuster
-          tr in a little village on a river there lived a cobbler
-        sent.2
-          w der Schuster war sehr arm
-          tr the cobbler was very poor
-      text.3
-        ti p2
-        ty page
-        sent.1
-          w eines Tages begegnete der Schuster einen Bettler
-          tr one day the cobbler met a beggar
-          times
-            t.0 1.495800
-            t.2 1.939400
-            t.5 2.783300
-            t.7 3.326900
-        sent.2
-          w Ende
-          tr the end
-          times
-            t.0 3.688200
-            t.1 3.928300
-      lexicon
-        form.eines
-          pp ein -gen
-          g of a(n)
-        form.ein
-          g a(n)
-        form.-gen
-          g (genitive case)
-        form.Schuster
-          g cobbler
+   corp.corp29
+     lang.deu
+       name German
+       glot stan1295
+       iso3 deu
+       text.1
+         ti Eine kleine Geschichte
+         ty story
+         ch 2 3
+       text.2
+         ti p1
+         ty page
+         sent.1
+           w in einem kleinen Dorf am Fluss wohnte ein Schuster
+           tr in a little village on a river there lived a cobbler
+         sent.2
+           w der Schuster war sehr arm
+           tr the cobbler was very poor
+       text.3
+         ti p2
+         ty page
+         sent.1
+           w eines Tages begegnete der Schuster einen Bettler
+           tr one day the cobbler met a beggar
+           times
+             t.0 1.495800
+             t.2 1.939400
+             t.5 2.783300
+             t.7 3.326900
+         sent.2
+           w Ende
+           tr the end
+           times
+             t.0 3.688200
+             t.1 3.928300
+       lexicon
+         form.eines
+           pp ein -gen
+           g of a(n)
+         form.ein
+           g a(n)
+         form.-gen
+           g (genitive case)
+         form.Schuster
+           g cobbler
 
 The indentation is optional; it makes the structure easier to see.
 
-Types
------
+The file is read into memory as a collection of nested dicts,
+using :py:mod:`selkie.pyx.dct`. The result is just
+like the result of reading a JSON file in which only dicts and strings
+are used::
 
-The corpus is read in as a nested dict, using :py:mod:`selkie.pyx.dct`.
-The dicts are called **records**.
-For example:
+   {"corp.corp29":
+      {"lang.deu":
+         {"name": "German",
+          "glot": "stan1295",
+          "iso3": "deu",
+          "text.1":
+             {"ti": "Eine kleine Geschichte",
+              "ty": "story",
+              "ch": "2 3"},
+           "text.2": { ... },
+           ...}}}
+
+Each of these dicts, other than the topmost one, is called a
+**record**. Each represents a corpus object.
+For example, the record ``{"name": "German", ...}`` represents a
+language in the corpus.
+
+Each record is the value of a **key**. That key names the object relative
+to its parent, and is called the **object key**. For example, the
+language object ``{"name": "German", ...}`` has key ``lang.deu``.
+
+The following provides an illustrative code snippet:
 
 >>> from selkie.data import ex
 >>> from selkie.corpus.corpus import open_cld_file
@@ -74,29 +96,49 @@ For example:
 >>> sent32
 {'w': 'Ende', 'tr': 'the end', 'times': {'t.0': '3.688200', 't.1': '3.928300'}}
 
-As usual, a dict associates **keys** with **values**.
-If a key contains a period, the period divides the key into an
-**attribute type** and **discriminator**. Otherwise, the entire key is
-considered to be the attribute type. If the value is an embedded record
-(rather than a string), the attribute type doubles as the record
-type.
+The value of each of the variables ``corpus``, ``deu``, ``text3``, and
+``sent32`` is a record representing a corpus object.
 
-For example, the key ``sent.2`` divides into type ``sent`` and
-discriminator ``2``, and ``sent`` is the type of the value, which is
-an embedded record.
+Record structure
+----------------
 
-The record type in turn determines which attribute
+A record can be uniquely identified within a corpus by its
+**pathname**, which is the sequence of keys that leads to it. For
+example, the record that was called ``sent32`` in the code snippet
+above has the pathname::
+
+   ("corp.corp29", "lang.deu", "text.3", "sent.2")
+
+Each of these keys consists of an **attribute** and a **name**, joined by a
+period. Not all keys contain a period: some keys, such ``iso3`` or
+``lexicon``, consist only of an attribute.
+
+The attributes in a pathname are predictable from the type of the
+object that the pathname identifies. For example, a sentence always
+has a pathname of form::
+
+   ("corpus.{}", "lang.{}", "text.{}", "sent.{}")
+
+where ``{}`` represents a wildcard to be filled by a name. Because of
+the predictability of the attributes, we can equally well identify an
+object by the name sequence alone (coupled with the object type).
+The name sequence is called the **item ID**. For
+example, ``sent32`` has item ID ``corp29.deu.3.2``. (Period is used
+as a separator in item IDs.) Usually, we omit the corpus name, and use
+the corpus-relative version ``deu.3.2``.
+
+The object type also determines which attribute
 types are legal within the record. In particular,
-the legal attribute types for a ``sent`` are ``w``, ``tr``, and ``times``.
-A ``times`` record, in turn, has only one legal attribute type, namely, ``t``.
+the legal attributes for a sentence are ``w``, ``tr``, and ``times``.
+A ``times`` record, in turn, has only one legal attribute, namely, ``t``.
 
 The following is a
-complete **signature**, listing all record types and their attribute
-types. The second column gives an example of a discriminator, for
-each record type that takes a discriminator.
+complete **signature**, listing all record types and their
+attributes. The second column gives an example of a name, for 
+each record type whose key includes a name.
 
 +----------+-------------+--------------------------------------------------+
-| **Type** | **Discrim** | **Attributes**                                   |
+| **Type** | **Name**    | **Attributes**                                   |
 +----------+-------------+--------------------------------------------------+
 | corp     | corp29      | lang, rom                                        |
 +----------+-------------+--------------------------------------------------+
@@ -121,51 +163,42 @@ each record type that takes a discriminator.
 | times    |             | t                                                |
 +----------+-------------+--------------------------------------------------+
 
-Since records are nested, the location of any record can be specified by
-giving the sequence of keys ("path") that one uses to reach it from the root.
-Concatenating the discriminators along that path gives the **pathname**
-for the record. For example, the pathname for sent32 (using period as
-a separator) is ``corp29.deu.3.2``.
-To identify a record within the corpus, the corpus discriminator may
-be omitted. The resulting relative pathname, such as ``deu.3.2`` is called the **item ID**. 
-The pairing of record type and item
-ID uniquely identifies the record in the corpus.
+The following table gives the pathname template for
+each object type, and an example of an item ID.
+The corpus is omitted from pathname templates and item IDs.
+The templates are written as lists of attributes. Attributes that are
+not associated with names are bracketted.
 
-The following table gives information about discriminators and
-item IDs. For each record type, it gives the parent record type, an example
-of the parent item ID, an example of the record's discriminator, and
-the resulting item ID for the record, which is the concatenation of
-the parent item ID and the discriminator.
-
-+----------+-----------+---------------+-------------+------------+
-| **Type** | **PType** | **PItemID**   | **Discrim** | **ItemID** |
-+----------+-----------+---------------+-------------+------------+
-| lang     | corp      |               | oji         | oji        | 
-+----------+-----------+---------------+-------------+------------+
-| rom      | corp      |               | gothic      | gothic     |
-+----------+-----------+---------------+-------------+------------+
-| text     | lang      | oji           | 1           | oji.1      |
-+----------+-----------+---------------+-------------+------------+
-| lexicon  | lang      | oji           |             | oji        |
-+----------+-----------+---------------+-------------+------------+
-| trans    | lang      | oji           | fra         | oji.fra    |
-+----------+-----------+---------------+-------------+------------+
-| sent     | text      | oji.1         | 1           | oji.1.1    |
-+----------+-----------+---------------+-------------+------------+
-| form     | lexicon   | oji           | aanii       | oji.aanii  |
-+----------+-----------+---------------+-------------+------------+
-| xlexicon | trans     | oji.fra       |             | oji.fra    |
-+----------+-----------+---------------+-------------+------------+
-| xtext    | trans     | oji.fra       | 1           | oji.fra.1  |
-+----------+-----------+---------------+-------------+------------+
-| times    | sent      | oji.1.1       |             | oji.1.1    |
-+----------+-----------+---------------+-------------+------------+
++----------+------------------------+------------+
+| **Type** | **PathTemplate**       | **ItemID** |
++----------+------------------------+------------+
+| lang     | lang                   | oji        | 
++----------+------------------------+------------+
+| rom      | rom                    | gothic     |
++----------+------------------------+------------+
+| text     | lang text              | oji.1      |
++----------+------------------------+------------+
+| lexicon  | lang [lexicon]         | oji        |
++----------+------------------------+------------+
+| trans    | lang trans             | oji.fra    |
++----------+------------------------+------------+
+| sent     | lang text sent         | oji.1.1    |
++----------+------------------------+------------+
+| form     | lang [lexicon] form    | oji.aanii  |
++----------+------------------------+------------+
+| xlexicon | lang trans [xlexicon]  | oji.fra    |
++----------+------------------------+------------+
+| xtext    | lang trans xtext       | oji.fra.1  |
++----------+------------------------+------------+
+| times    | lang text sent [times] | oji.1.1    |
++----------+------------------------+------------+
 
 Values
 ------
 
 The following tables describe the values associated with the attributes for
-each record type. The second column gives an example of a discriminator for the attribute.
+each record type. The second column gives an example of a name, for
+attributes that are paired with names.
 
 **Lang**
 
@@ -178,11 +211,11 @@ each record type. The second column gives an example of a discriminator for the 
 +----------+----------+----------------------------------------------+
 | userom   |          | a romid (optional)                           |
 +----------+----------+----------------------------------------------+
-| text     | 1        | a cob of type 'text'                         |
+| text     | 1        | a text record                                |
 +----------+----------+----------------------------------------------+
 | trans    | fra      | translations into French (cob)               |
 +----------+----------+----------------------------------------------+
-| lexicon  |          | a cob of type 'lexicon'                      |
+| lexicon  |          | a lexicon record                             |
 +----------+----------+----------------------------------------------+
 
 **Rom**
@@ -212,21 +245,21 @@ each record type. The second column gives an example of a discriminator for the 
 +----------+----------+----------------------------------------------+
 | xid      |          | an external identifier                       |
 +----------+----------+----------------------------------------------+
-| sent     | 1        | a cob of type 'sent'                         |
+| sent     | 1        | a sentence record                            |
 +----------+----------+----------------------------------------------+
 
 **Lexicon**
 
 +----------+----------+----------------------------------------------+
-| form     | aanii    | a cob of type 'form'                         |
+| form     | aanii    | a form record                                |
 +----------+----------+----------------------------------------------+
 
 **Trans**
 
 +----------+----------+----------------------------------------------+
-| xlexicon |          | a cob of type 'xlexicon'                     |
+| xlexicon |          | an xlexicon record                           |
 +----------+----------+----------------------------------------------+
-| xtext    | 1        | a cob of type 'xtext'                        |
+| xtext    | 1        | an xtext record                              |
 +----------+----------+----------------------------------------------+
 
 **Sent**
@@ -236,7 +269,7 @@ each record type. The second column gives an example of a discriminator for the 
 +----------+----------+----------------------------------------------+
 | tr       |          | sentence translation                         |
 +----------+----------+----------------------------------------------+
-| times    |          | a 'times' cob                                |
+| times    |          | a times record                               |
 +----------+----------+----------------------------------------------+
 
 **Form**

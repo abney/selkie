@@ -192,9 +192,10 @@ Generic classes
 
       The parent of this node (a Node).
 
-   .. py:method:: page()
+   .. py:method:: get_displayable()
 
-      Returns the pair (self.Page, self). Signals an error if Page is None.
+      If this node has a Page, this node itself is
+      returned. Otherwise, an error is signalled.
 
    .. py:method:: root()
 
@@ -237,7 +238,8 @@ Generic classes
 
    .. py:attribute:: name
 
-      The discriminator, or None.
+      The name portion of the item's key, or None. The item key consists of
+      the TypeString and the name, separated by a dot.
 
    .. py:attribute:: element_of
 
@@ -259,7 +261,7 @@ Generic classes
 
    .. py:attribute:: itemid
 
-      A string; dot-separated discriminators from the corpus down to
+      A string; dot-separated names from the corpus down to
       this node.
 
    .. py:attribute:: record
@@ -268,7 +270,7 @@ Generic classes
 
    .. py:method:: display_string()
 
-      Returns the TypeString plus the itemid (a string).
+      Returns the TypeString plus the itemid, separated by space.
 
    .. py:method:: add_children(lst)
 
@@ -340,6 +342,11 @@ Generic classes
 
       Displayable defaults to self. View type defaults to the class
       name of the displayable, in lower case.
+
+   .. py:method:: get_displayable()
+
+      Returns the displayable, unless the displayable has no Page, in
+      which case an error is signalled.
 
    .. py:method:: select()
 
